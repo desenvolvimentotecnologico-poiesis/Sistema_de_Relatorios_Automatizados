@@ -48,60 +48,46 @@ function getFormattedMonthName(monthStr) {
 function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, tipoPedagogico, divisaoRegional, responsavel) {
   try {
     const rootFolder = getRootFolderConnection();
+    const fabricasFolder = getOrCreateSubFolder(rootFolder, "Fábricas de Cultura");
     
-    const dateParts = dataRelatorio.split("-");
-    const anoStr = dateParts[0];
-    const mesNum = dateParts[1] || "01";
-    const mesStr = getFormattedMonthName(mesNum);
+    let dateParts = (dataRelatorio || "").split("-");
+    let anoStr = dateParts[0] && dateParts[0].length === 4 ? dateParts[0] : new Date().getFullYear().toString();
+    let mesNum = dateParts[1] || "01";
+    let mesStr = getFormattedMonthName(mesNum);
+
+    const setorUpper = setor ? setor.trim().toUpperCase() : "PEDAGÓGICO";
+    const cleanAtividadeName = Utils.sanitizeFileName(atividade ? atividade.trim() : "").toUpperCase().replace(/\s+/g, "_");
     
-    let folderDateStr = dataRelatorio;
-    if (dateParts.length === 3 && dateParts[0].length === 4) {
-      folderDateStr = dateParts[2] + "-" + dateParts[1] + "-" + dateParts[0];
-    }
-    
-    const cleanAtividadeName = Utils.sanitizeFileName(atividade.trim()).toUpperCase().replace(/\s+/g, "_");
-    
-    const setorFolder = getOrCreateSubFolder(rootFolder, setor.trim().toUpperCase());
+    const setorFolder = getOrCreateSubFolder(fabricasFolder, setor.trim());
     const anoFolder = getOrCreateSubFolder(setorFolder, anoStr);
     
     let parentFolder;
-    let atividadeFolderName;
     
-    if (setor.trim().toUpperCase() === "FUNDAÇÃO CASA") {
+    if (setorUpper === "FUNDAÇÃO CASA") {
       const drFolder = getOrCreateSubFolder(anoFolder, divisaoRegional ? divisaoRegional.trim() : "DR INDEFINIDA");
-      const unidadeFolder = getOrCreateSubFolder(drFolder, unidade.trim());
-      const mesFolder = getOrCreateSubFolder(unidadeFolder, mesStr);
-      parentFolder = mesFolder;
-      
-      const cleanResponsavelName = Utils.sanitizeFileName(responsavel ? responsavel.trim() : "").toUpperCase().replace(/\s+/g, "_");
-      atividadeFolderName = folderDateStr + "_" + cleanAtividadeName + "_" + cleanResponsavelName;
+      const drUnidadeFolder = getOrCreateSubFolder(drFolder, unidade ? unidade.trim() : "UNIDADE");
+      parentFolder = getOrCreateSubFolder(drUnidadeFolder, mesStr);
     } else {
-      const unidadeFolder = getOrCreateSubFolder(anoFolder, unidade.trim());
+      const unidadeFolder = getOrCreateSubFolder(anoFolder, unidade ? unidade.trim() : "UNIDADE");
       const mesFolder = getOrCreateSubFolder(unidadeFolder, mesStr);
       
       parentFolder = mesFolder;
-      if (setor.trim().toUpperCase() === "PEDAGÓGICO" && tipoPedagogico) {
+      if (setorUpper === "PEDAGÓGICO" && tipoPedagogico) {
         parentFolder = getOrCreateSubFolder(mesFolder, tipoPedagogico.trim());
       }
-      
-      atividadeFolderName = folderDateStr + "_" + cleanAtividadeName;
     }
     
-    const activityFolder = getOrCreateSubFolder(parentFolder, atividadeFolderName);
+    const activityFolder = getOrCreateSubFolder(parentFolder, cleanAtividadeName);
     
     let listaPresencaFolder = null;
     let relacaoInscritosFolder = null;
-    let registroFolder = null;
-    
-    if (setor.trim().toUpperCase() !== "FUNDAÇÃO CASA") {
-      if (setor.trim().toUpperCase() !== "ARTICULAÇÃO E DIFUSÃO") {
-        listaPresencaFolder = getOrCreateSubFolder(activityFolder, "Lista de Presença");
-        relacaoInscritosFolder = getOrCreateSubFolder(activityFolder, "Relação de Inscritos");
-      }
-      registroFolder = getOrCreateSubFolder(activityFolder, "Registro Fotográfico");
+    let registroFolder = getOrCreateSubFolder(activityFolder, "Registro Fotográfico");
+    let relatorioFolder = getOrCreateSubFolder(activityFolder, "Relatório");
+
+    if (setorUpper === "PEDAGÓGICO") {
+      listaPresencaFolder = getOrCreateSubFolder(activityFolder, "Lista de Presença");
+      relacaoInscritosFolder = getOrCreateSubFolder(activityFolder, "Relação de Inscritos");
     }
-    
-    const relatorioFolder = getOrCreateSubFolder(activityFolder, "Relatório");
     
     return {
       activityFolder: activityFolder,

@@ -17,11 +17,16 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCharacterCounters();
 });
 
-/* Overlay de Carregamento */
-function showOverlay(message) {
+/* Overlay de Carregamento Intuitivo com Barra de Progresso */
+function showOverlay(message, percent = 10, title = "Processando Formulário...") {
   const overlay = document.getElementById("loadingOverlay");
   const msgEl = document.getElementById("overlayMessage");
+  const titleEl = document.getElementById("overlayStepTitle");
+  const barFill = document.getElementById("loadingProgressBarFill");
+
+  if (titleEl) titleEl.textContent = title;
   if (msgEl && message) msgEl.textContent = message;
+  if (barFill && percent !== undefined) barFill.style.width = `${percent}%`;
   if (overlay) overlay.classList.remove("hidden");
 }
 
@@ -362,7 +367,7 @@ function setupFormSubmission() {
     formDataObj.files = uploadedFiles;
     currentSubmittedData = formDataObj;
 
-    showOverlay("Etapa 1: Salvando respostas no Google Sheets e fotos no Drive...");
+    showOverlay("Salvando dados da atividade na planilha e fotos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações");
 
     callBackendAPI(
       "submitForm",
@@ -446,7 +451,7 @@ function onStage1Success(response) {
     return;
   }
 
-  showOverlay("Etapa 2: Compilando relatório institucional em PDF no Google Docs...");
+  showOverlay("Compilando documento oficial e exportando PDF no Google Drive...", 75, "Etapa 2 de 2: Gerando PDF");
 
   const stage1Data = response;
   callBackendAPI(

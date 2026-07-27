@@ -42,15 +42,33 @@ function getTemplateFileConnection(area) {
 function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
   try {
     if (!data) data = {};
-    data.area = data.area || data.setor || "Pedagógico";
-    const templateFile = getTemplateFileConnection(data.area);
-    
+    const setorUpper = data.area ? data.area.trim().toUpperCase() : "PEDAGÓGICO";
     const cleanUnidade = Utils.sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
     const cleanResponsavel = Utils.sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
     const cleanAtividade = Utils.sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
     
-    const documentName = "RELATÓRIO_MENSAL_DE_ATIVIDADES_" + cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade;
+    let documentName = "";
     
+    if (setorUpper === "PEDAGÓGICO") {
+      // Padrão Pedagógico: unidade_nomeResponsavel_nomeAtividade
+      documentName = cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade;
+    } else if (setorUpper === "ARTICULAÇÃO E DIFUSÃO") {
+      // Padrão Articulação: dataDoPrimeiroDiaDaAtividade_unidade_nomeDoEvento
+      let diaStr = data.diasAtividade ? String(data.diasAtividade).split(",")[0].trim() : "01";
+      if (diaStr.length === 1) diaStr = "0" + diaStr;
+      const mesStr = data.mesReferencia || "01";
+      const anoStr = data.anoReferencia || new Date().getFullYear().toString();
+      const dataFormatada = diaStr + "-" + mesStr + "-" + anoStr;
+      documentName = dataFormatada + "_" + cleanUnidade + "_" + cleanAtividade;
+    } else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") {
+      // Padrão Biblioteca: dataDaAtividade_unidade_nomeAtividade_nomeResponsavel
+      let dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
+      documentName = dataAtiv + "_" + cleanUnidade + "_" + cleanAtividade + "_" + cleanResponsavel;
+    } else {
+      documentName = cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade;
+    }
+    
+    const templateFile = getTemplateFileConnection(data.area || data.setor);
     const copiedFile = templateFile.makeCopy(documentName, targetFolder);
     const doc = DocumentApp.openById(copiedFile.getId());
     const body = doc.getBody();
