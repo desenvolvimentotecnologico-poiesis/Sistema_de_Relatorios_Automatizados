@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDragAndDrop();
   setupFormSubmission();
   setupOutroFieldsListeners();
+  setupCharacterCounters();
 });
 
 /* Overlay de Carregamento */
@@ -41,6 +42,8 @@ function onDropdownDataReceived(response) {
   dropDownHierarchy = hierarchy;
 
   const unidadeSelect = document.getElementById("unidadeSelect");
+  const tipoPedagogicoSelect = document.getElementById("tipoPedagogicoSelect");
+
   if (unidadeSelect) {
     unidadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade...</option>';
     
@@ -53,7 +56,11 @@ function onDropdownDataReceived(response) {
       }
     });
 
-    unidadeSelect.addEventListener("change", handleUnidadeChange);
+    unidadeSelect.addEventListener("change", updateAtividadeDropdown);
+  }
+
+  if (tipoPedagogicoSelect) {
+    tipoPedagogicoSelect.addEventListener("change", updateAtividadeDropdown);
   }
 
   // Preenche a Divisão Regional da Fundação Casa se estiver presente
@@ -76,19 +83,54 @@ function onDropdownDataError(errMessage) {
   alert("Aviso de Conexão: " + errMessage);
 }
 
-function handleUnidadeChange(e) {
-  const unidade = e.target.value;
+function updateAtividadeDropdown() {
+  const unidadeSelect = document.getElementById("unidadeSelect");
+  const tipoSelect = document.getElementById("tipoPedagogicoSelect");
   const atividadeSelect = document.getElementById("atividadeSelect");
+
   if (!atividadeSelect) return;
+
+  const unidade = unidadeSelect ? unidadeSelect.value : "";
+  const tipo = tipoSelect ? tipoSelect.value : "";
+
+  // Se o campo de tipo existir no formulário, exige a seleção dos dois antes de liberar a Atividade
+  if (tipoSelect && (!unidade || !tipo)) {
+    atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade e o Tipo primeiro...</option>';
+    atividadeSelect.disabled = true;
+    return;
+  }
+
+  if (!unidade) {
+    atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade primeiro...</option>';
+    atividadeSelect.disabled = true;
+    return;
+  }
 
   atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Atividade...</option>';
   atividadeSelect.disabled = false;
 
-  const items = dropDownHierarchy[unidade] || [];
-  items.forEach(item => {
+  const rawItems = dropDownHierarchy[unidade] || [];
+  let filteredItems = rawItems;
+
+  if (tipo) {
+    const tipoNorm = tipo.toLowerCase().trim();
+    filteredItems = rawItems.filter(item => {
+      if (typeof item === "string") return true;
+      if (!item.type) return true;
+      const itemTypeNorm = item.type.toLowerCase().trim();
+      return itemTypeNorm.includes(tipoNorm) || tipoNorm.includes(itemTypeNorm);
+    });
+  }
+
+  if (filteredItems.length === 0) {
+    filteredItems = rawItems; // Fallback para exibir todos se o filtro for estrito
+  }
+
+  filteredItems.forEach(item => {
+    const name = typeof item === "string" ? item : item.name;
     const opt = document.createElement("option");
-    opt.value = item.name;
-    opt.textContent = item.name;
+    opt.value = name;
+    opt.textContent = name;
     atividadeSelect.appendChild(opt);
   });
 }
@@ -110,7 +152,7 @@ function handleDivisaoCasaChange(e) {
   });
 }
 
-/* 2. CONFIGURAÇÃO DE CAMPOS "OUTRO" DINÂMICOS */
+/* 2. CONFIGURAÇÃO DE CAMPOS "OUTRO" DINÂMICOS E CONTADORES */
 function setupOutroFieldsListeners() {
   document.querySelectorAll('input[type="checkbox"][value="Outro"]').forEach(chk => {
     chk.addEventListener("change", (e) => {
@@ -118,9 +160,51 @@ function setupOutroFieldsListeners() {
       const input = row ? row.querySelector(".input-inline-outro") : null;
       if (input) {
         input.disabled = !e.target.checked;
-        if (e.target.checked) input.focus();
+        if (e.target.checked) {
+          input.focus();
+        } else {
+          input.value = "";
+        }
       }
     });
+  });
+}
+
+function setupCharacterCounters() {
+  const fields = document.querySelectorAll("[data-min-length], [data-max-length]");
+  fields.forEach(field => {
+    const minLen = parseInt(field.getAttribute("data-min-length") || "0", 10);
+    const maxLen = parseInt(field.getAttribute("data-max-length") || "0", 10);
+
+    // Cria elemento de contador abaixo do campo se não existir
+    let counterEl = field.parentElement.querySelector(".char-counter");
+    if (!counterEl) {
+      counterEl = document.createElement("div");
+      counterEl.className = "char-counter";
+      field.parentElement.appendChild(counterEl);
+    }
+
+    function updateCounter() {
+      const currentLen = field.value.length;
+      let text = `${currentLen}`;
+
+      if (maxLen > 0) {
+        text += ` / ${maxLen}`;
+      }
+      text += ` caracteres`;
+
+      if (minLen > 0 && currentLen < minLen) {
+        text += ` (Mínimo: ${minLen})`;
+        counterEl.className = "char-counter invalid";
+      } else {
+        counterEl.className = "char-counter valid";
+      }
+
+      counterEl.textContent = text;
+    }
+
+    field.addEventListener("input", updateCounter);
+    updateCounter(); // Executa inicial
   });
 }
 

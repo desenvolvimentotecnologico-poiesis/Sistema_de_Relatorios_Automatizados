@@ -15,7 +15,7 @@
   <div id="loadingOverlay" class="loading-overlay hidden">
     <div class="spinner-container">
       <div class="spinner"></div>
-      <p id="overlayMessage">Carregando...</p>
+      <p id="overlayMessage">Carregando unidades institucionais...</p>
     </div>
   </div>
 
@@ -45,174 +45,362 @@
         </a>
         <div class="badge-text">
           <span class="badge-label">ÁREA SELECIONADA</span>
-          <span class="badge-value">Pedagógico</span>
+          <span class="badge-value">Formação Cultural • Pedagógico</span>
         </div>
       </div>
 
       <!-- Card de Apresentação Oficial -->
       <div class="form-presentation-card">
-        <h2>Relatório Mensal de Atividades Pedagógicas</h2>
+        <h2>Relatório de Execução e Monitoramento de Atividade - Formação Cultural - Fábrica de Cultura</h2>
         <div class="divider-line"></div>
-        <p>Formulário oficial para registro de encontros, carga horária, público e síntese pedagógica dos ateliês e trilhas de formação das Fábricas de Cultura.</p>
+        <p>Este formulário tem como objetivo registrar, monitorar e sistematizar as ações desenvolvidas pela área de Formação Cultural nas Fábricas de Cultura, contemplando aspectos pedagógicos, metodológicos, territoriais e de participação dos públicos envolvidos.</p>
+        <p style="margin-top: 0.65rem;">As informações reunidas subsidiam o acompanhamento institucional das atividades, a avaliação de processos formativos, a consolidação de indicadores, a prestação de contas e a construção da memória institucional do Programa, contribuindo para o fortalecimento das trajetórias artístico-pedagógicas desenvolvidas nos territórios.</p>
       </div>
 
       <form id="reportForm" data-theme="pedagogico">
         <input type="hidden" name="setor" value="Pedagógico">
 
-        <!-- Seção 1: Identificação -->
+        <!-- Seção 1: Identificação da Atividade -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">01</span>
             Identificação da Atividade
           </legend>
           <div class="form-grid">
+            
             <div class="form-group">
-              <label for="unidadeSelect">Unidade Poiesis <span class="required">*</span></label>
+              <label for="unidadeSelect">Unidade <span class="required">*</span></label>
               <div class="select-wrapper">
                 <select id="unidadeSelect" name="unidade" required>
-                  <option value="" disabled selected>Carregando unidades...</option>
+                  <option value="" disabled selected>Selecione a Unidade...</option>
                 </select>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="atividadeSelect">Nome da Atividade / Ateliê <span class="required">*</span></label>
+              <label for="numeroContrato">Número do Contrato <span class="required">*</span></label>
+              <input type="text" id="numeroContrato" name="numeroContrato" placeholder="Ex:025/2026" required>
+            </div>
+
+            <div class="form-group">
+              <label for="metaReferencia">Meta de Referência <span class="required">*</span></label>
               <div class="select-wrapper">
-                <select id="atividadeSelect" name="atividade" required disabled>
-                  <option value="" disabled selected>Selecione a Unidade primeiro...</option>
+                <select id="metaReferencia" name="metaReferencia" required>
+                  <option value="" disabled selected>Selecione a Meta...</option>
+                  <option value="3. Ateliês de Criação">3. Ateliês de Criação</option>
+                  <option value="5. Trilhas de Produção">5. Trilhas de Produção</option>
+                  <option value="14. Folia - Curso Livre de Artes Circenses">14. Folia - Curso Livre de Artes Circenses</option>
+                  <option value="16 . Núcleo Heliópolis – Trilhas">16 . Núcleo Heliópolis – Trilhas</option>
+                  <option value="17. Núcleo Heliópolis – Ateliês">17. Núcleo Heliópolis – Ateliês</option>
+                  <option value="18. Núcleo de Moda (Formação)">18. Núcleo de Moda (Formação)</option>
+                  <option value="19. Núcleo Taipas – Trilhas">19. Núcleo Taipas – Trilhas</option>
+                  <option value="22. Fábricas de Cultura e SME">22. Fábricas de Cultura e SME</option>
+                  <option value="24. Saídas Pedagógicas">24. Saídas Pedagógicas</option>
                 </select>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="tipoPedagogicoSelect">Tipo (Trilha / Ateliê) <span class="required">*</span></label>
+              <label for="tipoPedagogicoSelect">Trilha ou Ateliê? <span class="required">*</span></label>
               <div class="select-wrapper">
                 <select id="tipoPedagogicoSelect" name="tipoPedagogico" required>
-                  <option value="" disabled selected>Selecione o Tipo...</option>
-                  <option value="Ateliês de Formação">Ateliês de Formação</option>
-                  <option value="Trilhas de Formação">Trilhas de Formação</option>
-                  <option value="Formação Continuada">Formação Continuada</option>
-                  <option value="Eventual / Especial">Eventual / Especial</option>
+                  <option value="" disabled selected>Selecione...</option>
+                  <option value="Trilha">Trilha</option>
+                  <option value="Ateliê">Ateliê</option>
                 </select>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="responsavel">Nome do Responsável / Formador <span class="required">*</span></label>
-              <input type="text" id="responsavel" name="responsavel" placeholder="Digite seu nome completo" required>
+              <label for="atividadeSelect">Atividade <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="atividadeSelect" name="atividade" required disabled>
+                  <option value="" disabled selected>Selecione a Unidade e o Tipo primeiro...</option>
+                </select>
+              </div>
             </div>
 
             <div class="form-group">
-              <label for="dataRelatorio">Data de Referência <span class="required">*</span></label>
-              <input type="date" id="dataRelatorio" name="dataRelatorio" required>
+              <label for="responsavel">Responsável pela Execução <span class="required">*</span></label>
+              <input type="text" id="responsavel" name="responsavel" placeholder="Nome Completo" required>
             </div>
+
+            <div class="form-group">
+              <label for="anoReferencia">Ano de Referência <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="anoReferencia" name="anoReferencia" required>
+                  <option value="" disabled selected>Selecione o ano...</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="mesReferencia">Mês de Referência <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="mesReferencia" name="mesReferencia" required>
+                  <option value="" disabled selected>Selecione o mês...</option>
+                  <option value="Janeiro">Janeiro</option>
+                  <option value="Fevereiro">Fevereiro</option>
+                  <option value="Março">Março</option>
+                  <option value="Abril">Abril</option>
+                  <option value="Maio">Maio</option>
+                  <option value="Junho">Junho</option>
+                  <option value="Julho">Julho</option>
+                  <option value="Agosto">Agosto</option>
+                  <option value="Setembro">Setembro</option>
+                  <option value="Outubro">Outubro</option>
+                  <option value="Novembro">Novembro</option>
+                  <option value="Dezembro">Dezembro</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="encontrosPrevistos">Quantidade de encontros previstos no período <span class="required">*</span></label>
+              <input type="text" id="encontrosPrevistos" name="encontrosPrevistos" placeholder="Ex: 8" required>
+            </div>
+
+            <div class="form-group">
+              <label for="encontrosRealizados">Quantidade de encontros realizados no período <span class="required">*</span></label>
+              <input type="text" id="encontrosRealizados" name="encontrosRealizados" placeholder="Ex: 8" required>
+            </div>
+
+            <div class="form-group">
+              <label for="cargaHorariaPrevista">Carga horária prevista <span class="required">*</span></label>
+              <input type="text" id="cargaHorariaPrevista" name="cargaHorariaPrevista" placeholder="Ex: 32h ou 32:00" required>
+              <span class="helper-text-input">Digite a carga horária prevista (pode exceder 23 horas).</span>
+            </div>
+
+            <div class="form-group">
+              <label for="cargaHorariaRealizada">Carga horária realizada <span class="required">*</span></label>
+              <input type="text" id="cargaHorariaRealizada" name="cargaHorariaRealizada" placeholder="Ex: 32h ou 32:00" required>
+              <span class="helper-text-input">Digite a carga horária realizada (pode exceder 23 horas).</span>
+            </div>
+
+            <div class="form-group">
+              <label for="dataReposicao">Data de eventual reposição</label>
+              <input type="date" id="dataReposicao" name="dataReposicao">
+              <span class="helper-text-input">Selecione somente uma se houver (Item não obrigatório).</span>
+            </div>
+
+            <div class="form-group">
+              <label for="publicoTotal">Público Total <span class="required">*</span></label>
+              <input type="text" id="publicoTotal" name="publicoTotal" placeholder="Ex: 450" required>
+            </div>
+
+            <div class="form-group">
+              <label>Faixa Etária Predominante <span class="required">*</span></label>
+              <div class="checkbox-grid">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="faixaEtaria" value="Crianças (de 6 a 11 anos)">
+                  <span>Crianças (de 6 a 11 anos)</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="faixaEtaria" value="Adolescentes (de 12 a 17 anos)">
+                  <span>Adolescentes (de 12 a 17 anos)</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="faixaEtaria" value="Jovem (de 18 a 24 anos)">
+                  <span>Jovem (de 18 a 24 anos)</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="faixaEtaria" value="Adulto (de 25 a 59 anos)">
+                  <span>Adulto (de 25 a 59 anos)</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="faixaEtaria" value="Idoso (acima de 60 anos)">
+                  <span>Idoso (acima de 60 anos)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="perfilPublico">Perfil do Público <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 100 caracteres e máximo de 300 caracteres.</p>
+              <textarea id="perfilPublico" name="perfilPublico" placeholder="Descreva as principais características do público atendido..." data-min-length="100" data-max-length="300" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="destaqueAcao">Destaque da Ação <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 100 caracteres.</p>
+              <textarea id="destaqueAcao" name="destaqueAcao" placeholder="Frase curta de impacto resumindo a ação." data-min-length="100" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="objetivos">Objetivos da atividade/período <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 100 caracteres.</p>
+              <textarea id="objetivos" name="objetivos" placeholder="Descreva os objetivos pretendidos." data-min-length="100" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Impacto Territorial/Cultural <span class="required">*</span></label>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Ampliação do acesso à cultura"> <span>Ampliação do acesso à cultura</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Fortalecimento do vínculo comunitário"> <span>Fortalecimento do vínculo comunitário</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Formação e desenvolvimento de públicos"> <span>Formação e desenvolvimento de públicos</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Valorização da diversidade cultural"> <span>Valorização da diversidade cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Incentivo ao sentimento de pertencimento"> <span>Incentivo ao sentimento de pertencimento</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Ampliação de repertórios culturais e artísticos"> <span>Ampliação de repertórios culturais e artísticos</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Promoção da convivência e participação social"> <span>Promoção da convivência e participação social</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Fortalecimento de redes e parcerias"> <span>Fortalecimento de redes e parcerias</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Incentivo à formação e ao desenvolvimento criativo"> <span>Incentivo à formação e ao desenvolvimento criativo</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Promoção da inclusão e acessibilidade cultural"> <span>Promoção da inclusão e acessibilidade cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Estímulo à continuidade formativa e cultural"> <span>Estímulo à continuidade formativa e cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Fortalecimento da memória e identidade cultural"> <span>Fortalecimento da memória e identidade cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Desenvolvimento de oportunidades na Economia Criativa"> <span>Desenvolvimento de oportunidades na Economia Criativa</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Integração entre linguagens, áreas e públicos"> <span>Integração entre linguagens, áreas e públicos</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Transformação social por meio da cultura"> <span>Transformação social por meio da cultura</span></label>
+                
+                <div class="checkbox-outro-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="impactoTerritorial" value="Outro">
+                    <span class="font-bold text-fabrica-purple">Outro:</span>
+                  </label>
+                  <input type="text" class="input-inline-outro" name="impactoTerritorialOutro" placeholder="Digite outro impacto cultural..." disabled>
+                </div>
+              </div>
+            </div>
+
           </div>
         </fieldset>
 
-        <!-- Seção 2: Carga Horária e Encontros -->
+        <!-- Seção 2: Relato e Análise Crítica -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">02</span>
-            Carga Horária e Encontros
+            Relato e Análise Crítica
           </legend>
+
+          <p class="section-description-text">Descreva qualitativamente a execução da atividade, contemplando metodologia, participação do público, resultados observados, impactos identificados, aspectos operacionais relevantes, desafios enfrentados e avaliações que contribuam para o monitoramento e aperfeiçoamento das ações desenvolvidas.</p>
+
           <div class="form-grid">
             <div class="form-group">
-              <label for="encontrosPrevistos">Encontros Previstos</label>
-              <input type="number" id="encontrosPrevistos" name="encontrosPrevistos" min="0" placeholder="Ex: 4">
+              <label for="descricaoMetodologia">Descrição das atividades e metodologia <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 200 caracteres.</p>
+              <textarea id="descricaoMetodologia" name="descricaoMetodologia" placeholder="Descreva as atividades desenvolvidas, os conteúdos ou linguagens trabalhados, a metodologia utilizada e eventuais adaptações realizadas durante a execução." data-min-length="200" required></textarea>
             </div>
+
             <div class="form-group">
-              <label for="encontrosRealizados">Encontros Realizados</label>
-              <input type="number" id="encontrosRealizados" name="encontrosRealizados" min="0" placeholder="Ex: 4">
+              <label for="engajamentoParticipacao">Engajamento e Participação <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 200 caracteres.</p>
+              <textarea id="engajamentoParticipacao" name="engajamentoParticipacao" placeholder="Descrever, de maneira sucinta, a participação geral da turma, a adesão às propostas, o interesse demonstrado, a colaboração entre os participantes, o protagonismo observado e outros elementos relevantes identificados durante o desenvolvimento das atividades." data-min-length="200" required></textarea>
             </div>
+
             <div class="form-group">
-              <label for="cargaHorariaPrevista">Carga Horária Prevista (horas)</label>
-              <input type="number" step="0.5" id="cargaHorariaPrevista" name="cargaHorariaPrevista" placeholder="Ex: 16">
+              <label>Pontos Fortes <span class="required">*</span></label>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Participação ativa do público"> <span>Participação ativa do público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Forte adesão da comunidade"> <span>Forte adesão da comunidade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Engajamento dos participantes"> <span>Engajamento dos participantes</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Qualidade artística da atividade"> <span>Qualidade artística da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Metodologia adequada ao público"> <span>Metodologia adequada ao público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Integração entre áreas"> <span>Integração entre áreas</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Boa articulação territorial"> <span>Boa articulação territorial</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Participação de artistas locais"> <span>Participação de artistas locais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Organização e fluxo da atividade"> <span>Organização e fluxo da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Cumprimento do cronograma"> <span>Cumprimento do cronograma</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Ampliação de repertório cultural"> <span>Ampliação de repertório cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Fortalecimento de vínculo comunitário"> <span>Fortalecimento de vínculo comunitário</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Ambiente acolhedor e participativo"> <span>Ambiente acolhedor e participativo</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Diversidade de públicos presentes"> <span>Diversidade de públicos presentes</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Boa resposta às mediações propostas"> <span>Boa resposta às mediações propostas</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Fortalecimento de parcerias locais"> <span>Fortalecimento de parcerias locais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Alcance expressivo de público"> <span>Alcance expressivo de público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Participação espontânea do território"> <span>Participação espontânea do território</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Valorização de saberes e identidades locais"> <span>Valorização de saberes e identidades locais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Boa receptividade da programação"> <span>Boa receptividade da programação</span></label>
+                
+                <div class="checkbox-outro-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="pontosFortes" value="Outro">
+                    <span class="font-bold text-fabrica-purple">Outro:</span>
+                  </label>
+                  <input type="text" class="input-inline-outro" name="pontosFortesOutro" placeholder="Digite outro ponto forte..." disabled>
+                </div>
+              </div>
             </div>
+
             <div class="form-group">
-              <label for="cargaHorariaRealizada">Carga Horária Realizada (horas)</label>
-              <input type="number" step="0.5" id="cargaHorariaRealizada" name="cargaHorariaRealizada" placeholder="Ex: 16">
+              <label>Pontos Fracos e Desafios <span class="required">*</span></label>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Falhas técnicas"> <span>Falhas técnicas</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Atraso no início da atividade"> <span>Atraso no início da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Problemas com gerador ou energia elétrica"> <span>Problemas com gerador ou energia elétrica</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Falta de equipamentos ou materiais"> <span>Falta de equipamentos ou materiais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Espaço físico inadequado para a proposta"> <span>Espaço físico inadequado para a proposta</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Dificuldade de acomodação do público"> <span>Dificuldade de acomodação do público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Baixa adesão em determinado momento da atividade"> <span>Baixa adesão em determinado momento da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Ritmo da atividade abaixo do esperado"> <span>Ritmo da atividade abaixo do esperado</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Tempo insuficiente para desenvolvimento da proposta"> <span>Tempo insuficiente para desenvolvimento da proposta</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Interferências externas durante a execução"> <span>Interferências externas durante a execução</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Dificuldade de mediação com o público"> <span>Dificuldade de mediação com o público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Comunicação pouco eficiente entre equipes"> <span>Comunicação pouco eficiente entre equipes</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Ausência de recursos de acessibilidade"> <span>Ausência de recursos de acessibilidade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Necessidade de maior articulação com parceiros"> <span>Necessidade de maior articulação com parceiros</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Alterações de última hora na programação prevista"> <span>Alterações de última hora na programação prevista</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Limitações na divulgação da atividade"> <span>Limitações na divulgação da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Dificuldade de engajamento dos participantes"> <span>Dificuldade de engajamento dos participantes</span></label>
+                
+                <div class="checkbox-outro-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="pontosFracos" value="Outro">
+                    <span class="font-bold text-fabrica-purple">Outro:</span>
+                  </label>
+                  <input type="text" class="input-inline-outro" name="pontosFracosOutro" placeholder="Digite outro ponto fraco ou desafio..." disabled>
+                </div>
+              </div>
             </div>
-            <div class="form-group">
-              <label for="dataReposicao">Data de Eventual Reposição (se houver)</label>
-              <input type="date" id="dataReposicao" name="dataReposicao">
-            </div>
+
           </div>
         </fieldset>
 
-        <!-- Seção 3: Público e Perfil -->
+        <!-- Seção 3: Evidências (Registros) -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">03</span>
-            Público e Perfil
+            Evidências (Registros)
           </legend>
+
+          <p class="section-description-text">Anexe registros que comprovem a realização da atividade, incluindo fotografias, vídeos, listas de presença ou outros materiais pertinentes. As evidências devem representar o desenvolvimento da ação, a participação do público e os principais momentos da atividade. Priorize registros com boa qualidade de imagem, diversidade de momentos da atividade e presença do público participante. Sempre que possível, incluir imagens da execução da ação, do espaço utilizado e das interações realizadas durante a atividade.</p>
+
           <div class="form-grid">
             <div class="form-group">
-              <label for="publicoTotal">Público Total Atendido</label>
-              <input type="number" id="publicoTotal" name="publicoTotal" min="0" placeholder="Ex: 25">
-            </div>
-            <div class="form-group">
-              <label for="perfilPublico">Perfil do Público</label>
-              <input type="text" id="perfilPublico" name="perfilPublico" placeholder="Ex: Jovens da comunidade local, estudantes">
-            </div>
-            <div class="form-group">
-              <label for="faixaEtaria">Faixa Etária Predominante</label>
-              <input type="text" id="faixaEtaria" name="faixaEtaria" placeholder="Ex: 12 a 18 anos">
+              <label>Galerias de Fotos e/ou Vídeos <span class="required">*</span></label>
+              <p class="input-subtitle">Envie de 3 a 5 fotos da execução da atividade. Tamanho máximo por imagem: 10MB.</p>
+              
+              <div id="fileDropzone" class="file-dropzone">
+                <div class="dropzone-content">
+                  <svg class="dropzone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                  <p><strong>Arraste as fotos do evento aqui</strong> ou busque no computador</p>
+                </div>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+              </div>
+              <div id="previewGrid" class="preview-grid"></div>
             </div>
           </div>
         </fieldset>
 
-        <!-- Seção 4: Relato Descritivo -->
+        <!-- Seção 4: Declaração de Responsabilidade e Envio -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">04</span>
-            Síntese Pedagógica e Avaliação
+            Declaração de Responsabilidade e Envio
           </legend>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="destaqueAcao">Destaque da Ação</label>
-              <textarea id="destaqueAcao" name="destaqueAcao" placeholder="Principais momentos de destaque no mês..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="objetivos">Objetivos da Atividade</label>
-              <textarea id="objetivos" name="objetivos" placeholder="Objetivos pedagógicos propostos..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="descricaoMetodologia">Descrição das Ações e Metodologia</label>
-              <textarea id="descricaoMetodologia" name="descricaoMetodologia" placeholder="Conteúdo trabalhado e metodologias aplicadas..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="engajamentoParticipacao">Engajamento e Participação</label>
-              <textarea id="engajamentoParticipacao" name="engajamentoParticipacao" placeholder="Avaliação da assiduidade e envolvimento dos aprendizes..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="pontosFortes">Pontos Fortes</label>
-              <textarea id="pontosFortes" name="pontosFortes" placeholder="Pontos positivos observados..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="pontosFracos">Pontos Fracos e Desafios</label>
-              <textarea id="pontosFracos" name="pontosFracos" placeholder="Desafios encontrados e propostas de melhoria..."></textarea>
-            </div>
-          </div>
-        </fieldset>
 
-        <!-- Seção 5: Registro Fotográfico -->
-        <fieldset class="form-section">
-          <legend class="section-title">
-            <span class="section-number">05</span>
-            Anexo de Registro Fotográfico
-          </legend>
-          <div class="form-grid">
-            <div id="fileDropzone" class="file-dropzone">
-              <div class="dropzone-content">
-                <svg class="dropzone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                <p><strong>Clique para abrir a Câmera / Galeria</strong> ou arraste fotos aqui</p>
-                <span class="helper-text-input">Fotos compactadas automaticamente antes do envio móbile</span>
-              </div>
-              <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
-            </div>
-            <div id="previewGrid" class="preview-grid"></div>
+          <div class="declaration-casa-box" style="margin-bottom: 1.5rem;">
+            <p class="declaration-paragraph">Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.</p>
+            
+            <div class="divider-line" style="margin: 0.5rem 0 0.85rem 0;"></div>
+
+            <label class="checkbox-label" style="font-weight: 700;">
+              <input type="checkbox" name="declaracaoConcordancia" required>
+              <span>Li e estou de acordo com a declaração acima. <span class="required">*</span></span>
+            </label>
           </div>
         </fieldset>
 

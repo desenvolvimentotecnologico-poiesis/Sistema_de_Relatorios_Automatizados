@@ -17,13 +17,18 @@
     --color-casa: #64748B;
     --color-biblioteca: #0D9488;
 
+    /* Tema Dinâmico Padrão */
+    --area-color: #5E17EB;
+    --area-color-dark: #4300A8;
+    --area-bg-light: #FAF5FF;
+
     /* Cores Estruturais Corporativas */
     --bg-app: #F3F4F6;
     --bg-card: #FFFFFF;
     --txt-main: #111827;
     --txt-muted: #4B5563;
     --border-color: #D1D5DB;
-    --border-focus: #5E17EB;
+    --border-focus: var(--area-color);
 
     /* Status */
     --success-color: #10B981;
@@ -40,6 +45,11 @@
     --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
     --shadow-hover: 0 8px 24px rgba(94, 23, 235, 0.1);
     --transition: all 0.2s ease-in-out;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* 1. Reset Geral Corporativo */
@@ -361,32 +371,32 @@ body {
     line-height: 1.4;
 }
 
-/* Card de Apresentação Oficial */
+/* Card de Apresentação Oficial (Integrado e elegante, sem moldura dupla) */
 .form-presentation-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-top: 8px solid var(--fabrica-purple);
+    background: var(--area-bg-light, #FAF5FF);
+    border: none;
+    border-left: 5px solid var(--area-color, var(--fabrica-purple));
     border-radius: var(--radius-md);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-card);
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 2.25rem;
+    box-shadow: none;
 }
 
 .form-presentation-card h2 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--bg-dark-purple);
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 .divider-line {
     height: 1px;
-    background-color: var(--border-color);
-    margin: 1rem 0;
+    background-color: rgba(0, 0, 0, 0.08);
+    margin: 0.85rem 0 1rem 0;
 }
 
 .form-presentation-card p {
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     line-height: 1.6;
     color: var(--txt-muted);
 }
@@ -1068,7 +1078,7 @@ select:disabled {
     margin: 0 auto;
 }
 
-/* 14. Temas Dinâmicos por Área do Formulário (Com Luz de LED / Aura Glow Sutil) */
+/* 14. Temas Dinâmicos por Área do Formulário (Variáveis de Área Automáticas) */
 
 .form-card, #reportForm {
     transition: box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1076,110 +1086,146 @@ select:disabled {
 
 /* 1. Pedagógico (Roxo: #8B5CF6 / #6D28D9) */
 .theme-pedagogico, #reportForm[data-theme="pedagogico"] {
-    box-shadow: 0 16px 56px rgba(139, 92, 246, 0.20), 0 2px 12px rgba(139, 92, 246, 0.10);
+    --area-color: #8B5CF6;
+    --area-color-dark: #6D28D9;
+    --area-bg-light: #F3E8FF;
+    box-shadow: 0 16px 56px rgba(139, 92, 246, 0.18), 0 2px 12px rgba(139, 92, 246, 0.08);
 }
 
-.theme-pedagogico .form-presentation-card, #reportForm[data-theme="pedagogico"] .form-presentation-card {
-    border-top-color: #8B5CF6;
-}
-
-.theme-pedagogico .form-header-badge, #reportForm[data-theme="pedagogico"] .form-header-badge {
+.theme-pedagogico .form-presentation-card {
     border-left-color: #8B5CF6;
     background-color: #F3E8FF;
 }
 
-.theme-pedagogico .badge-value, #reportForm[data-theme="pedagogico"] .badge-value {
+.theme-pedagogico .form-header-badge {
+    border-left-color: #8B5CF6;
+    background-color: #F3E8FF;
+}
+
+.theme-pedagogico .badge-value {
     color: #6D28D9;
 }
 
-.theme-pedagogico .section-number, #reportForm[data-theme="pedagogico"] .section-number {
+.theme-pedagogico .section-number {
     background-color: #8B5CF6;
 }
 
-.theme-pedagogico .btn-primary, #reportForm[data-theme="pedagogico"] .btn-primary {
+.theme-pedagogico .btn-primary {
     background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
     box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
 }
 
 /* 2. Articulação e Difusão (Vermelho: #EF4444 / #B91C1C) */
 .theme-articulacao, #reportForm[data-theme="articulacaoedifusao"] {
-    box-shadow: 0 16px 56px rgba(239, 68, 68, 0.20), 0 2px 12px rgba(239, 68, 68, 0.10);
+    --area-color: #EF4444;
+    --area-color-dark: #B91C1C;
+    --area-bg-light: #FEE2E2;
+    box-shadow: 0 16px 56px rgba(239, 68, 68, 0.18), 0 2px 12px rgba(239, 68, 68, 0.08);
 }
 
-.theme-articulacao .form-presentation-card, #reportForm[data-theme="articulacaoedifusao"] .form-presentation-card {
-    border-top-color: #EF4444;
-}
-
-.theme-articulacao .form-header-badge, #reportForm[data-theme="articulacaoedifusao"] .form-header-badge {
+.theme-articulacao .form-presentation-card {
     border-left-color: #EF4444;
     background-color: #FEE2E2;
 }
 
-.theme-articulacao .badge-value, #reportForm[data-theme="articulacaoedifusao"] .badge-value {
+.theme-articulacao .form-header-badge {
+    border-left-color: #EF4444;
+    background-color: #FEE2E2;
+}
+
+.theme-articulacao .badge-value {
     color: #B91C1C;
 }
 
-.theme-articulacao .section-number, #reportForm[data-theme="articulacaoedifusao"] .section-number {
+.theme-articulacao .section-number {
     background-color: #EF4444;
 }
 
-.theme-articulacao .btn-primary, #reportForm[data-theme="articulacaoedifusao"] .btn-primary {
+.theme-articulacao .btn-primary {
     background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
     box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
 }
 
-/* 3. Fundação CASA (Slate: #64748B / #334155) */
+/* 3. Fundação CASA (Cinza / Slate: #64748B / #334155) */
 .theme-casa, #reportForm[data-theme="fundacaocasa"] {
-    box-shadow: 0 16px 56px rgba(100, 116, 139, 0.22), 0 2px 12px rgba(100, 116, 139, 0.10);
+    --area-color: #64748B;
+    --area-color-dark: #334155;
+    --area-bg-light: #F1F5F9;
+    box-shadow: 0 16px 56px rgba(100, 116, 139, 0.20), 0 2px 12px rgba(100, 116, 139, 0.08);
 }
 
-.theme-casa .form-presentation-card, #reportForm[data-theme="fundacaocasa"] .form-presentation-card {
-    border-top-color: #64748B;
-}
-
-.theme-casa .form-header-badge, #reportForm[data-theme="fundacaocasa"] .form-header-badge {
+.theme-casa .form-presentation-card {
     border-left-color: #64748B;
     background-color: #F1F5F9;
 }
 
-.theme-casa .badge-value, #reportForm[data-theme="fundacaocasa"] .badge-value {
+.theme-casa .form-header-badge {
+    border-left-color: #64748B;
+    background-color: #F1F5F9;
+}
+
+.theme-casa .badge-value {
     color: #334155;
 }
 
-.theme-casa .section-number, #reportForm[data-theme="fundacaocasa"] .section-number {
+.theme-casa .section-number {
     background-color: #64748B;
 }
 
-.theme-casa .btn-primary, #reportForm[data-theme="fundacaocasa"] .btn-primary {
+.theme-casa .btn-primary {
     background: linear-gradient(135deg, #64748B 0%, #334155 100%);
     box-shadow: 0 4px 14px rgba(100, 116, 139, 0.35);
 }
 
-/* 4. Bibliotecas (Teal: #0D9488 / #0F766E) */
+/* 4. Bibliotecas (Verde Água / Teal: #0D9488 / #0F766E) */
 .theme-biblioteca, #reportForm[data-theme="biblioteca"], #reportForm[data-theme="bibliotecas"] {
-    box-shadow: 0 16px 56px rgba(13, 148, 136, 0.20), 0 2px 12px rgba(13, 148, 136, 0.10);
+    --area-color: #0D9488;
+    --area-color-dark: #0F766E;
+    --area-bg-light: #CCFBF1;
+    box-shadow: 0 16px 56px rgba(13, 148, 136, 0.18), 0 2px 12px rgba(13, 148, 136, 0.08);
 }
 
-.theme-biblioteca .form-presentation-card, #reportForm[data-theme="biblioteca"] .form-presentation-card {
-    border-top-color: #0D9488;
-}
-
-.theme-biblioteca .form-header-badge, #reportForm[data-theme="biblioteca"] .form-header-badge {
+.theme-biblioteca .form-presentation-card {
     border-left-color: #0D9488;
     background-color: #CCFBF1;
 }
 
-.theme-biblioteca .badge-value, #reportForm[data-theme="biblioteca"] .badge-value {
+.theme-biblioteca .form-header-badge {
+    border-left-color: #0D9488;
+    background-color: #CCFBF1;
+}
+
+.theme-biblioteca .badge-value {
     color: #0F766E;
 }
 
-.theme-biblioteca .section-number, #reportForm[data-theme="biblioteca"] .section-number {
+.theme-biblioteca .section-number {
     background-color: #0D9488;
 }
 
-.theme-biblioteca .btn-primary, #reportForm[data-theme="biblioteca"] .btn-primary {
+.theme-biblioteca .btn-primary {
     background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
     box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+}
+
+/* Character Counter Styling */
+.char-counter {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-size: 0.76rem;
+    font-weight: 600;
+    margin-top: 0.3rem;
+    color: var(--txt-muted);
+    transition: var(--transition);
+}
+
+.char-counter.invalid {
+    color: #DC2626;
+}
+
+.char-counter.valid {
+    color: #16A34A;
 }
 
 .hidden {
