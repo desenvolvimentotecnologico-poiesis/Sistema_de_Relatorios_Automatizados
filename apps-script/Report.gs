@@ -7,7 +7,8 @@
 function getTemplateFileConnection(area) {
   let templateId = "";
   let varName = "";
-  const areaUpper = area.trim().toUpperCase();
+  const areaStr = (area || "Pedagógico").toString();
+  const areaUpper = areaStr.trim().toUpperCase();
   
   if (areaUpper === "PEDAGÓGICO") {
     templateId = CONFIG.DOC_TEMPLATE_PEDAGOGICO_ID;
@@ -40,6 +41,8 @@ function getTemplateFileConnection(area) {
 
 function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
   try {
+    if (!data) data = {};
+    data.area = data.area || data.setor || "Pedagógico";
     const templateFile = getTemplateFileConnection(data.area);
     
     const cleanUnidade = Utils.sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");

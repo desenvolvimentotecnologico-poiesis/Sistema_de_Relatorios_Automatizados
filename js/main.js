@@ -388,6 +388,10 @@ function extractFormData(form) {
     }
   }
 
+  // Garante que setor e area estejam sempre preenchidos
+  data.setor = data.setor || "Pedagógico";
+  data.area = data.area || data.setor;
+
   // Se dataRelatorio não estiver definido no formulário, constrói a partir de mês/ano
   if (!data.dataRelatorio) {
     if (data.mesReferencia && data.anoReferencia) {

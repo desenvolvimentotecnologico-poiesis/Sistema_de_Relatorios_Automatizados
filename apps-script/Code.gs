@@ -157,6 +157,9 @@ function submitForm(formData) {
  */
 function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registroFolderId, area, formData) {
   try {
+    if (!formData) formData = {};
+    formData.area = formData.area || area || formData.setor || "Pedagógico";
+    formData.setor = formData.setor || formData.area;
     const relatorioFolder = DriveApp.getFolderById(relatorioFolderId);
     
     // Constrói o Google Docs, substitui placeholders, insere imagens e exporta em PDF
