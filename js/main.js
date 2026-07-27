@@ -388,6 +388,33 @@ function extractFormData(form) {
     }
   }
 
+  // Normaliza aliases de contrato
+  data.contrato = data.numeroContrato || data.contrato || "";
+  data.numeroContrato = data.contrato;
+
+  // Função auxiliar para juntar arrays de checkboxes e processar campo "Outro"
+  const formatCheckboxField = (fieldName, outroFieldName) => {
+    let raw = data[fieldName];
+    if (!raw) return "";
+    let arr = Array.isArray(raw) ? raw : [raw];
+    let outroVal = outroFieldName && data[outroFieldName] ? data[outroFieldName].trim() : "";
+
+    arr = arr.map(item => {
+      if (item === "Outro" && outroVal) {
+        return `Outro: ${outroVal}`;
+      }
+      return item;
+    });
+
+    return arr.join("; ");
+  };
+
+  data.faixaEtaria = formatCheckboxField("faixaEtaria", "");
+  data.impactoCultural = formatCheckboxField("impactoTerritorial", "impactoTerritorialOutro") || formatCheckboxField("impactoCultural", "impactoCulturalOutro");
+  data.impactoTerritorial = data.impactoCultural;
+  data.pontosFortes = formatCheckboxField("pontosFortes", "pontosFortesOutro");
+  data.pontosFracos = formatCheckboxField("pontosFracos", "pontosFracosOutro");
+
   // Garante que setor e area estejam sempre preenchidos
   data.setor = data.setor || "Pedagógico";
   data.area = data.area || data.setor;

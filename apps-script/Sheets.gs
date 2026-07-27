@@ -195,40 +195,112 @@ function saveResponseRow(data) {
     let newRow = [];
     const areaUpper = data.area.trim().toUpperCase();
     
+    const contratoVal = data.contrato || data.numeroContrato || "";
+    const impactoVal = data.impactoCultural || data.impactoTerritorial || "";
+
+    const formatField = function(val) {
+      if (val === null || val === undefined) return "";
+      if (Array.isArray(val)) return val.join("; ");
+      return String(val);
+    };
+
     if (areaUpper === "PEDAGÓGICO") {
       newRow = [
-        timestamp, data.unidade || "", data.contrato || "", data.metaReferencia || "",
-        data.tipoPedagogico || "", data.atividade || "", data.anoReferencia || "", data.mesReferencia || "",
-        data.responsavel || "", data.encontrosPrevistos || "", data.encontrosRealizados || "",
-        data.cargaHorariaPrevista || "", data.cargaHorariaRealizada || "", data.dataReposicao || "",
-        data.publicoTotal || "", data.perfilPublico || "", data.faixaEtaria || "", data.destaqueAcao || "",
-        data.objetivos || "", data.impactoCultural || "", data.descricaoMetodologia || "",
-        data.engajamentoParticipacao || "", data.pontosFortes || "", data.pontosFracos || ""
+        timestamp,
+        formatField(data.unidade),
+        formatField(contratoVal),
+        formatField(data.metaReferencia),
+        formatField(data.tipoPedagogico),
+        formatField(data.atividade),
+        formatField(data.anoReferencia),
+        formatField(data.mesReferencia),
+        formatField(data.responsavel),
+        formatField(data.encontrosPrevistos),
+        formatField(data.encontrosRealizados),
+        formatField(data.cargaHorariaPrevista),
+        formatField(data.cargaHorariaRealizada),
+        formatField(data.dataReposicao),
+        formatField(data.publicoTotal),
+        formatField(data.perfilPublico),
+        formatField(data.faixaEtaria),
+        formatField(data.destaqueAcao),
+        formatField(data.objetivos),
+        formatField(impactoVal),
+        formatField(data.descricaoMetodologia),
+        formatField(data.engajamentoParticipacao),
+        formatField(data.pontosFortes),
+        formatField(data.pontosFracos)
       ];
     } else if (areaUpper === "ARTICULAÇÃO E DIFUSÃO") {
       newRow = [
-        timestamp, data.unidade || "", data.contrato || "", data.metaReferencia || "",
-        data.atividade || "", data.anoReferencia || "", data.mesReferencia || "", data.diasAtividade || "",
-        data.responsavel || "", data.horarioInicio || "", data.horarioTermino || "", data.cargaHorariaTotal || "",
-        data.numSessoes || "", data.publicoTotal || "", data.publicoSessao || "", data.perfilPublico || "",
-        data.faixaEtaria || "", data.destaqueAcao || "", data.objetivos || "", data.impactoCultural || "",
-        data.relato || "", data.descricaoMetodologia || "", data.pontosFortes || "", data.pontosFracos || ""
+        timestamp,
+        formatField(data.unidade),
+        formatField(contratoVal),
+        formatField(data.metaReferencia),
+        formatField(data.atividade),
+        formatField(data.anoReferencia),
+        formatField(data.mesReferencia),
+        formatField(data.diasAtividade),
+        formatField(data.responsavel),
+        formatField(data.horarioInicio),
+        formatField(data.horarioTermino),
+        formatField(data.cargaHorariaTotal),
+        formatField(data.numSessoes),
+        formatField(data.publicoTotal),
+        formatField(data.publicoSessao),
+        formatField(data.perfilPublico),
+        formatField(data.faixaEtaria),
+        formatField(data.destaqueAcao),
+        formatField(data.objetivos),
+        formatField(impactoVal),
+        formatField(data.relato),
+        formatField(data.descricaoMetodologia),
+        formatField(data.pontosFortes),
+        formatField(data.pontosFracos)
       ];
     } else if (areaUpper === "FUNDAÇÃO CASA") {
       newRow = [
-        timestamp, data.divisaoRegional || "", data.unidade || "", data.contrato || "",
-        data.metaReferencia || "", data.atividade || "", data.anoReferencia || "", data.mesReferencia || "",
-        data.responsavel || "", data.encontrosPrevistos || "", data.encontrosRealizados || "",
-        data.dataReposicao || "", data.destaqueAcao || "", data.objetivos || "", data.impactoCultural || "",
-        data.descricaoMetodologia || "", data.engajamentoParticipacao || "", data.pontosFortes || "", data.pontosFracos || ""
+        timestamp,
+        formatField(data.divisaoRegional),
+        formatField(data.unidade),
+        formatField(contratoVal),
+        formatField(data.metaReferencia),
+        formatField(data.atividade),
+        formatField(data.anoReferencia),
+        formatField(data.mesReferencia),
+        formatField(data.responsavel),
+        formatField(data.encontrosPrevistos),
+        formatField(data.encontrosRealizados),
+        formatField(data.dataReposicao),
+        formatField(data.destaqueAcao),
+        formatField(data.objetivos),
+        formatField(impactoVal),
+        formatField(data.descricaoMetodologia),
+        formatField(data.engajamentoParticipacao),
+        formatField(data.pontosFortes),
+        formatField(data.pontosFracos)
       ];
     } else if (areaUpper === "BIBLIOTECA" || areaUpper === "BIBLIOTECAS") {
       newRow = [
-        timestamp, data.unidade || "", data.contrato || "", data.metaReferencia || "",
-        data.atividade || "", data.responsavel || "", data.dataRelatorio || "", data.horarioInicio || "",
-        data.horarioTermino || "", data.publicoTotal || "", data.perfilPublico || "", data.faixaEtaria || "",
-        data.destaqueAcao || "", data.objetivos || "", data.impactoCultural || "", data.descricaoMetodologia || "",
-        data.engajamentoParticipacao || "", data.pontosFortes || "", data.pontosFracos || ""
+        timestamp,
+        formatField(data.unidade),
+        formatField(contratoVal),
+        formatField(data.metaReferencia),
+        formatField(data.atividade),
+        formatField(data.responsavel),
+        formatField(data.dataRelatorio),
+        formatField(data.horarioInicio),
+        formatField(data.horarioTermino),
+        formatField(data.publicoTotal),
+        formatField(data.perfilPublico),
+        formatField(data.faixaEtaria),
+        formatField(data.destaqueAcao),
+        formatField(data.objetivos),
+        formatField(impactoVal),
+        formatField(data.descricaoMetodologia),
+        formatField(data.engajamentoParticipacao),
+        formatField(data.pontosFortes),
+        formatField(data.pontosFracos)
       ];
     }
     

@@ -55,38 +55,48 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     const doc = DocumentApp.openById(copiedFile.getId());
     const body = doc.getBody();
     
-    body.replaceText("\\{\\{AREA\\}\\}", data.area || "");
-    body.replaceText("\\{\\{DIVISAO_REGIONAL\\}\\}", (data.divisaoRegional || "").toUpperCase());
-    body.replaceText("\\{\\{CENTRO_ATENDIMENTO\\}\\}", (data.unidade || "").toUpperCase());
-    body.replaceText("\\{\\{UNIDADE\\}\\}", (data.unidade || "").toUpperCase());
-    body.replaceText("\\{\\{CONTRATO\\}\\}", data.contrato || "");
-    body.replaceText("\\{\\{META_REFERENCIA\\}\\}", data.metaReferencia || "");
-    body.replaceText("\\{\\{TIPO_PEDAGOGICO\\}\\}", data.tipoPedagogico || "");
-    body.replaceText("\\{\\{ATIVIDADE\\}\\}", (data.atividade || "").toUpperCase());
-    body.replaceText("\\{\\{ANO_REFERENCIA\\}\\}", data.anoReferencia || "");
-    body.replaceText("\\{\\{MES_REFERENCIA\\}\\}", data.mesReferencia || "");
-    body.replaceText("\\{\\{DIAS_ATIVIDADE\\}\\}", data.diasAtividade || "");
-    body.replaceText("\\{\\{RESPONSAVEL\\}\\}", (data.responsavel || "").toUpperCase());
-    body.replaceText("\\{\\{RAZAO_SOCIAL\\}\\}", (data.responsavel || "").toUpperCase());
-    body.replaceText("\\{\\{HORARIO_INICIO\\}\\}", data.horarioInicio || "");
-    body.replaceText("\\{\\{HORARIO_TERMINO\\}\\}", data.horarioTermino || "");
-    body.replaceText("\\{\\{ENCONTROS_PREVISTOS\\}\\}", data.encontrosPrevistos || "");
-    body.replaceText("\\{\\{ENCONTROS_REALIZADOS\\}\\}", data.encontrosRealizados || "");
-    body.replaceText("\\{\\{CARGA_HORARIA_PREVISTA\\}\\}", data.cargaHorariaPrevista || "");
-    body.replaceText("\\{\\{CARGA_HORARIA_REALIZADA\\}\\}", data.cargaHorariaRealizada || "");
-    body.replaceText("\\{\\{CARGA_HORARIA_TOTAL\\}\\}", data.cargaHorariaTotal || "");
-    body.replaceText("\\{\\{NUMERO_SESSOES\\}\\}", data.numSessoes || "");
-    body.replaceText("\\{\\{NUM_SESSOES\\}\\}", data.numSessoes || "");
+    const formatField = function(val) {
+      if (val === null || val === undefined) return "";
+      if (Array.isArray(val)) return val.join("; ");
+      return String(val);
+    };
+
+    const contratoVal = formatField(data.contrato || data.numeroContrato || "");
+    const impactoVal = formatField(data.impactoCultural || data.impactoTerritorial || "");
+
+    body.replaceText("\\{\\{AREA\\}\\}", formatField(data.area));
+    body.replaceText("\\{\\{DIVISAO_REGIONAL\\}\\}", formatField(data.divisaoRegional).toUpperCase());
+    body.replaceText("\\{\\{CENTRO_ATENDIMENTO\\}\\}", formatField(data.unidade).toUpperCase());
+    body.replaceText("\\{\\{UNIDADE\\}\\}", formatField(data.unidade).toUpperCase());
+    body.replaceText("\\{\\{CONTRATO\\}\\}", contratoVal);
+    body.replaceText("\\{\\{NUMERO_CONTRATO\\}\\}", contratoVal);
+    body.replaceText("\\{\\{META_REFERENCIA\\}\\}", formatField(data.metaReferencia));
+    body.replaceText("\\{\\{TIPO_PEDAGOGICO\\}\\}", formatField(data.tipoPedagogico));
+    body.replaceText("\\{\\{ATIVIDADE\\}\\}", formatField(data.atividade).toUpperCase());
+    body.replaceText("\\{\\{ANO_REFERENCIA\\}\\}", formatField(data.anoReferencia));
+    body.replaceText("\\{\\{MES_REFERENCIA\\}\\}", formatField(data.mesReferencia));
+    body.replaceText("\\{\\{DIAS_ATIVIDADE\\}\\}", formatField(data.diasAtividade));
+    body.replaceText("\\{\\{RESPONSAVEL\\}\\}", formatField(data.responsavel).toUpperCase());
+    body.replaceText("\\{\\{RAZAO_SOCIAL\\}\\}", formatField(data.responsavel).toUpperCase());
+    body.replaceText("\\{\\{HORARIO_INICIO\\}\\}", formatField(data.horarioInicio));
+    body.replaceText("\\{\\{HORARIO_TERMINO\\}\\}", formatField(data.horarioTermino));
+    body.replaceText("\\{\\{ENCONTROS_PREVISTOS\\}\\}", formatField(data.encontrosPrevistos));
+    body.replaceText("\\{\\{ENCONTROS_REALIZADOS\\}\\}", formatField(data.encontrosRealizados));
+    body.replaceText("\\{\\{CARGA_HORARIA_PREVISTA\\}\\}", formatField(data.cargaHorariaPrevista));
+    body.replaceText("\\{\\{CARGA_HORARIA_REALIZADA\\}\\}", formatField(data.cargaHorariaRealizada));
+    body.replaceText("\\{\\{CARGA_HORARIA_TOTAL\\}\\}", formatField(data.cargaHorariaTotal));
+    body.replaceText("\\{\\{NUMERO_SESSOES\\}\\}", formatField(data.numSessoes));
+    body.replaceText("\\{\\{NUM_SESSOES\\}\\}", formatField(data.numSessoes));
     
     const dateRelatorioFormatted = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio) : "";
     body.replaceText("\\{\\{DATA_RELATORIO\\}\\}", dateRelatorioFormatted);
     
     let diaVal = "";
-    let mesVal = data.mesReferencia || "";
-    let anoVal = data.anoReferencia || "";
+    let mesVal = formatField(data.mesReferencia);
+    let anoVal = formatField(data.anoReferencia);
     
     if (data.dataRelatorio) {
-      const dateParts = data.dataRelatorio.split("-");
+      const dateParts = String(data.dataRelatorio).split("-");
       if (dateParts.length === 3) {
         if (dateParts[0].length === 4) {
           anoVal = anoVal || dateParts[0];
@@ -110,18 +120,19 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     const dateFormatted = data.dataReposicao ? Utils.formatDateToBR(data.dataReposicao) : "";
     body.replaceText("\\{\\{DATA_REPOSICAO\\}\\}", dateFormatted);
     
-    body.replaceText("\\{\\{PUBLICO_TOTAL\\}\\}", data.publicoTotal || "");
-    body.replaceText("\\{\\{PUBLICO_SESSAO\\}\\}", data.publicoSessao || "");
-    body.replaceText("\\{\\{PERFIL_PUBLICO\\}\\}", data.perfilPublico || "");
-    body.replaceText("\\{\\{FAIXA_ETARIA\\}\\}", data.faixaEtaria || "");
-    body.replaceText("\\{\\{DESTAQUE_ACAO\\}\\}", data.destaqueAcao || "");
-    body.replaceText("\\{\\{OBJETIVOS\\}\\}", data.objetivos || "");
-    body.replaceText("\\{\\{IMPACTO_CULTURAL\\}\\}", data.impactoCultural || "");
-    body.replaceText("\\{\\{RELATO\\}\\}", data.relato || "");
-    body.replaceText("\\{\\{DESCRICAO_METODOLOGIA\\}\\}", data.descricaoMetodologia || "");
-    body.replaceText("\\{\\{ENGAJAMENTO_PARTICIPACAO\\}\\}", data.engajamentoParticipacao || "");
-    body.replaceText("\\{\\{PONTOS_FORTES\\}\\}", data.pontosFortes || "");
-    body.replaceText("\\{\\{PONTOS_FRACOS\\}\\}", data.pontosFracos || "");
+    body.replaceText("\\{\\{PUBLICO_TOTAL\\}\\}", formatField(data.publicoTotal));
+    body.replaceText("\\{\\{PUBLICO_SESSAO\\}\\}", formatField(data.publicoSessao));
+    body.replaceText("\\{\\{PERFIL_PUBLICO\\}\\}", formatField(data.perfilPublico));
+    body.replaceText("\\{\\{FAIXA_ETARIA\\}\\}", formatField(data.faixaEtaria));
+    body.replaceText("\\{\\{DESTAQUE_ACAO\\}\\}", formatField(data.destaqueAcao));
+    body.replaceText("\\{\\{OBJETIVOS\\}\\}", formatField(data.objetivos));
+    body.replaceText("\\{\\{IMPACTO_CULTURAL\\}\\}", impactoVal);
+    body.replaceText("\\{\\{IMPACTO_TERRITORIAL\\}\\}", impactoVal);
+    body.replaceText("\\{\\{RELATO\\}\\}", formatField(data.relato));
+    body.replaceText("\\{\\{DESCRICAO_METODOLOGIA\\}\\}", formatField(data.descricaoMetodologia));
+    body.replaceText("\\{\\{ENGAJAMENTO_PARTICIPACAO\\}\\}", formatField(data.engajamentoParticipacao));
+    body.replaceText("\\{\\{PONTOS_FORTES\\}\\}", formatField(data.pontosFortes));
+    body.replaceText("\\{\\{PONTOS_FRACOS\\}\\}", formatField(data.pontosFracos));
     
     const position = body.findText("\\{\\{ANEXOS\\}\\}");
     
