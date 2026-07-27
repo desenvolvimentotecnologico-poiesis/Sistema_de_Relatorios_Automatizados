@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório Fundação CASA - Fábricas de Cultura</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <p id="overlayMessage">Carregando...</p>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="header-container">
+      <div class="logo-area">
+        <img src="../logo-fabricas.png" alt="Fábricas de Cultura" class="header-logo-img" onerror="this.style.display='none'">
+      </div>
+      <div class="system-title">
+        <h1>Portal de Ações e Memória Cultural</h1>
+        <p>Fábricas de Cultura • Instituto Poiesis</p>
+      </div>
+    </div>
+    <div class="header-gradient-bar"></div>
+  </header>
+
+  <main class="main-container">
+    <div id="formCard" class="card form-card theme-casa">
+      
+      <div class="form-header-badge">
+        <a href="../index.html" class="btn-back-arrow" title="Mudar de área">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.75 19.5L8.25 12l7.5-7.5"></path>
+          </svg>
+        </a>
+        <div class="badge-text">
+          <span class="badge-label">ÁREA SELECIONADA</span>
+          <span class="badge-value">Fundação CASA</span>
+        </div>
+      </div>
+
+      <!-- Card de Apresentação Oficial -->
+      <div class="form-presentation-card">
+        <h2>Relatório Mensal de Atividades na Fundação CASA</h2>
+        <div class="divider-line"></div>
+        <p>Formulário oficial para registro de encontros, desenvolvimento socioeducativo e síntese pedagógica das oficinas realizadas nos Centros de Atendimento da Fundação CASA.</p>
+      </div>
+
+      <form id="reportForm" data-theme="fundacaocasa">
+        <input type="hidden" name="setor" value="Fundação Casa">
+
+        <!-- Seção 1 -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">01</span>
+            Identificação da Unidade e Atividade
+          </legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="divisaoRegionalSelect">Divisão Regional (DR) <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="divisaoRegionalSelect" name="divisaoRegional" required>
+                  <option value="" disabled selected>Carregando divisões...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="centroCasaSelect">Centro de Atendimento (Unidade) <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="centroCasaSelect" name="unidade" required disabled>
+                  <option value="" disabled selected>Selecione a Divisão Regional primeiro...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="atividade">Nome da Atividade / Oficina <span class="required">*</span></label>
+              <input type="text" id="atividade" name="atividade" placeholder="Digite o nome da atividade realizada" required>
+            </div>
+
+            <div class="form-group">
+              <label for="responsavel">Razão Social / Nome do Responsável <span class="required">*</span></label>
+              <input type="text" id="responsavel" name="responsavel" placeholder="Nome do educador ou empresa prestadora" required>
+            </div>
+
+            <div class="form-group">
+              <label for="dataRelatorio">Data de Referência <span class="required">*</span></label>
+              <input type="date" id="dataRelatorio" name="dataRelatorio" required>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Seção 2: Encontros -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">02</span>
+            Controle de Encontros
+          </legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="encontrosPrevistos">Encontros Previstos</label>
+              <input type="number" id="encontrosPrevistos" name="encontrosPrevistos" min="0" placeholder="Ex: 4">
+            </div>
+            <div class="form-group">
+              <label for="encontrosRealizados">Encontros Realizados</label>
+              <input type="number" id="encontrosRealizados" name="encontrosRealizados" min="0" placeholder="Ex: 4">
+            </div>
+            <div class="form-group">
+              <label for="dataReposicao">Data de Eventual Reposição (se houver)</label>
+              <input type="date" id="dataReposicao" name="dataReposicao">
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Caixa de Declaração ECA -->
+        <div class="declaration-casa-box" style="margin-bottom: 2rem;">
+          <p class="declaration-paragraph"><strong>Atenção às Normas do ECA & Proteção à Imagem:</strong> Por questões de segurança legal e regulamentações do Estatuto da Criança e do Adolescente (ECA), relatórios da Fundação CASA não contêm registro fotográfico de rostos ou listas nominativas de adolescentes em cumprimento de medida socioeducativa.</p>
+        </div>
+
+        <!-- Seção 3: Avaliação Qualitativa -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">03</span>
+            Avaliação Qualitativa e Metodologia
+          </legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="destaqueAcao">Destaque da Ação</label>
+              <textarea id="destaqueAcao" name="destaqueAcao" placeholder="Principais destaques e avanços observados..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="objetivos">Objetivos da Atividade</label>
+              <textarea id="objetivos" name="objetivos" placeholder="Objetivos pedagógicos e socioeducativos..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="descricaoMetodologia">Descrição das Ações e Metodologia</label>
+              <textarea id="descricaoMetodologia" name="descricaoMetodologia" placeholder="Detalhamento das metodologias e conteúdos..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="engajamentoParticipacao">Engajamento dos Adolescentes</label>
+              <textarea id="engajamentoParticipacao" name="engajamentoParticipacao" placeholder="Participação, comportamento e interesse..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="pontosFortes">Pontos Fortes</label>
+              <textarea id="pontosFortes" name="pontosFortes" placeholder="Pontos positivos da ação..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="pontosFracos">Pontos Fracos e Desafios</label>
+              <textarea id="pontosFracos" name="pontosFracos" placeholder="Desafios e propostas para os próximos encontros..."></textarea>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary btn-block">Enviar Relatório Fundação CASA</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Success Card -->
+    <div id="successCard" class="card success-card hidden">
+      <div class="success-icon-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="success-icon">
+          <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.74-5.24z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <h2>Relatório Enviado com Sucesso!</h2>
+      <p id="successCardMessage">Os dados foram armazenados no Google Sheets e o relatório em PDF foi gerado no Google Drive.</p>
+      <div class="success-actions">
+        <a id="pdfDownloadBtn" href="#" target="_blank" class="btn btn-primary">Baixar Relatório em PDF</a>
+        <a href="../index.html" class="btn btn-tertiary">Voltar ao Início</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>© Fábricas de Cultura • Poiesis Instituto de Apoio à Cultura. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/image-compressor.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>

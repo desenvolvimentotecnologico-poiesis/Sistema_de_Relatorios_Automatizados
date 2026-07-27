@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório Pedagógico - Fábricas de Cultura</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Overlay de Loading -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <p id="overlayMessage">Carregando...</p>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="header-container">
+      <div class="logo-area">
+        <img src="../logo-fabricas.png" alt="Fábricas de Cultura" class="header-logo-img" onerror="this.style.display='none'">
+      </div>
+      <div class="system-title">
+        <h1>Portal de Ações e Memória Cultural</h1>
+        <p>Fábricas de Cultura • Instituto Poiesis</p>
+      </div>
+    </div>
+    <div class="header-gradient-bar"></div>
+  </header>
+
+  <main class="main-container">
+    
+    <!-- Formulário Card -->
+    <div id="formCard" class="card form-card theme-pedagogico">
+      
+      <div class="form-header-badge">
+        <a href="../index.html" class="btn-back-arrow" title="Mudar de área">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.75 19.5L8.25 12l7.5-7.5"></path>
+          </svg>
+        </a>
+        <div class="badge-text">
+          <span class="badge-label">ÁREA SELECIONADA</span>
+          <span class="badge-value">Pedagógico</span>
+        </div>
+      </div>
+
+      <!-- Card de Apresentação Oficial -->
+      <div class="form-presentation-card">
+        <h2>Relatório Mensal de Atividades Pedagógicas</h2>
+        <div class="divider-line"></div>
+        <p>Formulário oficial para registro de encontros, carga horária, público e síntese pedagógica dos ateliês e trilhas de formação das Fábricas de Cultura.</p>
+      </div>
+
+      <form id="reportForm" data-theme="pedagogico">
+        <input type="hidden" name="setor" value="Pedagógico">
+
+        <!-- Seção 1: Identificação -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">01</span>
+            Identificação da Atividade
+          </legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="unidadeSelect">Unidade Poiesis <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="unidadeSelect" name="unidade" required>
+                  <option value="" disabled selected>Carregando unidades...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="atividadeSelect">Nome da Atividade / Ateliê <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="atividadeSelect" name="atividade" required disabled>
+                  <option value="" disabled selected>Selecione a Unidade primeiro...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="tipoPedagogicoSelect">Tipo (Trilha / Ateliê) <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="tipoPedagogicoSelect" name="tipoPedagogico" required>
+                  <option value="" disabled selected>Selecione o Tipo...</option>
+                  <option value="Ateliês de Formação">Ateliês de Formação</option>
+                  <option value="Trilhas de Formação">Trilhas de Formação</option>
+                  <option value="Formação Continuada">Formação Continuada</option>
+                  <option value="Eventual / Especial">Eventual / Especial</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="responsavel">Nome do Responsável / Formador <span class="required">*</span></label>
+              <input type="text" id="responsavel" name="responsavel" placeholder="Digite seu nome completo" required>
+            </div>
+
+            <div class="form-group">
+              <label for="dataRelatorio">Data de Referência <span class="required">*</span></label>
+              <input type="date" id="dataRelatorio" name="dataRelatorio" required>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Seção 2: Carga Horária e Encontros -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">02</span>
+            Carga Horária e Encontros
+          </legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="encontrosPrevistos">Encontros Previstos</label>
+              <input type="number" id="encontrosPrevistos" name="encontrosPrevistos" min="0" placeholder="Ex: 4">
+            </div>
+            <div class="form-group">
+              <label for="encontrosRealizados">Encontros Realizados</label>
+              <input type="number" id="encontrosRealizados" name="encontrosRealizados" min="0" placeholder="Ex: 4">
+            </div>
+            <div class="form-group">
+              <label for="cargaHorariaPrevista">Carga Horária Prevista (horas)</label>
+              <input type="number" step="0.5" id="cargaHorariaPrevista" name="cargaHorariaPrevista" placeholder="Ex: 16">
+            </div>
+            <div class="form-group">
+              <label for="cargaHorariaRealizada">Carga Horária Realizada (horas)</label>
+              <input type="number" step="0.5" id="cargaHorariaRealizada" name="cargaHorariaRealizada" placeholder="Ex: 16">
+            </div>
+            <div class="form-group">
+              <label for="dataReposicao">Data de Eventual Reposição (se houver)</label>
+              <input type="date" id="dataReposicao" name="dataReposicao">
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Seção 3: Público e Perfil -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">03</span>
+            Público e Perfil
+          </legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="publicoTotal">Público Total Atendido</label>
+              <input type="number" id="publicoTotal" name="publicoTotal" min="0" placeholder="Ex: 25">
+            </div>
+            <div class="form-group">
+              <label for="perfilPublico">Perfil do Público</label>
+              <input type="text" id="perfilPublico" name="perfilPublico" placeholder="Ex: Jovens da comunidade local, estudantes">
+            </div>
+            <div class="form-group">
+              <label for="faixaEtaria">Faixa Etária Predominante</label>
+              <input type="text" id="faixaEtaria" name="faixaEtaria" placeholder="Ex: 12 a 18 anos">
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Seção 4: Relato Descritivo -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">04</span>
+            Síntese Pedagógica e Avaliação
+          </legend>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="destaqueAcao">Destaque da Ação</label>
+              <textarea id="destaqueAcao" name="destaqueAcao" placeholder="Principais momentos de destaque no mês..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="objetivos">Objetivos da Atividade</label>
+              <textarea id="objetivos" name="objetivos" placeholder="Objetivos pedagógicos propostos..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="descricaoMetodologia">Descrição das Ações e Metodologia</label>
+              <textarea id="descricaoMetodologia" name="descricaoMetodologia" placeholder="Conteúdo trabalhado e metodologias aplicadas..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="engajamentoParticipacao">Engajamento e Participação</label>
+              <textarea id="engajamentoParticipacao" name="engajamentoParticipacao" placeholder="Avaliação da assiduidade e envolvimento dos aprendizes..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="pontosFortes">Pontos Fortes</label>
+              <textarea id="pontosFortes" name="pontosFortes" placeholder="Pontos positivos observados..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="pontosFracos">Pontos Fracos e Desafios</label>
+              <textarea id="pontosFracos" name="pontosFracos" placeholder="Desafios encontrados e propostas de melhoria..."></textarea>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Seção 5: Registro Fotográfico -->
+        <fieldset class="form-section">
+          <legend class="section-title">
+            <span class="section-number">05</span>
+            Anexo de Registro Fotográfico
+          </legend>
+          <div class="form-grid">
+            <div id="fileDropzone" class="file-dropzone">
+              <div class="dropzone-content">
+                <svg class="dropzone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Clique para abrir a Câmera / Galeria</strong> ou arraste fotos aqui</p>
+                <span class="helper-text-input">Fotos compactadas automaticamente antes do envio móbile</span>
+              </div>
+              <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+            </div>
+            <div id="previewGrid" class="preview-grid"></div>
+          </div>
+        </fieldset>
+
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary btn-block">Enviar Relatório Pedagógico</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Success Card -->
+    <div id="successCard" class="card success-card hidden">
+      <div class="success-icon-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="success-icon">
+          <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.74-5.24z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <h2>Relatório Enviado com Sucesso!</h2>
+      <p id="successCardMessage">Os dados foram gravados na planilha institucional. O salvamento dos arquivos e compilação do relatório continuam no Google Drive.</p>
+      <div class="success-actions">
+        <a id="pdfDownloadBtn" href="#" target="_blank" class="btn btn-primary">Baixar Relatório em PDF</a>
+        <a href="../index.html" class="btn btn-tertiary">Voltar ao Início</a>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>© Fábricas de Cultura • Poiesis Instituto de Apoio à Cultura. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/image-compressor.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>
