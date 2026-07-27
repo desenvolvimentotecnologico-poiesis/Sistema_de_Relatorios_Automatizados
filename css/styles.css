@@ -469,7 +469,7 @@ fieldset,
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 0 !important;
+    padding: 0 0 2.5rem 0 !important;
     margin: 0 0 2.5rem 0 !important;
     border-bottom: 1px solid var(--border-color) !important;
     border-radius: 0 !important;
@@ -479,6 +479,7 @@ fieldset:last-of-type,
 .form-section:last-of-type {
     border-bottom: none !important;
     margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 .section-title {
