@@ -372,19 +372,19 @@ body {
     line-height: 1.45;
 }
 
-/* Card de Apresentação Oficial (Integrado e completamente sem moldura/quadro interno) */
+/* Card de Apresentação Oficial (Mantido com a caixa de destaque na cor da área) */
 .form-presentation-card {
-    background: transparent;
+    background: var(--area-bg-light, #F3E8FF);
     border: none;
-    border-bottom: 2px solid var(--area-color, var(--fabrica-purple));
-    border-radius: 0;
-    padding: 0 0 1.75rem 0;
+    border-left: 4px solid var(--area-color, var(--fabrica-purple));
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.75rem;
     margin-bottom: 2.25rem;
     box-shadow: none;
 }
 
 .form-presentation-card h2 {
-    font-size: 1.55rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--bg-dark-purple);
     line-height: 1.35;
@@ -452,18 +452,21 @@ body {
     color: var(--bg-dark-purple);
 }
 
-/* 5. Estrutura de Seções */
-.form-section {
-    border: none;
-    margin-bottom: 2.5rem;
-    padding-bottom: 2.5rem;
-    border-bottom: 1px solid var(--border-color);
+/* 5. Estrutura de Seções (Totalmente Transparente, sem caixas/quadros brancos internos) */
+fieldset, .form-section {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 0 2.5rem 0 !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    border-radius: 0 !important;
 }
 
-.form-section:last-of-type {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
+fieldset:last-of-type, .form-section:last-of-type {
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
 }
 
 .section-title {
