@@ -854,7 +854,7 @@ select:disabled {
 .file-dropzone {
     border: 2px dashed var(--border-color);
     border-radius: var(--radius-md);
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
