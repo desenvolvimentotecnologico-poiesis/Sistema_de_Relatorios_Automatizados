@@ -48,8 +48,13 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* 1. Reset Geral Corporativo */
@@ -237,6 +242,7 @@ body {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -248,10 +254,12 @@ body {
         transform: scale(0.92);
         opacity: 0;
     }
+
     70% {
         transform: scale(1.02);
         opacity: 1;
     }
+
     100% {
         transform: scale(1);
     }
@@ -262,12 +270,15 @@ body {
         transform: scale(0.3);
         opacity: 0;
     }
+
     50% {
         transform: scale(1.15);
     }
+
     70% {
         transform: scale(0.95);
     }
+
     100% {
         transform: scale(1);
         opacity: 1;
@@ -453,9 +464,9 @@ body {
 }
 
 /* 5. Estrutura de Seções (Totalmente Transparente, sem caixas/quadros brancos internos) */
-fieldset, .form-section {
+fieldset,
+.form-section {
     background: transparent !important;
-    background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
@@ -464,7 +475,8 @@ fieldset, .form-section {
     border-radius: 0 !important;
 }
 
-fieldset:last-of-type, .form-section:last-of-type {
+fieldset:last-of-type,
+.form-section:last-of-type {
     border-bottom: none !important;
     margin-bottom: 0 !important;
 }
@@ -837,7 +849,8 @@ select:disabled {
 }
 
 /* 9. Dropzone de Upload */
-.drop-zone, .file-dropzone {
+.drop-zone,
+.file-dropzone {
     border: 2px dashed var(--border-color);
     border-radius: var(--radius-md);
     padding: 2rem 1.5rem;
@@ -859,7 +872,8 @@ select:disabled {
     background-color: rgba(94, 23, 235, 0.02);
 }
 
-.drop-zone-icon, .dropzone-icon {
+.drop-zone-icon,
+.dropzone-icon {
     width: 38px;
     height: 38px;
     color: var(--txt-muted);
@@ -885,7 +899,7 @@ select:disabled {
     border-radius: var(--radius-sm);
     overflow: hidden;
     border: 1px solid var(--border-color);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .preview-item img {
@@ -1010,7 +1024,8 @@ select:disabled {
     margin-bottom: 1rem;
 }
 
-.loading-text, .loading-overlay p {
+.loading-text,
+.loading-overlay p {
     color: #FFFFFF;
     font-size: 1rem;
     font-weight: 600;
@@ -1093,12 +1108,21 @@ select:disabled {
 
 /* 14. Temas Dinâmicos por Área do Formulário (Variáveis de Área Automáticas) */
 
-.form-card, #reportForm {
+.form-card {
     transition: box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+#reportForm {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
 /* 1. Pedagógico (Roxo: #8B5CF6 / #6D28D9) */
-.theme-pedagogico, #reportForm[data-theme="pedagogico"] {
+.theme-pedagogico {
     --area-color: #8B5CF6;
     --area-color-dark: #6D28D9;
     --area-bg-light: #F3E8FF;
@@ -1129,7 +1153,7 @@ select:disabled {
 }
 
 /* 2. Articulação e Difusão (Vermelho: #EF4444 / #B91C1C) */
-.theme-articulacao, #reportForm[data-theme="articulacaoedifusao"] {
+.theme-articulacao {
     --area-color: #EF4444;
     --area-color-dark: #B91C1C;
     --area-bg-light: #FEE2E2;
@@ -1160,7 +1184,7 @@ select:disabled {
 }
 
 /* 3. Fundação CASA (Cinza / Slate: #64748B / #334155) */
-.theme-casa, #reportForm[data-theme="fundacaocasa"] {
+.theme-casa {
     --area-color: #64748B;
     --area-color-dark: #334155;
     --area-bg-light: #F1F5F9;
@@ -1191,7 +1215,7 @@ select:disabled {
 }
 
 /* 4. Bibliotecas (Verde Água / Teal: #0D9488 / #0F766E) */
-.theme-biblioteca, #reportForm[data-theme="biblioteca"], #reportForm[data-theme="bibliotecas"] {
+.theme-biblioteca {
     --area-color: #0D9488;
     --area-color-dark: #0F766E;
     --area-bg-light: #CCFBF1;
