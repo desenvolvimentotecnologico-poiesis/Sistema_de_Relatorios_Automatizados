@@ -176,6 +176,13 @@ function setupCharacterCounters() {
     const minLen = parseInt(field.getAttribute("data-min-length") || "0", 10);
     const maxLen = parseInt(field.getAttribute("data-max-length") || "0", 10);
 
+    if (maxLen > 0) {
+      field.setAttribute("maxlength", maxLen);
+    }
+    if (minLen > 0) {
+      field.setAttribute("minlength", minLen);
+    }
+
     // Cria elemento de contador abaixo do campo se não existir
     let counterEl = field.parentElement.querySelector(".char-counter");
     if (!counterEl) {
@@ -193,8 +200,14 @@ function setupCharacterCounters() {
       }
       text += ` caracteres`;
 
-      if (minLen > 0 && currentLen < minLen) {
+      const isUnderMin = minLen > 0 && currentLen < minLen;
+      const isOverMax = maxLen > 0 && currentLen > maxLen;
+
+      if (isUnderMin) {
         text += ` (Mínimo: ${minLen})`;
+        counterEl.className = "char-counter invalid";
+      } else if (isOverMax) {
+        text += ` (Máximo: ${maxLen})`;
         counterEl.className = "char-counter invalid";
       } else {
         counterEl.className = "char-counter valid";
@@ -322,6 +335,29 @@ function setupFormSubmission() {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
+    // Validação estrita de limites de caracteres mínimos/máximos antes do envio
+    const minMaxFields = form.querySelectorAll("[data-min-length], [data-max-length]");
+    for (let field of minMaxFields) {
+      const minLen = parseInt(field.getAttribute("data-min-length") || "0", 10);
+      const maxLen = parseInt(field.getAttribute("data-max-length") || "0", 10);
+      const valLen = field.value.trim().length;
+
+      const labelEl = field.parentElement.querySelector("label");
+      const fieldName = labelEl ? labelEl.textContent.replace("*", "").trim() : "Campo de texto";
+
+      if (minLen > 0 && valLen < minLen) {
+        alert(`O campo "${fieldName}" requer no mínimo ${minLen} caracteres (atualmente possui ${valLen}).`);
+        field.focus();
+        return;
+      }
+
+      if (maxLen > 0 && valLen > maxLen) {
+        alert(`O campo "${fieldName}" permite no máximo ${maxLen} caracteres (atualmente possui ${valLen}).`);
+        field.focus();
+        return;
+      }
+    }
+
     const formDataObj = extractFormData(form);
     formDataObj.files = uploadedFiles;
     currentSubmittedData = formDataObj;
@@ -349,6 +385,17 @@ function extractFormData(form) {
       data[key].push(value);
     } else {
       data[key] = value;
+    }
+  }
+
+  // Se dataRelatorio não estiver definido no formulário, constrói a partir de mês/ano
+  if (!data.dataRelatorio) {
+    if (data.mesReferencia && data.anoReferencia) {
+      data.dataRelatorio = `${data.mesReferencia} / ${data.anoReferencia}`;
+    } else if (data.dataReposicao) {
+      data.dataRelatorio = data.dataReposicao;
+    } else {
+      data.dataRelatorio = new Date().toLocaleDateString("pt-BR");
     }
   }
 

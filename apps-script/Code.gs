@@ -94,9 +94,11 @@ function submitForm(formData) {
     
     formData.area = formData.setor || formData.area;
     
+    formData.dataRelatorio = formData.dataRelatorio || (formData.mesReferencia && formData.anoReferencia ? (formData.mesReferencia + " / " + formData.anoReferencia) : formData.dataReposicao);
+    
     // Validação de segurança dos campos obrigatórios básicos
     if (!formData.unidade || !formData.atividade || !formData.setor || !formData.responsavel || !formData.dataRelatorio) {
-      return Utils.createResponse(false, "Campos obrigatórios faltando. Certifique-se de preencher Unidade, Atividade, Setor, Responsável e Data.");
+      return Utils.createResponse(false, "Campos obrigatórios faltando. Certifique-se de preencher Unidade, Atividade, Setor, Responsável e Mês/Ano.");
     }
     
     if (formData.setor.trim().toUpperCase() !== "PEDAGÓGICO") {
