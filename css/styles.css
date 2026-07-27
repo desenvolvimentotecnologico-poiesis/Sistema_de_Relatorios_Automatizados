@@ -1281,6 +1281,24 @@ select:disabled {
     box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
 }
 
+/* Locked & Readonly Fields Styling */
+.input-readonly-locked {
+    background-color: #E2E8F0 !important;
+    color: #1E293B !important;
+    border: 1px solid #CBD5E1 !important;
+    cursor: not-allowed !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+    line-height: 1.5 !important;
+    padding: 0.85rem 1rem !important;
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 68px !important;
+    resize: none !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
 /* Character Counter Styling */
 .char-counter {
     display: flex;
