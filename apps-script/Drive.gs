@@ -81,12 +81,19 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     
     let listaPresencaFolder = null;
     let relacaoInscritosFolder = null;
-    let registroFolder = getOrCreateSubFolder(activityFolder, "Registro Fotográfico");
-    let relatorioFolder = getOrCreateSubFolder(activityFolder, "Relatório");
+    let registroFolder = null;
+    let relatorioFolder = null;
 
-    if (setorUpper === "PEDAGÓGICO") {
-      listaPresencaFolder = getOrCreateSubFolder(activityFolder, "Lista de Presença");
-      relacaoInscritosFolder = getOrCreateSubFolder(activityFolder, "Relação de Inscritos");
+    if (setorUpper === "FUNDAÇÃO CASA") {
+      // Para Fundação CASA: apenas os relatórios em doc e pdf diretamente na pasta da atividade
+      relatorioFolder = activityFolder;
+    } else {
+      registroFolder = getOrCreateSubFolder(activityFolder, "Registro Fotográfico");
+      relatorioFolder = getOrCreateSubFolder(activityFolder, "Relatório");
+      if (setorUpper === "PEDAGÓGICO") {
+        listaPresencaFolder = getOrCreateSubFolder(activityFolder, "Lista de Presença");
+        relacaoInscritosFolder = getOrCreateSubFolder(activityFolder, "Relação de Inscritos");
+      }
     }
     
     return {

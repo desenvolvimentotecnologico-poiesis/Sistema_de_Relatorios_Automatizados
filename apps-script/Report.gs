@@ -64,6 +64,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       // Padrão Biblioteca: dataDaAtividade_unidade_nomeAtividade_nomeResponsavel
       let dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
       documentName = dataAtiv + "_" + cleanUnidade + "_" + cleanAtividade + "_" + cleanResponsavel;
+    } else if (setorUpper === "FUNDAÇÃO CASA") {
+      // Padrão Fundação CASA: mesPorExtenso_nomeAtividade_nomeResponsavel
+      let mesExt = data.mesReferencia || "Mes";
+      mesExt = Utils.sanitizeFileName(mesExt).replace(/\s+/g, "_");
+      documentName = mesExt + "_" + cleanAtividade + "_" + cleanResponsavel;
     } else {
       documentName = cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade;
     }

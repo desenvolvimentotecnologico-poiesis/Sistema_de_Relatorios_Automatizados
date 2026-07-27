@@ -24,6 +24,7 @@
     </div>
   </div>
 
+  <!-- Cabeçalho Principal -->
   <header class="header">
     <div class="header-container">
       <div class="logo-area">
@@ -38,6 +39,8 @@
   </header>
 
   <main class="main-container">
+    
+    <!-- Formulário Card -->
     <div id="formCard" class="card form-card theme-casa">
       
       <div class="form-header-badge">
@@ -54,26 +57,32 @@
 
       <!-- Card de Apresentação Oficial -->
       <div class="form-presentation-card">
-        <h2>Relatório Mensal de Atividades na Fundação CASA</h2>
+        <h2>Relatório de Execução e Monitoramento de Atividade - Fundação CASA - Fábrica de Cultura</h2>
         <div class="divider-line"></div>
-        <p>Formulário oficial para registro de encontros, desenvolvimento socioeducativo e síntese pedagógica das oficinas realizadas nos Centros de Atendimento da Fundação CASA.</p>
+        <p>Este formulário tem como objetivo registrar, monitorar e sistematizar as ações desenvolvidas pela parceria entre Fundação CASA e Fábricas de Cultura, contemplando aspectos pedagógicos, metodológicos e de participação dos públicos envolvidos.</p>
+        <p style="margin-top: 0.65rem;">As informações reunidas subsidiam o acompanhamento institucional das atividades, a avaliação de processos formativos, a consolidação de indicadores, a prestação de contas e a construção da memória institucional do Programa, contribuindo para o fortalecimento das trajetórias artístico-pedagógicas desenvolvidas nos territórios.</p>
       </div>
 
       <form id="reportForm" data-theme="fundacaocasa">
         <input type="hidden" name="setor" value="Fundação Casa">
 
-        <!-- Seção 1 -->
+        <!-- SEÇÃO 1: Identificação da Atividade -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">01</span>
-            Identificação da Unidade e Atividade
+            Identificação da Atividade
           </legend>
           <div class="form-grid">
+            
             <div class="form-group">
               <label for="divisaoRegionalSelect">Divisão Regional (DR) <span class="required">*</span></label>
               <div class="select-wrapper">
                 <select id="divisaoRegionalSelect" name="divisaoRegional" required>
-                  <option value="" disabled selected>Carregando divisões...</option>
+                  <option value="" disabled selected>Selecione a Divisão Regional...</option>
+                  <option value="DRCap">DRCap</option>
+                  <option value="DR2">DR2</option>
+                  <option value="DR3">DR3</option>
+                  <option value="DR4">DR4</option>
                 </select>
               </div>
             </div>
@@ -88,90 +97,258 @@
             </div>
 
             <div class="form-group">
-              <label for="atividade">Nome da Atividade / Oficina <span class="required">*</span></label>
-              <input type="text" id="atividade" name="atividade" placeholder="Digite o nome da atividade realizada" required>
+              <label for="atividadeSelect">Atividade <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="atividadeSelect" name="atividade" required>
+                  <option value="" disabled selected>Selecione a Atividade...</option>
+                  <option value="Artes Visuais: Desenho, Pintura e Criação">Artes Visuais: Desenho, Pintura e Criação</option>
+                  <option value="Capoeira: Corpo, Cultura e Disciplina">Capoeira: Corpo, Cultura e Disciplina</option>
+                  <option value="Circo e consciência corporal">Circo e consciência corporal</option>
+                  <option value="Comunicação não violenta">Comunicação não violenta</option>
+                  <option value="Dança, corpo e identidade">Dança, corpo e identidade</option>
+                  <option value="Fotografia básica e narrativa visual">Fotografia básica e narrativa visual</option>
+                  <option value="Hábitos saudáveis para a vida pós medida">Hábitos saudáveis para a vida pós medida</option>
+                  <option value="Introdução à inteligência artificial criativa">Introdução à inteligência artificial criativa</option>
+                  <option value="Introdução ao audiovisual">Introdução ao audiovisual</option>
+                  <option value="Literatura, escrita criativa, slam">Literatura, escrita criativa, slam</option>
+                  <option value="Planejamento de microprojetos culturais">Planejamento de microprojetos culturais</option>
+                  <option value="Processos criativos e mostras artísticas">Processos criativos e mostras artísticas</option>
+                  <option value="Produção de conteúdo digital">Produção de conteúdo digital</option>
+                  <option value="Teatro como expressão e autoconhecimento">Teatro como expressão e autoconhecimento</option>
+                  <option value="Tranças, estética e identidade cultural">Tranças, estética e identidade cultural</option>
+                  <option value="Yoga e Técnicas de respiração">Yoga e Técnicas de respiração</option>
+                </select>
+              </div>
             </div>
 
             <div class="form-group">
-              <label for="responsavel">Razão Social / Nome do Responsável <span class="required">*</span></label>
-              <input type="text" id="responsavel" name="responsavel" placeholder="Nome do educador ou empresa prestadora" required>
+              <label for="responsavel">Responsável pela Execução <span class="required">*</span></label>
+              <p class="input-subtitle">Digite sua razão social, conforme consta em contrato.</p>
+              <input type="text" id="responsavel" name="responsavel" placeholder="Razão Social" required>
             </div>
 
             <div class="form-group">
-              <label for="dataRelatorio">Data de Referência <span class="required">*</span></label>
-              <input type="date" id="dataRelatorio" name="dataRelatorio" required>
+              <label for="anoReferencia">Ano de Referência <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="anoReferencia" name="anoReferencia" required>
+                  <option value="" disabled selected>Selecione o Ano...</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                </select>
+              </div>
             </div>
+
+            <div class="form-group">
+              <label for="mesReferencia">Mês de Referência <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select id="mesReferencia" name="mesReferencia" required>
+                  <option value="" disabled selected>Selecione o Mês...</option>
+                  <option value="01 - Janeiro">01 - Janeiro</option>
+                  <option value="02 - Fevereiro">02 - Fevereiro</option>
+                  <option value="03 - Março">03 - Março</option>
+                  <option value="04 - Abril">04 - Abril</option>
+                  <option value="05 - Maio">05 - Maio</option>
+                  <option value="06 - Junho">06 - Junho</option>
+                  <option value="07 - Julho">07 - Julho</option>
+                  <option value="08 - Agosto">08 - Agosto</option>
+                  <option value="09 - Setembro">09 - Setembro</option>
+                  <option value="10 - Outubro">10 - Outubro</option>
+                  <option value="11 - Novembro">11 - Novembro</option>
+                  <option value="12 - Dezembro">12 - Dezembro</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="encontrosPrevistos">Quantidade de encontros previstos no período <span class="required">*</span></label>
+              <input type="number" id="encontrosPrevistos" name="encontrosPrevistos" min="1" placeholder="Ex: 8" required>
+            </div>
+
+            <div class="form-group">
+              <label for="encontrosRealizados">Quantidade de encontros realizados no período <span class="required">*</span></label>
+              <input type="number" id="encontrosRealizados" name="encontrosRealizados" min="0" placeholder="Ex: 8" required>
+            </div>
+
+            <div class="form-group">
+              <label for="dataReposicao">Data de eventual reposição</label>
+              <input type="date" id="dataReposicao" name="dataReposicao">
+            </div>
+
+            <div class="form-group">
+              <label for="destaqueAcao">Destaque da Ação <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 100 caracteres.</p>
+              <textarea id="destaqueAcao" name="destaqueAcao" placeholder="Frase curta de impacto resumindo a ação." data-min-length="100" minlength="100" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="objetivos">Objetivos da atividade/período <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 100 caracteres.</p>
+              <textarea id="objetivos" name="objetivos" placeholder="Descreva os objetivos pretendidos." data-min-length="100" minlength="100" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Impacto Territorial/Cultural</label>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Ampliação do acesso à cultura"> <span>Ampliação do acesso à cultura</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Fortalecimento do vínculo comunitário"> <span>Fortalecimento do vínculo comunitário</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Formação e desenvolvimento de públicos"> <span>Formação e desenvolvimento de públicos</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Valorização da diversidade cultural"> <span>Valorização da diversidade cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Incentivo ao sentimento de pertencimento"> <span>Incentivo ao sentimento de pertencimento</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Ampliação de repertórios culturais e artísticos"> <span>Ampliação de repertórios culturais e artísticos</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Promoção da convivência e participação social"> <span>Promoção da convivência e participação social</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Fortalecimento de redes e parcerias"> <span>Fortalecimento de redes e parcerias</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Incentivo à formação e ao desenvolvimento criativo"> <span>Incentivo à formação e ao desenvolvimento criativo</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Promoção da inclusão e acessibilidade cultural"> <span>Promoção da inclusão e acessibilidade cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Estímulo à continuidade formativa e cultural"> <span>Estímulo à continuidade formativa e cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Fortalecimento da memória e identidade cultural"> <span>Fortalecimento da memória e identidade cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Desenvolvimento de oportunidades na Economia Criativa"> <span>Desenvolvimento de oportunidades na Economia Criativa</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Integração entre linguagens, áreas e públicos"> <span>Integração entre linguagens, áreas e públicos</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="impactoTerritorial" value="Transformação social por meio da cultura"> <span>Transformação social por meio da cultura</span></label>
+
+                <div class="checkbox-outro-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="impactoTerritorial" value="Outro">
+                    <span class="font-bold text-fabrica-purple">Outro:</span>
+                  </label>
+                  <input type="text" class="input-inline-outro" name="impactoTerritorialOutro" placeholder="Digite outro impacto cultural..." disabled>
+                </div>
+              </div>
+            </div>
+
           </div>
         </fieldset>
 
-        <!-- Seção 2: Encontros -->
+        <!-- SEÇÃO 2: Relato e Análise Crítica -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">02</span>
-            Controle de Encontros
+            Relato e Análise Crítica
           </legend>
+
+          <p class="section-description-text">Descreva qualitativamente a execução da atividade, contemplando metodologia, participação do público, resultados observados, impactos identificados, aspectos operacionais relevantes, desafios enfrentados e avaliações que contribuam para o monitoramento e aperfeçoamento das ações desenvolvidas.</p>
+
           <div class="form-grid">
             <div class="form-group">
-              <label for="encontrosPrevistos">Encontros Previstos</label>
-              <input type="number" id="encontrosPrevistos" name="encontrosPrevistos" min="0" placeholder="Ex: 4">
+              <label for="descricaoMetodologia">Descrição das atividades e metodologia <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 200 caracteres.</p>
+              <textarea id="descricaoMetodologia" name="descricaoMetodologia" placeholder="Descreva as atividades desenvolvidas, os conteúdos ou linguagens trabalhados, a metodologia utilizada e eventuais adaptações realizadas durante a execução." data-min-length="200" minlength="200" required></textarea>
             </div>
+
             <div class="form-group">
-              <label for="encontrosRealizados">Encontros Realizados</label>
-              <input type="number" id="encontrosRealizados" name="encontrosRealizados" min="0" placeholder="Ex: 4">
+              <label for="engajamentoParticipacao">Engajamento e Participação <span class="required">*</span></label>
+              <p class="input-subtitle">Mínimo de 200 caracteres.</p>
+              <textarea id="engajamentoParticipacao" name="engajamentoParticipacao" placeholder="Descrever, de maneira sucinta, a participação geral da turma, a adesão às propostas, o interesse demonstrado, a colaboração entre os participantes, o protagonismo observado e outros elementos relevantes identificados durante o desenvolvimento das atividades." data-min-length="200" minlength="200" required></textarea>
             </div>
+
             <div class="form-group">
-              <label for="dataReposicao">Data de Eventual Reposição (se houver)</label>
-              <input type="date" id="dataReposicao" name="dataReposicao">
+              <label>Pontos Fortes</label>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Participação ativa do público"> <span>Participação ativa do público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Forte adesão da comunidade"> <span>Forte adesão da comunidade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Engajamento dos participantes"> <span>Engajamento dos participantes</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Qualidade artística da atividade"> <span>Qualidade artística da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Metodologia adequada ao público"> <span>Metodologia adequada ao público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Integração entre áreas"> <span>Integração entre áreas</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Boa articulação territorial"> <span>Boa articulação territorial</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Participação de artistas locais"> <span>Participação de artistas locais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Organização e fluxo da atividade"> <span>Organização e fluxo da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Cumprimento do cronograma"> <span>Cumprimento do cronograma</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Ampliação de repertório cultural"> <span>Ampliação de repertório cultural</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Fortalecimento de vínculo comunitário"> <span>Fortalecimento de vínculo comunitário</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Ambiente acolhedor e participativo"> <span>Ambiente acolhedor e participativo</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Diversidade de públicos presentes"> <span>Diversidade de públicos presentes</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Boa resposta às mediações propostas"> <span>Boa resposta às mediações propostas</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Fortalecimento de parcerias locais"> <span>Fortalecimento de parcerias locais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Alcance expressivo de público"> <span>Alcance expressivo de público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Participação espontânea do território"> <span>Participação espontânea do território</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Valorização de saberes e identidades locais"> <span>Valorização de saberes e identidades locais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFortes" value="Boa receptividade da programação"> <span>Boa receptividade da programação</span></label>
+
+                <div class="checkbox-outro-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="pontosFortes" value="Outro">
+                    <span class="font-bold text-fabrica-purple">Outro:</span>
+                  </label>
+                  <input type="text" class="input-inline-outro" name="pontosFortesOutro" placeholder="Digite outro ponto forte..." disabled>
+                </div>
+              </div>
             </div>
+
+            <div class="form-group">
+              <label>Pontos Fracos e Desafios</label>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Falhas técnicas"> <span>Falhas técnicas</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Atraso no início da atividade"> <span>Atraso no início da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Problemas com gerador ou energia elétrica"> <span>Problemas com gerador ou energia elétrica</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Falta de equipamentos ou materiais"> <span>Falta de equipamentos ou materiais</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Espaço físico inadequado para a proposta"> <span>Espaço físico inadequado para a proposta</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Dificuldade de acomodação do público"> <span>Dificuldade de acomodação do público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Baixa adesão em determinado momento da atividade"> <span>Baixa adesão em determinado momento da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Ritmo da atividade abaixo do esperado"> <span>Ritmo da atividade abaixo do esperado</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Tempo insuficiente para desenvolvimento da proposta"> <span>Tempo insuficiente para desenvolvimento da proposta</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Interferências externas durante a execução"> <span>Interferências externas durante a execução</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Dificuldade de mediação com o público"> <span>Dificuldade de mediação com o público</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Comunicação pouco eficiente entre equipes"> <span>Comunicação pouco eficiente entre equipes</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Ausência de recursos de acessibilidade"> <span>Ausência de recursos de acessibilidade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Necessidade de maior articulação com parceiros"> <span>Necessidade de maior articulação com parceiros</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Alterações de última hora na programação prevista"> <span>Alterações de última hora na programação prevista</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Limitações na divulgação da atividade"> <span>Limitações na divulgação da atividade</span></label>
+                <label class="checkbox-label"><input type="checkbox" name="pontosFracos" value="Dificuldade de engajamento dos participantes"> <span>Dificuldade de engajamento dos participantes</span></label>
+
+                <div class="checkbox-outro-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="pontosFracos" value="Outro">
+                    <span class="font-bold text-fabrica-purple">Outro:</span>
+                  </label>
+                  <input type="text" class="input-inline-outro" name="pontosFracosOutro" placeholder="Digite outro ponto fraco ou desafio..." disabled>
+                </div>
+              </div>
+            </div>
+
           </div>
         </fieldset>
 
-        <!-- Caixa de Declaração ECA -->
-        <div class="declaration-casa-box" style="margin-bottom: 2rem;">
-          <p class="declaration-paragraph"><strong>Atenção às Normas do ECA & Proteção à Imagem:</strong> Por questões de segurança legal e regulamentações do Estatuto da Criança e do Adolescente (ECA), relatórios da Fundação CASA não contêm registro fotográfico de rostos ou listas nominativas de adolescentes em cumprimento de medida socioeducativa.</p>
-        </div>
-
-        <!-- Seção 3: Avaliação Qualitativa -->
+        <!-- SEÇÃO 3: Declaração de Responsabilidade e Envio -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">03</span>
-            Avaliação Qualitativa e Metodologia
+            Declaração de Responsabilidade e Envio
           </legend>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="destaqueAcao">Destaque da Ação</label>
-              <textarea id="destaqueAcao" name="destaqueAcao" placeholder="Principais destaques e avanços observados..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="objetivos">Objetivos da Atividade</label>
-              <textarea id="objetivos" name="objetivos" placeholder="Objetivos pedagógicos e socioeducativos..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="descricaoMetodologia">Descrição das Ações e Metodologia</label>
-              <textarea id="descricaoMetodologia" name="descricaoMetodologia" placeholder="Detalhamento das metodologias e conteúdos..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="engajamentoParticipacao">Engajamento dos Adolescentes</label>
-              <textarea id="engajamentoParticipacao" name="engajamentoParticipacao" placeholder="Participação, comportamento e interesse..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="pontosFortes">Pontos Fortes</label>
-              <textarea id="pontosFortes" name="pontosFortes" placeholder="Pontos positivos da ação..."></textarea>
-            </div>
-            <div class="form-group">
-              <label for="pontosFracos">Pontos Fracos e Desafios</label>
-              <textarea id="pontosFracos" name="pontosFracos" placeholder="Desafios e propostas para os próximos encontros..."></textarea>
-            </div>
+
+          <div class="declaration-casa-box" style="margin-bottom: 1.5rem;">
+            <p class="declaration-paragraph"><strong>Declaro que executei as atividades em conformidade com o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990)</strong>, observando integralmente as normas de segurança, disciplina, acesso e funcionamento da unidade da Fundação CASA, bem como as orientações da CONTRATANTE, não tendo praticado qualquer conduta incompatível com as regras institucionais.</p>
+            <p class="declaration-paragraph" style="margin-top: 0.5rem;">Declaro que não captei, registrei, reproduzi, divulguei, compartilhei ou utilizei imagens, vídeos, áudios, dados pessoais ou quaisquer informações que permitam identificar adolescentes atendidos durante a execução das atividades, salvo quando previamente autorizado, por escrito, pela CONTRATANTE e/ou pela Fundação CASA, quando aplicável.</p>
+            <p class="declaration-paragraph" style="margin-top: 0.5rem;">Declaro que todos os produtos, obras, materiais, registros ou demais itens produzidos durante a execução das atividades permaneceram integralmente na unidade da Fundação CASA onde foram desenvolvidos, não tendo sido retirados, cedidos, comercializados ou destinados a finalidade diversa daquela prevista contratualmente.</p>
+            <p class="declaration-paragraph" style="margin-top: 0.5rem;">Declaro que tenho ciência das obrigações previstas nas cláusulas contratuais relativas à proteção de crianças e adolescentes, ao sigilo das informações, ao uso de imagem, à preservação dos materiais produzidos e às normas internas da Fundação CASA, afirmando que atuei em conformidade com tais disposições durante todo o período de execução dos serviços.</p>
+
+            <div class="divider-line" style="margin: 0.5rem 0 0.85rem 0;"></div>
+
+            <label class="checkbox-label" style="font-weight: 700;">
+              <input type="checkbox" id="concordoTermosCasa" required>
+              <span>Li e estou de acordo com a declaração acima. <span class="required">*</span></span>
+            </label>
+          </div>
+
+          <div class="declaration-casa-box">
+            <p class="declaration-paragraph">Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.</p>
+
+            <div class="divider-line" style="margin: 0.5rem 0 0.85rem 0;"></div>
+
+            <label class="checkbox-label" style="font-weight: 700;">
+              <input type="checkbox" id="concordoTermosInfo" required>
+              <span>Li e estou de acordo com a declaração acima. <span class="required">*</span></span>
+            </label>
           </div>
         </fieldset>
 
         <div class="form-footer">
           <button type="submit" class="btn btn-primary btn-block">Enviar Relatório Fundação CASA</button>
         </div>
+
       </form>
     </div>
 
-    <!-- Success Card -->
+    <!-- Card de Sucesso (Oculto Inicialmente) -->
     <div id="successCard" class="card success-card hidden">
       <div class="success-icon-container">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="success-icon">
@@ -185,6 +362,7 @@
         <a href="../index.html" class="btn btn-tertiary">Voltar ao Início</a>
       </div>
     </div>
+
   </main>
 
   <footer class="footer">
