@@ -410,6 +410,7 @@ function extractFormData(form) {
   };
 
   data.faixaEtaria = formatCheckboxField("faixaEtaria", "");
+  data.perfilPublico = formatCheckboxField("perfilPublico", "perfilPublicoOutro");
   data.impactoCultural = formatCheckboxField("impactoTerritorial", "impactoTerritorialOutro") || formatCheckboxField("impactoCultural", "impactoCulturalOutro");
   data.impactoTerritorial = data.impactoCultural;
   data.pontosFortes = formatCheckboxField("pontosFortes", "pontosFortesOutro");

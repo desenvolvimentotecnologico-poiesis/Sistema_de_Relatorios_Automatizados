@@ -128,6 +128,9 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     body.replaceText("\\{\\{OBJETIVOS\\}\\}", formatField(data.objetivos));
     body.replaceText("\\{\\{IMPACTO_CULTURAL\\}\\}", impactoVal);
     body.replaceText("\\{\\{IMPACTO_TERRITORIAL\\}\\}", impactoVal);
+    body.replaceText("\\{\\{LINGUAGEM_ARTISTICA\\}\\}", formatField(data.linguagemArtistica));
+    body.replaceText("\\{\\{INCLUSAO_DIVERSIDADE\\}\\}", formatField(data.inclusaoDiversidade));
+    body.replaceText("\\{\\{EFEMERIDE\\}\\}", formatField(data.efemeride));
     body.replaceText("\\{\\{RELATO\\}\\}", formatField(data.relato));
     body.replaceText("\\{\\{DESCRICAO_METODOLOGIA\\}\\}", formatField(data.descricaoMetodologia));
     body.replaceText("\\{\\{ENGAJAMENTO_PARTICIPACAO\\}\\}", formatField(data.engajamentoParticipacao));

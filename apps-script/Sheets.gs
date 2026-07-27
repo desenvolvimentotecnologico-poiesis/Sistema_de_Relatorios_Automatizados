@@ -135,7 +135,8 @@ function getSheetConfigForArea(area) {
         "Nome da Atividade", "Ano de Referência", "Mês de Referência", "Dia(s) do Mês",
         "Responsável", "Horário de Início", "Horário de Término", "Carga Horária Total", "Número de Sessões",
         "Público Total", "Público por Sessão", "Perfil do Público", "Faixa Etária Predominante",
-        "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural", "Relato",
+        "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
+        "Linguagem Artística", "Inclusão e Diversidade", "Efeméride", "Relato",
         "Descrição das Ações e Metodologia", "Pontos Fortes", "Pontos Fracos e Desafios"
       ]
     };
@@ -253,6 +254,9 @@ function saveResponseRow(data) {
         formatField(data.destaqueAcao),
         formatField(data.objetivos),
         formatField(impactoVal),
+        formatField(data.linguagemArtistica),
+        formatField(data.inclusaoDiversidade),
+        formatField(data.efemeride),
         formatField(data.relato),
         formatField(data.descricaoMetodologia),
         formatField(data.pontosFortes),
