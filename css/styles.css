@@ -1188,66 +1188,66 @@ select:disabled {
     box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
 }
 
-/* 2. Articulação e Difusão (Vermelho: #EF4444 / #B91C1C) */
+/* 2. Articulação e Difusão (Laranja: #F97316 / #C2410C) */
 .theme-articulacao {
-    --area-color: #EF4444;
-    --area-color-dark: #B91C1C;
-    --area-bg-light: #FEE2E2;
-    box-shadow: 0 16px 56px rgba(239, 68, 68, 0.18), 0 2px 12px rgba(239, 68, 68, 0.08);
+    --area-color: #F97316;
+    --area-color-dark: #C2410C;
+    --area-bg-light: #FFEDD5;
+    box-shadow: 0 16px 56px rgba(249, 115, 22, 0.18), 0 2px 12px rgba(249, 115, 22, 0.08);
 }
 
 .theme-articulacao .form-presentation-card {
-    border-left-color: #EF4444;
-    background-color: #FEE2E2;
+    border-left-color: #F97316;
+    background-color: #FFEDD5;
 }
 
 .theme-articulacao .form-header-badge {
-    border-left-color: #EF4444;
-    background-color: #FEE2E2;
+    border-left-color: #F97316;
+    background-color: #FFEDD5;
 }
 
 .theme-articulacao .badge-value {
-    color: #B91C1C;
+    color: #C2410C;
 }
 
 .theme-articulacao .section-number {
-    background-color: #EF4444;
+    background-color: #F97316;
 }
 
 .theme-articulacao .btn-primary {
-    background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
 }
 
-/* 3. Fundação CASA (Cinza / Slate: #64748B / #334155) */
+/* 3. Fundação CASA (Azul: #3B82F6 / #1D4ED8) */
 .theme-casa {
-    --area-color: #64748B;
-    --area-color-dark: #334155;
-    --area-bg-light: #F1F5F9;
-    box-shadow: 0 16px 56px rgba(100, 116, 139, 0.20), 0 2px 12px rgba(100, 116, 139, 0.08);
+    --area-color: #3B82F6;
+    --area-color-dark: #1D4ED8;
+    --area-bg-light: #DBEAFE;
+    box-shadow: 0 16px 56px rgba(59, 130, 246, 0.20), 0 2px 12px rgba(59, 130, 246, 0.08);
 }
 
 .theme-casa .form-presentation-card {
-    border-left-color: #64748B;
-    background-color: #F1F5F9;
+    border-left-color: #3B82F6;
+    background-color: #DBEAFE;
 }
 
 .theme-casa .form-header-badge {
-    border-left-color: #64748B;
-    background-color: #F1F5F9;
+    border-left-color: #3B82F6;
+    background-color: #DBEAFE;
 }
 
 .theme-casa .badge-value {
-    color: #334155;
+    color: #1D4ED8;
 }
 
 .theme-casa .section-number {
-    background-color: #64748B;
+    background-color: #3B82F6;
 }
 
 .theme-casa .btn-primary {
-    background: linear-gradient(135deg, #64748B 0%, #334155 100%);
-    box-shadow: 0 4px 14px rgba(100, 116, 139, 0.35);
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
 }
 
 /* 4. Bibliotecas (Verde Água / Teal: #0D9488 / #0F766E) */
