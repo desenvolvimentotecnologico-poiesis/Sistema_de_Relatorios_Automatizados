@@ -4,7 +4,7 @@
  */
 
 // Insira aqui a URL oficial da sua Implantação Web App do Apps Script (terminando em /exec)
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyE0WoYcdeio7eheHEnsIDJst6UH1HOsWMNYDLH4_bxneEguCMAXZso3XUcF_s0C0TuPg/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx_qOzuXxxDGCEwEveSk6zxmzDk87_aJcZdkX1j94xLwLrHfJhM7FxUkl9cboENayxpsA/exec";
 
 /**
  * Envia requisições assíncronas para o Apps Script
