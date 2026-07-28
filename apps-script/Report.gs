@@ -177,7 +177,6 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       }
       
       let imageCount = 0;
-      
       const imageBlobs = [];
 
       if (data.files && Array.isArray(data.files) && data.files.length > 0) {
@@ -209,40 +208,39 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         }
       }
 
-      try {
-        if (imageBlobs.length > 0) {
-            const tableRows = Math.ceil(imageBlobs.length / 2);
-            const table = body.appendTable();
-            table.setBorderWidth(0);
-            
-            let imgIdx = 0;
-            for (let r = 0; r < tableRows; r++) {
-              const row = table.appendTableRow();
-              for (let c = 0; c < 2; c++) {
-                const cell = row.appendTableCell();
-                cell.setPaddingTop(6).setPaddingBottom(6).setPaddingLeft(6).setPaddingRight(6);
-                if (imgIdx < imageBlobs.length) {
-                  const p = cell.getChild(0).asParagraph();
-                  p.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-                  const img = p.appendInlineImage(imageBlobs[imgIdx]);
-                  
-                  const origWidth = img.getWidth();
-                  const origHeight = img.getHeight();
-                  const targetWidth = 220;
-                  
-                  if (origWidth > targetWidth) {
-                    const ratio = targetWidth / origWidth;
-                    img.setWidth(targetWidth);
-                    img.setHeight(origHeight * ratio);
-                  }
-                  imgIdx++;
+      if (imageBlobs.length > 0) {
+        try {
+          const tableRows = Math.ceil(imageBlobs.length / 2);
+          const table = body.appendTable();
+          table.setBorderWidth(0);
+          
+          let imgIdx = 0;
+          for (let r = 0; r < tableRows; r++) {
+            const row = table.appendTableRow();
+            for (let c = 0; c < 2; c++) {
+              const cell = row.appendTableCell();
+              cell.setPaddingTop(6).setPaddingBottom(6).setPaddingLeft(6).setPaddingRight(6);
+              if (imgIdx < imageBlobs.length) {
+                const p = cell.getChild(0).asParagraph();
+                p.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+                const img = p.appendInlineImage(imageBlobs[imgIdx]);
+                
+                const origWidth = img.getWidth();
+                const origHeight = img.getHeight();
+                const targetWidth = 220;
+                
+                if (origWidth > targetWidth) {
+                  const ratio = targetWidth / origWidth;
+                  img.setWidth(targetWidth);
+                  img.setHeight(origHeight * ratio);
                 }
+                imgIdx++;
               }
             }
-            imageCount = imageBlobs.length;
           }
-        } catch (driveErr) {
-          Logger.log("Erro ao ler fotos do Drive: " + driveErr.toString());
+          imageCount = imageBlobs.length;
+        } catch (imgTableErr) {
+          Logger.log("Erro ao criar tabela de imagens no Doc: " + imgTableErr.toString());
         }
       }
       
