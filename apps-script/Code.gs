@@ -113,7 +113,9 @@ function submitForm(formData) {
       formData.atividade,
       formData.tipoPedagogico,
       formData.divisaoRegional,
-      formData.responsavel
+      formData.responsavel,
+      formData.mesReferencia,
+      formData.anoReferencia
     );
     
     // 2. Upload rápido de fotos anexadas em Base64

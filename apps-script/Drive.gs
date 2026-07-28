@@ -45,14 +45,34 @@ function getFormattedMonthName(monthStr) {
   return months[monthStr] || monthStr;
 }
 
-function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, tipoPedagogico, divisaoRegional, responsavel) {
+function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, tipoPedagogico, divisaoRegional, responsavel, mesReferencia, anoReferencia) {
   try {
     const rootFolder = getRootFolderConnection();
     const fabricasFolder = getOrCreateSubFolder(rootFolder, "Fábricas de Cultura");
     
-    let dateParts = (dataRelatorio || "").split("-");
-    let anoStr = dateParts[0] && dateParts[0].length === 4 ? dateParts[0] : new Date().getFullYear().toString();
-    let mesNum = dateParts[1] || "01";
+    let anoStr = anoReferencia ? String(anoReferencia).trim() : "";
+    let mesNum = mesReferencia ? String(mesReferencia).trim() : "";
+
+    if (!anoStr || !mesNum) {
+      if (dataRelatorio) {
+        const cleanStr = String(dataRelatorio).replace(/\s+/g, "");
+        const parts = cleanStr.split(/[-/]/);
+        if (parts.length >= 2) {
+          if (parts[0].length === 4) {
+            anoStr = anoStr || parts[0];
+            mesNum = mesNum || parts[1];
+          } else if (parts[parts.length - 1].length === 4) {
+            anoStr = anoStr || parts[parts.length - 1];
+            mesNum = mesNum || parts[0];
+          }
+        }
+      }
+    }
+
+    if (!anoStr) anoStr = new Date().getFullYear().toString();
+    if (!mesNum) mesNum = (new Date().getMonth() + 1).toString().padStart(2, "0");
+    if (mesNum.length === 1) mesNum = "0" + mesNum;
+
     let mesStr = getFormattedMonthName(mesNum);
 
     const setorUpper = setor ? setor.trim().toUpperCase() : "PEDAGÓGICO";
@@ -121,12 +141,16 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
     
     for (let i = 0; i < files.length; i++) {
       const fileData = files[i];
-      const bytes = Utilities.base64Decode(fileData.base64Data);
-      const blob = Utilities.newBlob(bytes, fileData.mimeType, fileData.name);
+      let base64 = fileData.base64Data || "";
+      if (base64.includes(",")) {
+        base64 = base64.split(",")[1];
+      }
+      const bytes = Utilities.base64Decode(base64);
+      const blob = Utilities.newBlob(bytes, fileData.mimeType || "image/jpeg", fileData.name || "foto.jpg");
       
       const createdFile = targetFolder.createFile(blob);
       
-      const parts = fileData.name.split(".");
+      const parts = (fileData.name || "foto.jpg").split(".");
       const ext = parts.length > 1 ? parts.pop().toLowerCase() : "jpg";
       const indexStr = (i + 1).toString().padStart(2, "0");
       const cleanFileName = cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
