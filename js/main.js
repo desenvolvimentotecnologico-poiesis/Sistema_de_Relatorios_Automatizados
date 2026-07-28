@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* Overlay de Carregamento Intuitivo com Barra de Progresso */
-function showOverlay(message, percent = 10, title = "Processando Formulário...") {
+function showOverlay(message, percent = 10, title = "Processando Formulário...", isFormSubmission = false) {
   const overlay = document.getElementById("loadingOverlay");
   const msgEl = document.getElementById("overlayMessage");
   const titleEl = document.getElementById("overlayStepTitle");
@@ -27,7 +27,13 @@ function showOverlay(message, percent = 10, title = "Processando Formulário..."
 
   if (titleEl) titleEl.textContent = title;
   if (msgEl && message) msgEl.textContent = message;
-  if (subEl) subEl.textContent = "⏱️ Este processo leva de 20 a 60 segundos para ser concluído. Por favor, aguarde e não feche nem recarregue a página.";
+  if (subEl) {
+    if (isFormSubmission) {
+      subEl.textContent = "⏱️ Este processo leva de 20 a 60 segundos para ser concluído. Por favor, aguarde e não feche nem recarregue a página.";
+    } else {
+      subEl.textContent = "Por favor, aguarde alguns segundos. Não feche nem recarregue esta página.";
+    }
+  }
   if (barFill && percent !== undefined) barFill.style.width = `${percent}%`;
   if (overlay) overlay.classList.remove("hidden");
 }
@@ -369,7 +375,7 @@ function setupFormSubmission() {
     formDataObj.files = uploadedFiles;
     currentSubmittedData = formDataObj;
 
-    showOverlay("Salvando dados da atividade na planilha e fotos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações");
+    showOverlay("Salvando dados da atividade na planilha e fotos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações", true);
 
     callBackendAPI(
       "submitForm",
@@ -453,7 +459,7 @@ function onStage1Success(response) {
     return;
   }
 
-  showOverlay("Compilando documento oficial e exportando PDF no Google Drive...", 75, "Etapa 2 de 2: Gerando PDF");
+  showOverlay("Compilando documento oficial e exportando PDF no Google Drive...", 75, "Etapa 2 de 2: Gerando PDF", true);
 
   const stage1Data = response;
   callBackendAPI(
