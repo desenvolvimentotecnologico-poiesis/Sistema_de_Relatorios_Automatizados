@@ -13,8 +13,8 @@
 
     /* Cores por Frente de Trabalho */
     --color-pedagogico: #8B5CF6;
-    --color-articulacao: #eb6c31;
-    --color-casa: #2365c0;
+    --color-articulacao: #F97316;
+    --color-casa: #3B82F6;
     --color-biblioteca: #0D9488;
 
     /* Tema Dinâmico Padrão */
@@ -192,15 +192,15 @@ body {
 }
 
 .color-articulacao-pill {
-    background-color: #FEE2E2;
-    color: #B91C1C;
-    border: 1px solid #FCA5A5;
+    background-color: #FFEDD5;
+    color: #C2410C;
+    border: 1px solid #FED7AA;
 }
 
 .color-casa-pill {
-    background-color: #F1F5F9;
-    color: #334155;
-    border: 1px solid #CBD5E1;
+    background-color: #DBEAFE;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
 }
 
 .color-biblioteca-pill {
@@ -360,11 +360,11 @@ body {
 }
 
 .color-articulacao {
-    background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+    background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
 }
 
 .color-casa {
-    background: linear-gradient(135deg, #64748B 0%, #334155 100%);
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
 }
 
 .color-biblioteca {
