@@ -23,7 +23,7 @@ const CONFIG = {
   SHEET_RESPONSES_BIBLIOTECA: "Bibliotecas",
 
   // ID da pasta raiz no Google Drive onde os relatórios e anexos serão organizados (FÁBRICAS DE CULTURA)
-  DRIVE_ROOT_FOLDER_ID: "1D9ByVQpDc-YRiP-DGyM-KovijBeTA0K5",
+  DRIVE_ROOT_FOLDER_ID: "1OsXPFw5jACJgjd76zTNLG1WtvUltV_KV",
 
   // IDs dos 4 modelos do Google Docs que servirão de templates para cada frente
   DOC_TEMPLATE_PEDAGOGICO_ID: "19VnXNuEJ-I47iPPBSTyq4ZNS4tpL759neGD7FHmHewA",

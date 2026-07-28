@@ -133,4 +133,4 @@ O sistema conta com um **Compressor Automático no Navegador** ([`js/image-compr
 
 ---
 
-*Documentação elaborada pela equipe de Arquitetura de Software em Julho de 2026.*
+*Documentação elaborada pela equipe de Sistemas em Julho de 2026.*
