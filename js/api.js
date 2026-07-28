@@ -30,12 +30,12 @@ function callBackendAPI(action, payload, onSuccess, onError) {
         const data = JSON.parse(text);
         if (onSuccess) onSuccess(data);
       } catch (e) {
-        Logger.log("Erro ao interpretar JSON:", text);
+        console.error("Erro ao interpretar JSON:", text);
         if (onError) onError("Resposta inválida do servidor. Verifique a implantação do Apps Script.");
       }
     })
     .catch(err => {
-      Logger.log("Erro de rede:", err);
+      console.error("Erro de rede:", err);
       if (onError) onError("Erro de conexão ao comunicar com o servidor. Verifique sua conexão à internet.");
     });
 }
