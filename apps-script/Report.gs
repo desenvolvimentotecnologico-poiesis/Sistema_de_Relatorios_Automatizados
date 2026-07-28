@@ -165,6 +165,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     if (position) {
       const element = position.getElement();
       const parentParagraph = element.getParent().asParagraph();
+      const attachIndex = body.getChildIndex(parentParagraph);
       element.asText().setText("");
       
       let registroFolder = null;
@@ -211,7 +212,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       if (imageBlobs.length > 0) {
         try {
           const tableRows = Math.ceil(imageBlobs.length / 2);
-          const table = body.appendTable();
+          const table = body.insertTable(attachIndex + 1);
           table.setBorderWidth(0);
           
           let imgIdx = 0;
