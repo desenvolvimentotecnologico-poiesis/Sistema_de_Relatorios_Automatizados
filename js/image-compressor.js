@@ -12,7 +12,7 @@ const ImageCompressor = {
    * @param {number} quality Qualidade do JPEG entre 0 e 1 (default 0.8)
    * @returns {Promise<Object>} Promessa contendo { name, mimeType, base64Data }
    */
-  compressFile: function(file, maxWidth = 1600, quality = 0.8) {
+  compressFile: function(file, maxWidth = 1000, quality = 0.7) {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith("image/")) {
         reject(new Error("O arquivo selecionado não é uma imagem válida."));

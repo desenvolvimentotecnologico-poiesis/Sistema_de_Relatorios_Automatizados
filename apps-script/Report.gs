@@ -178,10 +178,25 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       
       let imageCount = 0;
       
-      if (registroFolder) {
+      const imageBlobs = [];
+
+      if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+        data.files.forEach(f => {
+          if (f.base64Data) {
+            try {
+              const decoded = Utilities.base64Decode(f.base64Data);
+              const blob = Utilities.newBlob(decoded, f.mimeType || "image/jpeg", f.name || "foto.jpg");
+              imageBlobs.push(blob);
+            } catch (bErr) {
+              Logger.log("Erro ao converter Base64 da foto: " + bErr.toString());
+            }
+          }
+        });
+      }
+
+      if (imageBlobs.length === 0 && registroFolder) {
         try {
           const driveFiles = registroFolder.getFiles();
-          const imageBlobs = [];
           while (driveFiles.hasNext()) {
             const file = driveFiles.next();
             const mimeType = file.getMimeType();
@@ -189,8 +204,13 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
               imageBlobs.push(file.getBlob());
             }
           }
-          
-          if (imageBlobs.length > 0) {
+        } catch (driveErr) {
+          Logger.log("Erro ao ler fotos da pasta do Drive: " + driveErr.toString());
+        }
+      }
+
+      try {
+        if (imageBlobs.length > 0) {
             const tableRows = Math.ceil(imageBlobs.length / 2);
             const table = body.appendTable();
             table.setBorderWidth(0);
