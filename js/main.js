@@ -22,10 +22,12 @@ function showOverlay(message, percent = 10, title = "Processando Formulário..."
   const overlay = document.getElementById("loadingOverlay");
   const msgEl = document.getElementById("overlayMessage");
   const titleEl = document.getElementById("overlayStepTitle");
+  const subEl = document.getElementById("overlaySubtitle");
   const barFill = document.getElementById("loadingProgressBarFill");
 
   if (titleEl) titleEl.textContent = title;
   if (msgEl && message) msgEl.textContent = message;
+  if (subEl) subEl.textContent = "⏱️ Este processo leva de 20 a 60 segundos para ser concluído. Por favor, aguarde e não feche nem recarregue a página.";
   if (barFill && percent !== undefined) barFill.style.width = `${percent}%`;
   if (overlay) overlay.classList.remove("hidden");
 }
