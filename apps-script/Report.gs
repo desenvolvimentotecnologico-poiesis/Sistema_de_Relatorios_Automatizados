@@ -166,19 +166,19 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     
     let declaracaoTexto = "";
     if (setorUpper === "FUNDAÇÃO CASA") {
-      declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n" +
-        "1. Declaração de Conformidade com o ECA, Proteção de Imagem e Normas Internas:\n" +
-        "Declaro que executei as atividades em conformidade com o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990), observando integralmente as normas de segurança, disciplina, acesso e funcionamento da unidade da Fundação CASA, bem como as orientações da CONTRATANTE, não tendo praticado qualquer conduta incompatível com as regras institucionais.\n" +
-        "Declaro que não captei, registrei, reproduzi, divulguei, compartilhei ou utilizei imagens, vídeos, áudios, dados pessoais ou quaisquer informações que permitam identificar adolescentes atendidos durante a execução das atividades, salvo quando previamente autorizado, por escrito, pela CONTRATANTE e/ou pela Fundação CASA, quando aplicável.\n" +
-        "Declaro que todos os produtos, obras, materiais, registros ou demais itens produzidos durante a execução das atividades permaneceram integralmente na unidade da Fundação CASA onde foram desenvolvidos, não tendo sido retirados, cedidos, comercializados ou destinados a finalidade diversa daquela prevista contratualmente.\n" +
+      declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +
+        "1. Declaração de Conformidade com o ECA, Proteção de Imagem e Normas Internas:\n\n" +
+        "Declaro que executei as atividades em conformidade com o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990), observando integralmente as normas de segurança, disciplina, acesso e funcionamento da unidade da Fundação CASA, bem como as orientações da CONTRATANTE, não tendo praticado qualquer conduta incompatível com as regras institucionais.\n\n" +
+        "Declaro que não captei, registrei, reproduzi, divulguei, compartilhei ou utilizei imagens, vídeos, áudios, dados pessoais ou quaisquer informações que permitam identificar adolescentes atendidos durante a execução das atividades, salvo quando previamente autorizado, por escrito, pela CONTRATANTE e/ou pela Fundação CASA, quando aplicável.\n\n" +
+        "Declaro que todos os produtos, obras, materiais, registros ou demais itens produzidos durante a execução das atividades permaneceram integralmente na unidade da Fundação CASA onde foram desenvolvidos, não tendo sido retirados, cedidos, comercializados ou destinados a finalidade diversa daquela prevista contratualmente.\n\n" +
         "Declaro que tenho ciência das obrigações previstas nas cláusulas contratuais relativas à proteção de crianças e adolescentes, ao sigilo das informações, ao uso de imagem, à preservação dos materiais produzidos e às normas internas da Fundação CASA, afirmando que atuei em conformidade com tais disposições durante todo o período de execução dos serviços.\n\n" +
-        "2. Declaração de Veracidade e Prestação de Contas:\n" +
+        "2. Declaração de Veracidade e Prestação de Contas:\n\n" +
         "Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.\n\n" +
         "[☑] TERMOS LIDOS E ACEITOS ELETRONICAMENTE NO ATO DO ENVIO\n" +
         "Declarante / Responsável: " + responsavelNome + "\n" +
         "Data/Hora do Registro: " + timestampBR + " (Horário Oficial de Brasília)";
     } else {
-      declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n" +
+      declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +
         "Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.\n\n" +
         "[☑] TERMO LIDO E ACEITO ELETRONICAMENTE NO ATO DO ENVIO\n" +
         "Declarante / Responsável: " + responsavelNome + "\n" +
@@ -189,23 +189,14 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     body.replaceText("\\{\\{DECLARACAO\\}\\}", declaracaoTexto);
     body.replaceText("\\{\\{TERMOS\\}\\}", declaracaoTexto);
 
-    // Destaca em negrito os títulos principais das declarações no documento
-    const foundHeader = body.findText("DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL");
-    if (foundHeader) {
-      foundHeader.getElement().asText().setBold(true);
-    }
-    const foundSub1 = body.findText("1. Declaração de Conformidade com o ECA");
-    if (foundSub1) {
-      foundSub1.getElement().asText().setBold(true);
-    }
-    const foundSub2 = body.findText("2. Declaração de Veracidade e Prestação de Contas");
-    if (foundSub2) {
-      foundSub2.getElement().asText().setBold(true);
-    }
-    const foundSeal = body.findText("\\[☑\\] TERMOS? LIDOS? E ACEITOS? ELETRONICAMENTE NO ATO DO ENVIO");
-    if (foundSeal) {
-      foundSeal.getElement().asText().setBold(true);
-    }
+    // Aplica negrito exclusivamente nos títulos e rótulos (mantendo o corpo dos parágrafos em texto normal)
+    setBoldForRange(body, "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL");
+    setBoldForRange(body, "1. Declaração de Conformidade com o ECA, Proteção de Imagem e Normas Internas:");
+    setBoldForRange(body, "2. Declaração de Veracidade e Prestação de Contas:");
+    setBoldForRange(body, "\\[☑\\] TERMOS LIDOS E ACEITOS ELETRONICAMENTE NO ATO DO ENVIO");
+    setBoldForRange(body, "\\[☑\\] TERMO LIDO E ACEITO ELETRONICAMENTE NO ATO DO ENVIO");
+    setBoldForRange(body, "Declarante / Responsável:");
+    setBoldForRange(body, "Data/Hora do Registro:");
     
     const position = body.findText("\\{\\{ANEXOS\\}\\}");
     
@@ -352,5 +343,20 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
   } catch (error) {
     Logger.log("Erro no generateDocumentAndPdf: " + error.toString());
     throw new Error("Falha na geração do relatório documental: " + error.message);
+  }
+}
+
+function setBoldForRange(body, textPattern) {
+  try {
+    let found = body.findText(textPattern);
+    while (found) {
+      const textElement = found.getElement().asText();
+      const start = found.getStartOffset();
+      const endInclusive = found.getEndOffsetInclusive();
+      textElement.setBold(start, endInclusive, true);
+      found = body.findText(textPattern, found);
+    }
+  } catch (err) {
+    Logger.log("Erro ao aplicar negrito parcial: " + err.toString());
   }
 }
