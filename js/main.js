@@ -552,17 +552,42 @@ function extractFormData(form) {
       const tbody = document.getElementById("tabelaEncontrosBody");
       const rows = tbody ? tbody.querySelectorAll("tr") : [];
       const planoTabela = [];
+      const unidadeAtual = data.unidade || data.centroAtendimento || getSelectedUnidadeName();
 
       rows.forEach(tr => {
-        const label = tr.querySelector(".input-encontro-label") ? tr.querySelector(".input-encontro-label").value.trim() : "";
-        const conteudo = tr.querySelector(".input-encontro-conteudo") ? tr.querySelector(".input-encontro-conteudo").value.trim() : "";
-        const metodologia = tr.querySelector(".input-encontro-metodologia") ? tr.querySelector(".input-encontro-metodologia").value.trim() : "";
+        const dataEl = tr.querySelector(".input-plano-data");
+        const inicioEl = tr.querySelector(".input-plano-inicio");
+        const fimEl = tr.querySelector(".input-plano-fim");
+        const descEl = tr.querySelector(".input-plano-descricao");
 
-        if (label || conteudo || metodologia) {
+        const rawData = dataEl ? dataEl.value : "";
+        const inicio = inicioEl ? inicioEl.value : "";
+        const fim = fimEl ? fimEl.value : "";
+        const desc = descEl ? descEl.value.trim() : "";
+
+        let dataFormatada = rawData;
+        if (rawData && rawData.includes("-")) {
+          const parts = rawData.split("-");
+          if (parts.length === 3) {
+            dataFormatada = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
+        }
+
+        let horarioStr = "";
+        if (inicio && fim) {
+          horarioStr = `Das ${inicio}h às ${fim}h`;
+        } else if (inicio) {
+          horarioStr = `${inicio}h`;
+        } else if (fim) {
+          horarioStr = `Até ${fim}h`;
+        }
+
+        if (dataFormatada || horarioStr || desc) {
           planoTabela.push({
-            encontro: label,
-            conteudo: conteudo,
-            metodologia: metodologia
+            data: dataFormatada || "---",
+            unidade: unidadeAtual || "CASA",
+            horario: horarioStr || "---",
+            descricao: desc || "---"
           });
         }
       });
@@ -718,6 +743,22 @@ function setupPlanoModoToggle() {
   initDynamicPlanoTable();
 }
 
+function getSelectedUnidadeName() {
+  const selUnidade = document.getElementById("unidade") || document.getElementById("centroAtendimento");
+  if (selUnidade && selUnidade.value) {
+    return selUnidade.value;
+  }
+  return "Selecione a Unidade";
+}
+
+function updatePlanoUnidades() {
+  const nomeUnidade = getSelectedUnidadeName();
+  const inputs = document.querySelectorAll(".input-plano-unidade");
+  inputs.forEach(input => {
+    input.value = nomeUnidade;
+  });
+}
+
 function initDynamicPlanoTable() {
   const tbody = document.getElementById("tabelaEncontrosBody");
   const btnAdd = document.getElementById("btnAddEncontro");
@@ -725,36 +766,49 @@ function initDynamicPlanoTable() {
 
   tbody.innerHTML = "";
 
-  // Cria 4 encontros padrão iniciais
-  for (let i = 1; i <= 4; i++) {
-    addEncontroRow(`Encontro ${String(i).padStart(2, "0")}`, "", "");
+  const selUnidade = document.getElementById("unidade") || document.getElementById("centroAtendimento");
+  if (selUnidade) {
+    selUnidade.addEventListener("change", updatePlanoUnidades);
+  }
+
+  // Cria 3 encontros padrão iniciais
+  for (let i = 1; i <= 3; i++) {
+    addEncontroRow("", "", "", "");
   }
 
   if (btnAdd) {
     btnAdd.onclick = () => {
-      const nextIdx = tbody.querySelectorAll("tr").length + 1;
-      addEncontroRow(`Encontro ${String(nextIdx).padStart(2, "0")}`, "", "");
+      addEncontroRow("", "", "", "");
     };
   }
 }
 
-function addEncontroRow(labelVal, conteudoVal, metodologiaVal) {
+function addEncontroRow(dataVal, inicioVal, fimVal, descVal) {
   const tbody = document.getElementById("tabelaEncontrosBody");
   if (!tbody) return;
+
+  const nomeUnidade = getSelectedUnidadeName();
 
   const tr = document.createElement("tr");
   tr.innerHTML = `
     <td>
-      <input type="text" class="input-encontro-label" value="${labelVal}" placeholder="Ex: Encontro 01">
+      <input type="date" class="input-plano-data" value="${dataVal}" style="font-size:0.8rem; padding:0.35rem 0.4rem;">
     </td>
     <td>
-      <textarea class="input-encontro-conteudo" placeholder="Conteúdo / Linguagem trabalhada...">${conteudoVal}</textarea>
+      <input type="text" class="input-plano-unidade" value="${nomeUnidade}" readonly style="background-color: #F1F5F9; color: #475569; font-weight: 600; font-size:0.8rem;">
     </td>
     <td>
-      <textarea class="input-encontro-metodologia" placeholder="Descreva a metodologia e atividades desenvolvidas...">${metodologiaVal}</textarea>
+      <div style="display:flex; align-items:center; gap:0.2rem;">
+        <input type="time" class="input-plano-inicio" value="${inicioVal}" title="Início" style="font-size:0.8rem; padding:0.3rem;">
+        <span style="font-size:0.75rem; color:#64748B;">às</span>
+        <input type="time" class="input-plano-fim" value="${fimVal}" title="Fim" style="font-size:0.8rem; padding:0.3rem;">
+      </div>
+    </td>
+    <td>
+      <textarea class="input-plano-descricao" placeholder="Descrição detalhada das atividades..." style="font-size:0.8rem; min-height:48px;">${descVal}</textarea>
     </td>
     <td style="text-align: center; vertical-align: middle;">
-      <button type="button" class="btn-remove-row" title="Remover este encontro">×</button>
+      <button type="button" class="btn-remove-row" title="Remover linha">×</button>
     </td>
   `;
 

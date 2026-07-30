@@ -218,37 +218,64 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         const modoPlano = data.modoPlanoAtividade || (data.planoTabela && data.planoTabela.length > 0 ? "tabela" : "pdf");
 
         if (modoPlano === "tabela" && data.planoTabela && Array.isArray(data.planoTabela) && data.planoTabela.length > 0) {
-          // OPÇÃO 1: Monta a Tabela Dinâmica do Plano de Atividades no Google Docs
+          // OPÇÃO 1: Monta a Tabela Dinâmica do Plano de Atividades no Google Docs (Idêntica ao modelo planoDeAtividade.png)
           parentParagraph.setText("Plano de Atividades do Período:");
           try {
             const attachIndex = body.getChildIndex(parentParagraph);
             const table = body.insertTable(attachIndex + 1);
             table.setBorderWidth(1);
-            table.setBorderColor("#CBD5E1");
+            table.setBorderColor("#C084FC");
 
-            // Cabeçalho da Tabela
+            // Limpa qualquer linha padrão que o DocumentApp possa ter inserido automaticamente
+            while (table.getNumRows() > 0) {
+              table.removeRow(0);
+            }
+
+            // Cabeçalho da Tabela (DATA, UNIDADE, HORÁRIO, DESCRIÇÃO DAS ATIVIDADES)
             const headerRow = table.appendTableRow();
-            const hCell1 = headerRow.appendTableCell("Encontro / Data");
-            const hCell2 = headerRow.appendTableCell("Conteúdo / Linguagem Trabalhada");
-            const hCell3 = headerRow.appendTableCell("Metodologia e Atividades Desenvolvidas");
+            headerRow.appendTableCell("DATA");
+            headerRow.appendTableCell("UNIDADE");
+            headerRow.appendTableCell("HORÁRIO");
+            headerRow.appendTableCell("DESCRIÇÃO DAS ATIVIDADES");
 
-            [hCell1, hCell2, hCell3].forEach(c => {
-              c.setBackgroundColor("#2E1065");
-              const p = c.getChild(0).asParagraph();
-              p.setFontColor("#FFFFFF").setBold(true);
-            });
+            for (let i = 0; i < 4; i++) {
+              const cell = headerRow.getCell(i);
+              cell.setBackgroundColor("#E9D5FF");
+              cell.setPaddingTop(8).setPaddingBottom(8).setPaddingLeft(8).setPaddingRight(8);
+              const p = cell.getChild(0).asParagraph();
+              p.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+              const text = p.editAsText();
+              text.setForegroundColor("#1E1B4B");
+              text.setBold(true);
+              text.setFontSize(10);
+            }
 
-            // Preenche as linhas dos encontros
+            const unidadeFinal = data.unidade || data.centroAtendimento || "Unidade CASA";
+
+            // Preenche as linhas de conteúdo da tabela
             data.planoTabela.forEach((item, rIdx) => {
               const row = table.appendTableRow();
-              const cell1 = row.appendTableCell(item.encontro || "");
-              const cell2 = row.appendTableCell(item.conteudo || "");
-              const cell3 = row.appendTableCell(item.metodologia || "");
+              row.appendTableCell(item.data || "---");
+              row.appendTableCell(item.unidade || unidadeFinal);
+              row.appendTableCell(item.horario || "---");
+              row.appendTableCell(item.descricao || "---");
 
-              const rowBg = (rIdx % 2 === 0) ? "#FFFFFF" : "#F8FAFC";
-              [cell1, cell2, cell3].forEach(cell => {
+              const c0 = row.getCell(0);
+              const c1 = row.getCell(1);
+              const c2 = row.getCell(2);
+              const c3 = row.getCell(3);
+
+              c0.getChild(0).asParagraph().setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+              c1.getChild(0).asParagraph().setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+              c2.getChild(0).asParagraph().setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+
+              const rowBg = (rIdx % 2 === 0) ? "#FFFFFF" : "#FAF5FF";
+              [c0, c1, c2, c3].forEach(cell => {
                 cell.setBackgroundColor(rowBg);
                 cell.setPaddingTop(6).setPaddingBottom(6).setPaddingLeft(8).setPaddingRight(8);
+                const txt = cell.getChild(0).asParagraph().editAsText();
+                txt.setForegroundColor("#1E293B");
+                txt.setFontSize(9.5);
               });
             });
           } catch (tabErr) {
