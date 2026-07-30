@@ -250,6 +250,16 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
               text.setFontSize(10);
             }
 
+            // Define larguras proporcionais (DATA e HORÁRIO compactos, DESCRIÇÃO DAS ATIVIDADES ampla)
+            try {
+              table.setColumnWidth(0, 75);  // DATA
+              table.setColumnWidth(1, 95);  // UNIDADE
+              table.setColumnWidth(2, 105); // HORÁRIO
+              table.setColumnWidth(3, 193); // DESCRIÇÃO DAS ATIVIDADES
+            } catch (wErr) {
+              Logger.log("Aviso de largura de colunas: " + wErr.toString());
+            }
+
             const unidadeFinal = data.unidade || data.centroAtendimento || "Unidade CASA";
 
             // Preenche as linhas de conteúdo da tabela
