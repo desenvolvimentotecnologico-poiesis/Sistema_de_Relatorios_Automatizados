@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupFormSubmission();
   setupOutroFieldsListeners();
   setupCharacterCounters();
+  setupPlanoModoToggle();
 });
 
 /* Overlay de Carregamento Intuitivo com Barra de Progresso */
@@ -454,11 +455,31 @@ function setupFormSubmission() {
 
     const isCasaForm = form.getAttribute("data-theme") === "fundacaocasa";
 
-    // Validação estrita da Seção de Evidências (Arquivos)
+    // Validação estrita da Seção de Evidências (Arquivos / Tabela)
     if (isCasaForm) {
-      if (uploadedFiles.length !== 1) {
-        alert("Atenção: É obrigatório fazer o upload do Plano de Atividades em formato PDF.");
-        return;
+      const modoPlanoRadio = form.querySelector('input[name="modoPlanoAtividade"]:checked');
+      const modoPlano = modoPlanoRadio ? modoPlanoRadio.value : "tabela";
+
+      if (modoPlano === "pdf") {
+        if (uploadedFiles.length !== 1) {
+          alert("Atenção: Na Opção 2, é obrigatório fazer o upload do Plano de Atividades em formato PDF.");
+          return;
+        }
+      } else {
+        // Validação da Opção 1: Tabela Dinâmica
+        const tbody = document.getElementById("tabelaEncontrosBody");
+        const rows = tbody ? tbody.querySelectorAll("tr") : [];
+        let hasContent = false;
+        rows.forEach(tr => {
+          const label = tr.querySelector(".input-encontro-label") ? tr.querySelector(".input-encontro-label").value.trim() : "";
+          const conteudo = tr.querySelector(".input-encontro-conteudo") ? tr.querySelector(".input-encontro-conteudo").value.trim() : "";
+          if (label && conteudo) hasContent = true;
+        });
+
+        if (!hasContent) {
+          alert("Atenção: Por favor, preencha o conteúdo de pelo menos 1 encontro na tabela do Plano de Atividades.");
+          return;
+        }
       }
     } else {
       if (uploadedFiles.length < 3) {
@@ -495,7 +516,7 @@ function setupFormSubmission() {
     }
 
     const formDataObj = extractFormData(form);
-    formDataObj.files = uploadedFiles;
+    formDataObj.files = (formDataObj.modoPlanoAtividade === "pdf") ? uploadedFiles : [];
     currentSubmittedData = formDataObj;
 
     showOverlay("Salvando dados da atividade na planilha e arquivos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações", true);
@@ -521,6 +542,32 @@ function extractFormData(form) {
       data[key].push(value);
     } else {
       data[key] = value;
+    }
+  }
+
+  const isCasaForm = form.getAttribute("data-theme") === "fundacaocasa";
+  if (isCasaForm) {
+    const modoPlano = data.modoPlanoAtividade || "tabela";
+    if (modoPlano === "tabela") {
+      const tbody = document.getElementById("tabelaEncontrosBody");
+      const rows = tbody ? tbody.querySelectorAll("tr") : [];
+      const planoTabela = [];
+
+      rows.forEach(tr => {
+        const label = tr.querySelector(".input-encontro-label") ? tr.querySelector(".input-encontro-label").value.trim() : "";
+        const conteudo = tr.querySelector(".input-encontro-conteudo") ? tr.querySelector(".input-encontro-conteudo").value.trim() : "";
+        const metodologia = tr.querySelector(".input-encontro-metodologia") ? tr.querySelector(".input-encontro-metodologia").value.trim() : "";
+
+        if (label || conteudo || metodologia) {
+          planoTabela.push({
+            encontro: label,
+            conteudo: conteudo,
+            metodologia: metodologia
+          });
+        }
+      });
+
+      data.planoTabela = planoTabela;
     }
   }
 
@@ -632,4 +679,93 @@ function showSuccessCard(pdfUrl, docUrl) {
       pdfBtn.target = "_blank";
     }
   }
+}
+
+/* GERENCIAMENTO DA ALTERNÂNCIA E TABELA DINÂMICA DO PLANO DE ATIVIDADES */
+function setupPlanoModoToggle() {
+  const form = document.getElementById("reportForm");
+  if (!form || form.getAttribute("data-theme") !== "fundacaocasa") return;
+
+  const modoRadios = document.getElementsByName("modoPlanoAtividade");
+  const cardTabela = document.getElementById("cardModoTabela");
+  const cardPdf = document.getElementById("cardModoPdf");
+  const secaoTabela = document.getElementById("secaoPlanoTabela");
+  const secaoPdf = document.getElementById("secaoPlanoPdf");
+
+  function updateModoView() {
+    let selectedModo = "tabela";
+    modoRadios.forEach(r => {
+      if (r.checked) selectedModo = r.value;
+    });
+
+    if (selectedModo === "tabela") {
+      if (cardTabela) cardTabela.classList.add("selected");
+      if (cardPdf) cardPdf.classList.remove("selected");
+      if (secaoTabela) secaoTabela.classList.remove("hidden");
+      if (secaoPdf) secaoPdf.classList.add("hidden");
+    } else {
+      if (cardPdf) cardPdf.classList.add("selected");
+      if (cardTabela) cardTabela.classList.remove("selected");
+      if (secaoPdf) secaoPdf.classList.remove("hidden");
+      if (secaoTabela) secaoTabela.classList.add("hidden");
+    }
+  }
+
+  modoRadios.forEach(r => r.addEventListener("change", updateModoView));
+  updateModoView();
+
+  // Inicializa a tabela dinâmica interativa
+  initDynamicPlanoTable();
+}
+
+function initDynamicPlanoTable() {
+  const tbody = document.getElementById("tabelaEncontrosBody");
+  const btnAdd = document.getElementById("btnAddEncontro");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  // Cria 4 encontros padrão iniciais
+  for (let i = 1; i <= 4; i++) {
+    addEncontroRow(`Encontro ${String(i).padStart(2, "0")}`, "", "");
+  }
+
+  if (btnAdd) {
+    btnAdd.onclick = () => {
+      const nextIdx = tbody.querySelectorAll("tr").length + 1;
+      addEncontroRow(`Encontro ${String(nextIdx).padStart(2, "0")}`, "", "");
+    };
+  }
+}
+
+function addEncontroRow(labelVal, conteudoVal, metodologiaVal) {
+  const tbody = document.getElementById("tabelaEncontrosBody");
+  if (!tbody) return;
+
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>
+      <input type="text" class="input-encontro-label" value="${labelVal}" placeholder="Ex: Encontro 01">
+    </td>
+    <td>
+      <textarea class="input-encontro-conteudo" placeholder="Conteúdo / Linguagem trabalhada...">${conteudoVal}</textarea>
+    </td>
+    <td>
+      <textarea class="input-encontro-metodologia" placeholder="Descreva a metodologia e atividades desenvolvidas...">${metodologiaVal}</textarea>
+    </td>
+    <td style="text-align: center; vertical-align: middle;">
+      <button type="button" class="btn-remove-row" title="Remover este encontro">×</button>
+    </td>
+  `;
+
+  const btnRemove = tr.querySelector(".btn-remove-row");
+  btnRemove.onclick = () => {
+    if (tbody.querySelectorAll("tr").length <= 1) {
+      alert("É necessário manter pelo menos 1 encontro na tabela.");
+      return;
+    }
+    tr.remove();
+  };
+
+  tbody.appendChild(tr);
 }

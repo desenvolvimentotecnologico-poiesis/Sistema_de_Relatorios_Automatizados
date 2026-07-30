@@ -454,22 +454,76 @@
           </div>
         </fieldset>
 
-        <!-- SEÇÃO 3: Evidências (Registros) -->
+        <!-- SEÇÃO 3: Plano de Atividades e Evidências -->
         <fieldset class="form-section">
           <legend class="section-title">
             <span class="section-number">03</span>
-            Evidências (Registros)
+            Plano de Atividades e Evidências
           </legend>
 
-          <p class="section-description-text">As evidências devem representar o desenvolvimento da ação, a participação
-            do público e os principais momentos da atividade.</p>
+          <p class="section-description-text">Escolha abaixo como você deseja enviar o Plano de Atividades do período para o relatório da Fundação CASA.</p>
 
           <div class="form-grid">
+            <!-- Seletor de Modo do Plano de Atividades -->
             <div class="form-group">
-              <label>Plano de Atividades do Período <span class="required">*</span></label>
-              <p class="input-subtitle">Faça o upload do Plano de Atividades do período em formato PDF, seguindo a estrutura do modelo de exemplo abaixo.</p>
+              <label>Como deseja enviar o Plano de Atividades? <span class="required">*</span></label>
+              <div class="plano-modo-selector">
+                <label class="plano-modo-card selected" id="cardModoTabela">
+                  <input type="radio" name="modoPlanoAtividade" value="tabela" checked>
+                  <div class="plano-modo-icon">📊</div>
+                  <div class="plano-modo-text">
+                    <strong>Opção 1: Digitar Tabela no Formulário</strong>
+                    <span>Preencha os encontros diretamente aqui. O relatório gera a tabela formatada no PDF sem precisar de anexo!</span>
+                  </div>
+                </label>
 
-              <!-- Card com Exemplo Visual do Plano de Atividades -->
+                <label class="plano-modo-card" id="cardModoPdf">
+                  <input type="radio" name="modoPlanoAtividade" value="pdf">
+                  <div class="plano-modo-icon">📁</div>
+                  <div class="plano-modo-text">
+                    <strong>Opção 2: Anexar Arquivo em PDF</strong>
+                    <span>Envie o arquivo do Plano de Atividades em PDF (máx. 15MB). Salva na pasta do Drive e gera link no relatório.</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- OPÇÃO 1: Tabela Dinâmica de Encontros -->
+            <div id="secaoPlanoTabela" class="plano-opcao-box">
+              <div class="plano-opcao-header">
+                <h3>📊 Tabela Dinâmica do Plano de Atividades</h3>
+                <p>Insira abaixo os encontros e conteúdos trabalhados. Clique no botão ao final para adicionar mais encontros se necessário.</p>
+              </div>
+
+              <div class="table-responsive">
+                <table class="plano-dinamico-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 15%;">Encontro / Data</th>
+                      <th style="width: 35%;">Conteúdo / Linguagem Trabalhada</th>
+                      <th style="width: 43%;">Metodologia e Atividades Desenvolvidas</th>
+                      <th style="width: 7%; text-align: center;">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabelaEncontrosBody">
+                    <!-- Linhas iniciais gerenciadas via JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <button type="button" id="btnAddEncontro" class="btn btn-tertiary btn-sm" style="margin-top: 0.85rem;">
+                ➕ Adicionar Mais Um Encontro
+              </button>
+            </div>
+
+            <!-- OPÇÃO 2: Upload de PDF + Exemplo Visual -->
+            <div id="secaoPlanoPdf" class="plano-opcao-box hidden">
+              <div class="plano-opcao-header">
+                <h3>📁 Upload do Arquivo em PDF</h3>
+                <p>Faça o upload do arquivo em PDF do Plano de Atividades do período seguindo o modelo de exemplo abaixo.</p>
+              </div>
+
+              <!-- Card com Exemplo Visual -->
               <div class="model-plano-card">
                 <div class="model-plano-header">
                   <span>📄 Modelo de Referência: Plano de Atividades</span>
@@ -494,9 +548,10 @@
                 <span class="helper-text-input">Formato exigido: apenas 1 arquivo em PDF (tamanho máximo: 15MB)</span>
               </div>
               <input type="file" id="fileInput" accept="application/pdf,.pdf" style="display:none">
+              
+              <div id="previewGrid" class="preview-grid" style="margin-top: 1rem;"></div>
             </div>
 
-            <div id="previewGrid" class="preview-grid"></div>
           </div>
         </fieldset>
 
