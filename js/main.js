@@ -471,13 +471,15 @@ function setupFormSubmission() {
         const rows = tbody ? tbody.querySelectorAll("tr") : [];
         let hasContent = false;
         rows.forEach(tr => {
-          const label = tr.querySelector(".input-encontro-label") ? tr.querySelector(".input-encontro-label").value.trim() : "";
-          const conteudo = tr.querySelector(".input-encontro-conteudo") ? tr.querySelector(".input-encontro-conteudo").value.trim() : "";
-          if (label && conteudo) hasContent = true;
+          const dataEl = tr.querySelector(".input-plano-data");
+          const descEl = tr.querySelector(".input-plano-descricao");
+          if ((dataEl && dataEl.value) || (descEl && descEl.value.trim())) {
+            hasContent = true;
+          }
         });
 
         if (!hasContent) {
-          alert("Atenção: Por favor, preencha o conteúdo de pelo menos 1 encontro na tabela do Plano de Atividades.");
+          alert("Atenção: Por favor, preencha a data e a descrição de pelo menos 1 encontro na tabela do Plano de Atividades.");
           return;
         }
       }
@@ -744,7 +746,10 @@ function setupPlanoModoToggle() {
 }
 
 function getSelectedUnidadeName() {
-  const selUnidade = document.getElementById("unidade") || document.getElementById("centroAtendimento");
+  const selUnidade = document.getElementById("centroCasaSelect") || 
+                     document.getElementById("unidadeSelect") || 
+                     document.getElementById("unidade") || 
+                     document.getElementById("centroAtendimento");
   if (selUnidade && selUnidade.value) {
     return selUnidade.value;
   }
@@ -766,10 +771,21 @@ function initDynamicPlanoTable() {
 
   tbody.innerHTML = "";
 
-  const selUnidade = document.getElementById("unidade") || document.getElementById("centroAtendimento");
-  if (selUnidade) {
-    selUnidade.addEventListener("change", updatePlanoUnidades);
-  }
+  const selUnidades = [
+    document.getElementById("centroCasaSelect"),
+    document.getElementById("unidadeSelect"),
+    document.getElementById("divisaoRegionalSelect"),
+    document.getElementById("unidade"),
+    document.getElementById("centroAtendimento")
+  ];
+
+  selUnidades.forEach(sel => {
+    if (sel) {
+      sel.addEventListener("change", () => {
+        setTimeout(updatePlanoUnidades, 50);
+      });
+    }
+  });
 
   // Cria 3 encontros padrão iniciais
   for (let i = 1; i <= 3; i++) {
