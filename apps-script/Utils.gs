@@ -61,6 +61,24 @@ var Utils = {
     return months[clean] || this.sanitizeFileName(mesStr);
   },
 
+  getFormattedTimestampBR: function(dateObj) {
+    const d = dateObj || new Date();
+    try {
+      return Utilities.formatDate(d, "America/Sao_Paulo", "dd/MM/yyyy HH:mm:ss");
+    } catch (e) {
+      return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    }
+  },
+
+  getFormattedTimestampExtensoBR: function(dateObj) {
+    const d = dateObj || new Date();
+    try {
+      return Utilities.formatDate(d, "America/Sao_Paulo", "dd/MM/yyyy 'às' HH:mm:ss");
+    } catch (e) {
+      return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    }
+  },
+
   createResponse: function(success, message, data = {}) {
     return {
       success: success,

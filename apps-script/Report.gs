@@ -160,6 +160,31 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     body.replaceText("\\{\\{PONTOS_FORTES\\}\\}", formatField(data.pontosFortes));
     body.replaceText("\\{\\{PONTOS_FRACOS\\}\\}", formatField(data.pontosFracos));
     
+    // Substituição dinâmica da Declaração de Responsabilidade com Carimbo de Aceite Eletrônico
+    const timestampBR = Utils.getFormattedTimestampExtensoBR(new Date());
+    const responsavelNome = formatField(data.responsavel).toUpperCase();
+    
+    let declaracaoTexto = "";
+    if (setorUpper === "FUNDAÇÃO CASA") {
+      declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +
+        "\"Declaro que executei as atividades em conformidade com o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990), observando integralmente as normas de segurança, disciplina, acesso e funcionamento da unidade da Fundação CASA, bem como as orientações da CONTRATANTE, não tendo praticado qualquer conduta incompatível com as regras institucionais.\n\n" +
+        "Declaro que não captei, registrei, reproduzi, divulguei, compartilhei ou utilizei imagens, vídeos, áudios, dados pessoais ou quaisquer informações que permitam identificar adolescentes atendidos durante a execução das atividades.\n\n" +
+        "Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.\"\n\n" +
+        "[☑] TERMOS LIDOS E ACEITOS ELETRONICAMENTE NO ATO DO ENVIO\n" +
+        "Declarante / Responsável: " + responsavelNome + "\n" +
+        "Data/Hora do Registro: " + timestampBR + " (Horário Oficial de Brasília)";
+    } else {
+      declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +
+        "\"Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.\"\n\n" +
+        "[☑] TERMO LIDO E ACEITO ELETRONICAMENTE NO ATO DO ENVIO\n" +
+        "Declarante / Responsável: " + responsavelNome + "\n" +
+        "Data/Hora do Registro: " + timestampBR + " (Horário Oficial de Brasília)";
+    }
+    
+    body.replaceText("\\{\\{DECLARACAO_RESPONSABILIDADE\\}\\}", declaracaoTexto);
+    body.replaceText("\\{\\{DECLARACAO\\}\\}", declaracaoTexto);
+    body.replaceText("\\{\\{TERMOS\\}\\}", declaracaoTexto);
+    
     const position = body.findText("\\{\\{ANEXOS\\}\\}");
     
     if (position) {

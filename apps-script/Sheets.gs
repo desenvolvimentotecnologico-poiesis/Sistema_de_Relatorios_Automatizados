@@ -193,7 +193,7 @@ function saveResponseRow(data) {
       }
     }
     
-    const timestamp = new Date();
+    const timestamp = Utils.getFormattedTimestampBR(new Date());
     let newRow = [];
     const areaUpper = data.area.trim().toUpperCase();
     
