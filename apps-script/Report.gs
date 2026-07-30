@@ -203,11 +203,14 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         }
       } else {
         let imageCount = 0;
+        let hasVideo = false;
         const imageBlobs = [];
 
         if (data.files && Array.isArray(data.files) && data.files.length > 0) {
           data.files.forEach(f => {
-            if (f.base64Data && f.mimeType && f.mimeType.startsWith("image/")) {
+            if (f.mimeType && f.mimeType.startsWith("video/")) {
+              hasVideo = true;
+            } else if (f.base64Data && (!f.mimeType || f.mimeType.startsWith("image/"))) {
               try {
                 let base64 = f.base64Data;
                 if (base64.includes(",")) base64 = base64.split(",")[1];
@@ -221,13 +224,15 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
           });
         }
 
-        if (imageBlobs.length === 0 && registroFolder) {
+        if (registroFolder) {
           try {
             const driveFiles = registroFolder.getFiles();
             while (driveFiles.hasNext()) {
               const file = driveFiles.next();
               const mimeType = file.getMimeType();
-              if (mimeType && mimeType.startsWith("image/")) {
+              if (mimeType && mimeType.startsWith("video/")) {
+                hasVideo = true;
+              } else if (imageBlobs.length === 0 && mimeType && mimeType.startsWith("image/")) {
                 imageBlobs.push(file.getBlob());
               }
             }
@@ -274,7 +279,12 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         }
         
         if (imageCount === 0) {
-          parentParagraph.appendText("Nenhuma imagem/evidência enviada.");
+          parentParagraph.appendText("Nenhuma imagem/evidência fotográfica enviada.");
+        }
+
+        if (hasVideo) {
+          const videoNotice = body.appendParagraph("\n🎬 NOTA DE EVIDÊNCIA EM VÍDEO: Esta atividade possui registro(s) audiovisual(is) em vídeo salvo(s) diretamente na pasta de evidências da atividade no Google Drive.");
+          videoNotice.setItalic(true).setFontSize(9.5).setForegroundColor("#4C1D95");
         }
       }
     }
