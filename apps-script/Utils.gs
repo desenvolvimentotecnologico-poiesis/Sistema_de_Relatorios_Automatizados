@@ -22,6 +22,45 @@ var Utils = {
       .trim();
   },
 
+  getUnidadeSigla: function(unidadeName) {
+    if (!unidadeName) return "UNIDADE";
+    const norm = unidadeName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+    
+    if (norm.includes("CAPAO REDONDO")) return "CPR";
+    if (norm.includes("DIADEMA")) return "DDM";
+    if (norm.includes("HELIOPOLIS")) return "HLP";
+    if (norm.includes("IGUAPE")) return "IGP";
+    if (norm.includes("JACANA") || norm.includes("JACANAA")) return "JCN";
+    if (norm.includes("BRASILANDIA")) return "BRL";
+    if (norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ")) return "JSL";
+    if (norm.includes("OSASCO")) return "OSC";
+    if (norm.includes("VILA NOVA CACHOEIRINHA") || norm.includes("CACHOEIRINHA")) return "VNC";
+    if (norm.includes("TAIPAS")) return "TAIPAS";
+    
+    // Caso seja um nome não listado, sanitiza em maiúsculas
+    return this.sanitizeFileName(unidadeName).toUpperCase().replace(/\s+/g, "_");
+  },
+
+  getMonthNameExtenso: function(mesStr) {
+    if (!mesStr) return "Mes";
+    const months = {
+      "01": "Janeiro", "1": "Janeiro", "janeiro": "Janeiro",
+      "02": "Fevereiro", "2": "Fevereiro", "fevereiro": "Fevereiro",
+      "03": "Março", "3": "Março", "marco": "Março", "março": "Março",
+      "04": "Abril", "4": "Abril", "abril": "Abril",
+      "05": "Maio", "5": "Maio", "maio": "Maio",
+      "06": "Junho", "6": "Junho", "junho": "Junho",
+      "07": "Julho", "7": "Julho", "julho": "Julho",
+      "08": "Agosto", "8": "Agosto", "agosto": "Agosto",
+      "09": "Setembro", "9": "Setembro", "setembro": "Setembro",
+      "10": "Outubro", "outubro": "Outubro",
+      "11": "Novembro", "novembro": "Novembro",
+      "12": "Dezembro", "dezembro": "Dezembro"
+    };
+    const clean = String(mesStr).trim().toLowerCase();
+    return months[clean] || this.sanitizeFileName(mesStr);
+  },
+
   createResponse: function(success, message, data = {}) {
     return {
       success: success,

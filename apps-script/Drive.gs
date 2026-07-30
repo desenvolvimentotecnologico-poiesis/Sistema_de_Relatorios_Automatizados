@@ -105,8 +105,8 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     let relatorioFolder = null;
 
     if (setorUpper === "FUNDAÇÃO CASA") {
-      // Para Fundação CASA: apenas os relatórios em doc e pdf diretamente na pasta da atividade
       relatorioFolder = activityFolder;
+      registroFolder = getOrCreateSubFolder(activityFolder, "Plano de Atividade");
     } else {
       registroFolder = getOrCreateSubFolder(activityFolder, "Registro Fotográfico");
       relatorioFolder = getOrCreateSubFolder(activityFolder, "Relatório");
@@ -135,9 +135,7 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
       return 0;
     }
     
-    const cleanUnidade = Utils.sanitizeFileName(metadata.unidade || "").toUpperCase().replace(/\s+/g, "_");
-    const cleanResponsavel = Utils.sanitizeFileName(metadata.responsavel || "").toUpperCase().replace(/\s+/g, "_");
-    const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
+    const setorUpper = metadata.setor ? metadata.setor.toString().trim().toUpperCase() : "";
     
     for (let i = 0; i < files.length; i++) {
       const fileData = files[i];
@@ -146,14 +144,29 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
         base64 = base64.split(",")[1];
       }
       const bytes = Utilities.base64Decode(base64);
-      const blob = Utilities.newBlob(bytes, fileData.mimeType || "image/jpeg", fileData.name || "foto.jpg");
+      const mime = fileData.mimeType || (setorUpper === "FUNDAÇÃO CASA" ? "application/pdf" : "image/jpeg");
+      const blob = Utilities.newBlob(bytes, mime, fileData.name || "arquivo");
       
       const createdFile = targetFolder.createFile(blob);
       
-      const parts = (fileData.name || "foto.jpg").split(".");
-      const ext = parts.length > 1 ? parts.pop().toLowerCase() : "jpg";
-      const indexStr = (i + 1).toString().padStart(2, "0");
-      const cleanFileName = cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
+      const parts = (fileData.name || "arquivo.jpg").split(".");
+      const ext = parts.length > 1 ? parts.pop().toLowerCase() : (mime === "application/pdf" ? "pdf" : "jpg");
+      
+      let cleanFileName = "";
+      if (setorUpper === "FUNDAÇÃO CASA") {
+        // Formato Fundação CASA: [MesPorExtenso]_[NomeCentroAtendimento]_[NomeAtividade]_PlanoDeAtividade.pdf
+        const mesExt = Utils.getMonthNameExtenso(metadata.mesReferencia);
+        const cleanCentro = Utils.sanitizeFileName(metadata.unidade || "").toUpperCase().replace(/\s+/g, "_");
+        const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
+        cleanFileName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_PlanoDeAtividade." + ext;
+      } else {
+        // Formato Demais Áreas: [SiglaUnidade]_[NomeResponsavel]_[NomeAtividade]_[Index].[ext]
+        const unidadeSigla = Utils.getUnidadeSigla(metadata.unidade);
+        const cleanResponsavel = Utils.sanitizeFileName(metadata.responsavel || "").toUpperCase().replace(/\s+/g, "_");
+        const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
+        const indexStr = (i + 1).toString().padStart(2, "0");
+        cleanFileName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
+      }
       
       createdFile.setName(cleanFileName);
     }

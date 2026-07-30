@@ -118,12 +118,15 @@ function submitForm(formData) {
       formData.anoReferencia
     );
     
-    // 2. Upload rápido de fotos anexadas em Base64
-    if (formData.files && formData.files.length > 0 && folders.registroFolder) {
-      uploadFilesToFolder(formData.files, folders.registroFolder, {
+    // 2. Upload rápido de arquivos anexados em Base64
+    const targetUploadFolder = folders.registroFolder || folders.relatorioFolder;
+    if (formData.files && formData.files.length > 0 && targetUploadFolder) {
+      uploadFilesToFolder(formData.files, targetUploadFolder, {
         unidade: formData.unidade,
         responsavel: formData.responsavel,
-        atividade: formData.atividade
+        atividade: formData.atividade,
+        setor: formData.setor,
+        mesReferencia: formData.mesReferencia
       });
     }
     

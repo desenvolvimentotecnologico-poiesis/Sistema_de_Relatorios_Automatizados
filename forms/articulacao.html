@@ -24,7 +24,8 @@
       <div class="loading-progress-bar-track">
         <div id="loadingProgressBarFill" class="loading-progress-bar-fill"></div>
       </div>
-      <p id="overlaySubtitle" class="loading-subtitle">Por favor, aguarde alguns segundos. Não feche nem recarregue esta página.</p>
+      <p id="overlaySubtitle" class="loading-subtitle">Por favor, aguarde alguns segundos. Não feche nem recarregue esta
+        página.</p>
     </div>
   </div>
 
@@ -65,13 +66,13 @@
       <div class="form-presentation-card">
         <h2>Relatório de Execução e Monitoramento de Atividade - Articulação e Difusão - Fábrica de Cultura</h2>
         <div class="divider-line"></div>
-        <p>Este formulário tem como objetivo registrar, monitorar e systematizar as ações desenvolvidas pela área de
-          Formação Cultural nas Fábricas de Cultura, contemplando aspectos pedagógicos, metodológicos, territoriais e de
-          participação dos públicos envolvidos.</p>
+        <p>Este formulário tem como objetivo registrar, monitorar e sistematizar as ações desenvolvidas pela área de
+          Articulação e Difusão das Fábricas de Cultura, contemplando aspectos relacionados ao planejamento, à execução,
+          ao alcance, à participação dos públicos, à articulação territorial e à difusão cultural.</p>
         <p style="margin-top: 0.65rem;">As informações reunidas subsidiam o acompanhamento institucional das atividades,
-          a avaliação de processos formativos, a consolidação de indicadores, a prestação de contas e a construção da
-          memória institucional do Programa, contribuindo para o fortalecimento das trajetórias artístico-pedagógicas
-          desenvolvidas nos territórios.</p>
+          a consolidação de indicadores, a avaliação dos resultados, a prestação de contas e a construção da memória
+          institucional do Programa, contribuindo para o aprimoramento das ações e para o fortalecimento das relações
+          com os públicos, artistas, coletivos, parceiros e territórios atendidos.</p>
       </div>
 
       <form id="reportForm" data-theme="articulacaoedifusao">
@@ -543,8 +544,8 @@
 
           <div class="form-grid">
             <div class="form-group">
-              <p class="input-subtitle">Envie de 3 a 5 fotos da execução da atividade. Tamanho máximo por imagem: 10MB.
-              </p>
+              <label>Galeria de Fotos e/ou Vídeos <span class="required">*</span></label>
+              <p class="input-subtitle">Envie obrigatoriamente de 3 a 5 registros (fotos ou vídeos) da execução da atividade. Tamanho máximo: 15MB por arquivo.</p>
 
               <div id="fileDropzone" class="file-dropzone">
                 <div class="dropzone-content">
@@ -553,14 +554,13 @@
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
                     </path>
                   </svg>
-                  <p><strong>Arraste as fotos do evento aqui</strong> ou busque no computador</p>
+                  <p><strong>Arraste os arquivos de mídia aqui</strong> ou clique para buscar no computador</p>
                 </div>
-                <span class="helper-text-input">Fotos compactadas automaticamente antes do envio móbile</span>
+                <span class="helper-text-input">Obrigatório: mínimo 3 e máximo 5 arquivos (fotos/vídeos compactados automaticamente)</span>
+                <input type="file" id="fileInput" multiple accept="image/*,video/*" style="display:none">
               </div>
-              <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+              <div id="previewGrid" class="preview-grid"></div>
             </div>
-
-            <div id="previewGrid" class="preview-grid"></div>
           </div>
         </fieldset>
 

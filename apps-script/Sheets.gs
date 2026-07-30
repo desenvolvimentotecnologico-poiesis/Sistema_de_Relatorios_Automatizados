@@ -146,9 +146,10 @@ function getSheetConfigForArea(area) {
       headers: [
         "Carimbo de Data/Hora", "Divisão Regional", "Centro de Atendimento (Unidade)", "Número do Contrato",
         "Meta de Referência", "Nome da Atividade", "Ano de Referência", "Mês de Referência",
-        "Razão Social (Responsável)", "Encontros Previstos", "Encontros Realizados", "Data de Eventual Reposição",
-        "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural", "Descrição das Ações e Metodologia",
-        "Engajamento e Participação", "Pontos Fortes", "Pontos Fracos e Desafios"
+        "Razão Social (Responsável)", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
+        "Carga Horária Realizada", "Data de Eventual Reposição", "Destaque da Ação", "Objetivos da Atividade",
+        "Impacto Territorial / Cultural", "Descrição das Ações e Metodologia", "Engajamento e Participação",
+        "Pontos Fortes", "Pontos Fracos e Desafios"
       ]
     };
   } else if (areaUpper === "BIBLIOTECA" || areaUpper === "BIBLIOTECAS") {
@@ -275,6 +276,8 @@ function saveResponseRow(data) {
         formatField(data.responsavel),
         formatField(data.encontrosPrevistos),
         formatField(data.encontrosRealizados),
+        formatField(data.cargaHorariaPrevista),
+        formatField(data.cargaHorariaRealizada),
         formatField(data.dataReposicao),
         formatField(data.destaqueAcao),
         formatField(data.objetivos),

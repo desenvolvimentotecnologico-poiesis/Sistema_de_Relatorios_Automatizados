@@ -299,18 +299,90 @@ function setupDragAndDrop() {
 }
 
 async function handleFiles(files) {
-  showOverlay("Otimizando e compactando imagens para envio móbile...");
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    try {
-      const compressed = await ImageCompressor.compressFile(file);
-      uploadedFiles.push(compressed);
-    } catch (err) {
-      console.warn("Falha ao compactar arquivo:", file.name, err);
+  const form = document.getElementById("reportForm");
+  const isCasaForm = form && form.getAttribute("data-theme") === "fundacaocasa";
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB em bytes
+
+  if (isCasaForm) {
+    // Formulário Fundação CASA: exige exatamente 1 arquivo em PDF
+    if (files.length > 1) {
+      alert("Aviso: O formulário da Fundação CASA permite anexar apenas 1 arquivo em formato PDF.");
     }
+    const file = files[0];
+    if (!file) return;
+
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      alert("Formato Incompatível: Por favor, selecione um arquivo no formato PDF.");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      alert(`Arquivo muito grande: O PDF excede o limite permitido de 15MB (Tamanho do arquivo: ${(file.size / (1024 * 1024)).toFixed(1)}MB).`);
+      return;
+    }
+
+    showOverlay("Carregando arquivo PDF do Plano de Atividades...");
+    try {
+      const base64Data = await readAsBase64(file);
+      uploadedFiles = [{
+        name: file.name,
+        size: file.size,
+        mimeType: "application/pdf",
+        base64Data: base64Data,
+        isPdf: true
+      }];
+    } catch (err) {
+      alert("Erro ao ler o arquivo PDF: " + err.message);
+    }
+    hideOverlay();
+    renderPreviewGrid();
+
+  } else {
+    // Formulários das demais áreas (Pedagógico, Articulação, Biblioteca): mínimo 3, máximo 5 mídias
+    if (uploadedFiles.length + files.length > 5) {
+      alert(`Limite Excedido: É permitido anexar no máximo 5 mídias por envio. Você já possui ${uploadedFiles.length} arquivo(s) selecionado(s).`);
+      return;
+    }
+
+    showOverlay("Otimizando e compactando mídias para envio...");
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`Arquivo Ignorado: "${file.name}" excede o limite máximo de 15MB por mídia.`);
+        continue;
+      }
+
+      try {
+        if (file.type.startsWith("image/")) {
+          const compressed = await ImageCompressor.compressFile(file);
+          uploadedFiles.push(compressed);
+        } else {
+          const base64Data = await readAsBase64(file);
+          uploadedFiles.push({
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || "video/mp4",
+            base64Data: base64Data
+          });
+        }
+      } catch (err) {
+        console.warn("Falha ao processar mídia:", file.name, err);
+      }
+    }
+    hideOverlay();
+    renderPreviewGrid();
   }
-  hideOverlay();
-  renderPreviewGrid();
+}
+
+function readAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(file);
+  });
 }
 
 function renderPreviewGrid() {
@@ -318,25 +390,57 @@ function renderPreviewGrid() {
   if (!grid) return;
   grid.innerHTML = "";
 
+  const form = document.getElementById("reportForm");
+  const isCasaForm = form && form.getAttribute("data-theme") === "fundacaocasa";
+
   uploadedFiles.forEach((fileObj, idx) => {
-    const item = document.createElement("div");
-    item.className = "preview-item";
+    if (isCasaForm || fileObj.isPdf || fileObj.mimeType === "application/pdf") {
+      // Exibição em formato card para PDF
+      const pdfItem = document.createElement("div");
+      pdfItem.className = "pdf-preview-item";
 
-    const img = document.createElement("img");
-    img.src = `data:${fileObj.mimeType};base64,${fileObj.base64Data}`;
+      const sizeMb = fileObj.size ? (fileObj.size / (1024 * 1024)).toFixed(2) : "PDF";
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "preview-remove";
-    btn.textContent = "×";
-    btn.onclick = () => {
-      uploadedFiles.splice(idx, 1);
-      renderPreviewGrid();
-    };
+      pdfItem.innerHTML = `
+        <div class="pdf-preview-icon">📄</div>
+        <div class="pdf-preview-details">
+          <span class="pdf-preview-name">${fileObj.name || "Plano_de_Atividades.pdf"}</span>
+          <span class="pdf-preview-size">${sizeMb} MB • Documento PDF</span>
+        </div>
+      `;
 
-    item.appendChild(img);
-    item.appendChild(btn);
-    grid.appendChild(item);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "preview-remove";
+      btn.textContent = "×";
+      btn.onclick = () => {
+        uploadedFiles.splice(idx, 1);
+        renderPreviewGrid();
+      };
+
+      pdfItem.appendChild(btn);
+      grid.appendChild(pdfItem);
+    } else {
+      // Exibição em grade de miniaturas para imagens e vídeos
+      const item = document.createElement("div");
+      item.className = "preview-item";
+
+      const img = document.createElement("img");
+      img.src = fileObj.base64Data.startsWith("data:") ? fileObj.base64Data : `data:${fileObj.mimeType};base64,${fileObj.base64Data}`;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "preview-remove";
+      btn.textContent = "×";
+      btn.onclick = () => {
+        uploadedFiles.splice(idx, 1);
+        renderPreviewGrid();
+      };
+
+      item.appendChild(img);
+      item.appendChild(btn);
+      grid.appendChild(item);
+    }
   });
 }
 
@@ -347,6 +451,25 @@ function setupFormSubmission() {
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+
+    const isCasaForm = form.getAttribute("data-theme") === "fundacaocasa";
+
+    // Validação estrita da Seção de Evidências (Arquivos)
+    if (isCasaForm) {
+      if (uploadedFiles.length !== 1) {
+        alert("Atenção: É obrigatório fazer o upload do Plano de Atividades em formato PDF.");
+        return;
+      }
+    } else {
+      if (uploadedFiles.length < 3) {
+        alert(`Atenção: É necessário anexar no mínimo 3 fotos ou vídeos como evidência da atividade (atualmente você anexou ${uploadedFiles.length}).`);
+        return;
+      }
+      if (uploadedFiles.length > 5) {
+        alert(`Atenção: É permitido anexar no máximo 5 fotos ou vídeos como evidência da atividade (atualmente você anexou ${uploadedFiles.length}).`);
+        return;
+      }
+    }
 
     // Validação estrita de limites de caracteres mínimos/máximos antes do envio
     const minMaxFields = form.querySelectorAll("[data-min-length], [data-max-length]");
@@ -375,7 +498,7 @@ function setupFormSubmission() {
     formDataObj.files = uploadedFiles;
     currentSubmittedData = formDataObj;
 
-    showOverlay("Salvando dados da atividade na planilha e fotos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações", true);
+    showOverlay("Salvando dados da atividade na planilha e arquivos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações", true);
 
     callBackendAPI(
       "submitForm",

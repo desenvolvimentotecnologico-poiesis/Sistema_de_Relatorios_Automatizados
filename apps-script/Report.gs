@@ -43,34 +43,34 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
   try {
     if (!data) data = {};
     const setorUpper = data.area ? data.area.trim().toUpperCase() : "PEDAGÓGICO";
-    const cleanUnidade = Utils.sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
+    const unidadeSigla = Utils.getUnidadeSigla(data.unidade);
+    const cleanCentro = Utils.sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
     const cleanResponsavel = Utils.sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
     const cleanAtividade = Utils.sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
     
     let documentName = "";
     
     if (setorUpper === "PEDAGÓGICO") {
-      // Padrão Pedagógico: unidade_nomeResponsavel_nomeAtividade
-      documentName = cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade;
+      // Padrão Pedagógico: siglaUnidade_nomeResponsavel_nomeAtividade
+      documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
     } else if (setorUpper === "ARTICULAÇÃO E DIFUSÃO") {
-      // Padrão Articulação: dataDoPrimeiroDiaDaAtividade_unidade_nomeDoEvento
+      // Padrão Articulação: dataDoPrimeiroDiaDaAtividade_siglaUnidade_nomeDoEvento
       let diaStr = data.diasAtividade ? String(data.diasAtividade).split(",")[0].trim() : "01";
       if (diaStr.length === 1) diaStr = "0" + diaStr;
       const mesStr = data.mesReferencia || "01";
       const anoStr = data.anoReferencia || new Date().getFullYear().toString();
       const dataFormatada = diaStr + "-" + mesStr + "-" + anoStr;
-      documentName = dataFormatada + "_" + cleanUnidade + "_" + cleanAtividade;
+      documentName = dataFormatada + "_" + unidadeSigla + "_" + cleanAtividade;
     } else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") {
-      // Padrão Biblioteca: dataDaAtividade_unidade_nomeAtividade_nomeResponsavel
+      // Padrão Biblioteca: dataDaAtividade_siglaUnidade_nomeAtividade_nomeResponsavel
       let dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
-      documentName = dataAtiv + "_" + cleanUnidade + "_" + cleanAtividade + "_" + cleanResponsavel;
+      documentName = dataAtiv + "_" + unidadeSigla + "_" + cleanAtividade + "_" + cleanResponsavel;
     } else if (setorUpper === "FUNDAÇÃO CASA") {
-      // Padrão Fundação CASA: mesPorExtenso_nomeAtividade_nomeResponsavel
-      let mesExt = data.mesReferencia || "Mes";
-      mesExt = Utils.sanitizeFileName(mesExt).replace(/\s+/g, "_");
-      documentName = mesExt + "_" + cleanAtividade + "_" + cleanResponsavel;
+      // Padrão Fundação CASA: mesPorExtenso_nomeCentroAtendimento_nomeAtividade_nomeResponsavel
+      const mesExt = Utils.getMonthNameExtenso(data.mesReferencia);
+      documentName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_" + cleanResponsavel;
     } else {
-      documentName = cleanUnidade + "_" + cleanResponsavel + "_" + cleanAtividade;
+      documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
     }
     
     const templateFile = getTemplateFileConnection(data.area || data.setor);
@@ -165,7 +165,6 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     if (position) {
       const element = position.getElement();
       const parentParagraph = element.getParent().asParagraph();
-      const attachIndex = body.getChildIndex(parentParagraph);
       element.asText().setText("");
       
       let registroFolder = null;
@@ -177,76 +176,106 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         }
       }
       
-      let imageCount = 0;
-      const imageBlobs = [];
+      if (setorUpper === "FUNDAÇÃO CASA") {
+        let pdfFileName = "Plano de Atividades em PDF";
+        let pdfUrl = "";
 
-      if (data.files && Array.isArray(data.files) && data.files.length > 0) {
-        data.files.forEach(f => {
-          if (f.base64Data) {
-            try {
-              const decoded = Utilities.base64Decode(f.base64Data);
-              const blob = Utilities.newBlob(decoded, f.mimeType || "image/jpeg", f.name || "foto.jpg");
-              imageBlobs.push(blob);
-            } catch (bErr) {
-              Logger.log("Erro ao converter Base64 da foto: " + bErr.toString());
+        if (registroFolder) {
+          try {
+            const files = registroFolder.getFiles();
+            if (files.hasNext()) {
+              const pdfF = files.next();
+              pdfFileName = pdfF.getName();
+              pdfUrl = pdfF.getUrl();
             }
+          } catch (err) {
+            Logger.log("Erro ao buscar PDF na pasta de Plano de Atividade: " + err.toString());
           }
-        });
-      }
-
-      if (imageBlobs.length === 0 && registroFolder) {
-        try {
-          const driveFiles = registroFolder.getFiles();
-          while (driveFiles.hasNext()) {
-            const file = driveFiles.next();
-            const mimeType = file.getMimeType();
-            if (mimeType && mimeType.startsWith("image/")) {
-              imageBlobs.push(file.getBlob());
-            }
-          }
-        } catch (driveErr) {
-          Logger.log("Erro ao ler fotos da pasta do Drive: " + driveErr.toString());
         }
-      }
 
-      if (imageBlobs.length > 0) {
-        try {
-          const tableRows = Math.ceil(imageBlobs.length / 2);
-          const table = body.insertTable(attachIndex + 1);
-          table.setBorderWidth(0);
-          
-          let imgIdx = 0;
-          for (let r = 0; r < tableRows; r++) {
-            const row = table.appendTableRow();
-            for (let c = 0; c < 2; c++) {
-              const cell = row.appendTableCell();
-              cell.setPaddingTop(6).setPaddingBottom(6).setPaddingLeft(6).setPaddingRight(6);
-              if (imgIdx < imageBlobs.length) {
-                const p = cell.getChild(0).asParagraph();
-                p.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-                const img = p.appendInlineImage(imageBlobs[imgIdx]);
-                
-                const origWidth = img.getWidth();
-                const origHeight = img.getHeight();
-                const targetWidth = 220;
-                
-                if (origWidth > targetWidth) {
-                  const ratio = targetWidth / origWidth;
-                  img.setWidth(targetWidth);
-                  img.setHeight(origHeight * ratio);
-                }
-                imgIdx++;
+        parentParagraph.setText("Plano de Atividades (PDF) anexado no Google Drive:");
+        if (pdfUrl) {
+          const linkText = parentParagraph.appendText("\n👉 Clique aqui para visualizar o Plano de Atividades em PDF (" + pdfFileName + ")");
+          linkText.setLinkUrl(pdfUrl);
+          linkText.setBold(true);
+        } else {
+          parentParagraph.appendText("\n" + pdfFileName + " (Salvo na subpasta 'Plano de Atividade' no Google Drive)");
+        }
+      } else {
+        let imageCount = 0;
+        const imageBlobs = [];
+
+        if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+          data.files.forEach(f => {
+            if (f.base64Data && f.mimeType && f.mimeType.startsWith("image/")) {
+              try {
+                let base64 = f.base64Data;
+                if (base64.includes(",")) base64 = base64.split(",")[1];
+                const decoded = Utilities.base64Decode(base64);
+                const blob = Utilities.newBlob(decoded, f.mimeType || "image/jpeg", f.name || "foto.jpg");
+                imageBlobs.push(blob);
+              } catch (bErr) {
+                Logger.log("Erro ao converter Base64 da foto: " + bErr.toString());
               }
             }
-          }
-          imageCount = imageBlobs.length;
-        } catch (imgTableErr) {
-          Logger.log("Erro ao criar tabela de imagens no Doc: " + imgTableErr.toString());
+          });
         }
-      }
-      
-      if (imageCount === 0) {
-        parentParagraph.appendText("Nenhuma imagem/evidência enviada.");
+
+        if (imageBlobs.length === 0 && registroFolder) {
+          try {
+            const driveFiles = registroFolder.getFiles();
+            while (driveFiles.hasNext()) {
+              const file = driveFiles.next();
+              const mimeType = file.getMimeType();
+              if (mimeType && mimeType.startsWith("image/")) {
+                imageBlobs.push(file.getBlob());
+              }
+            }
+          } catch (driveErr) {
+            Logger.log("Erro ao ler fotos da pasta do Drive: " + driveErr.toString());
+          }
+        }
+
+        if (imageBlobs.length > 0) {
+          try {
+            const attachIndex = body.getChildIndex(parentParagraph);
+            const tableRows = Math.ceil(imageBlobs.length / 2);
+            const table = body.insertTable(attachIndex + 1);
+            table.setBorderWidth(0);
+            
+            let imgIdx = 0;
+            for (let r = 0; r < tableRows; r++) {
+              const row = table.appendTableRow();
+              for (let c = 0; c < 2; c++) {
+                const cell = row.appendTableCell();
+                cell.setPaddingTop(6).setPaddingBottom(6).setPaddingLeft(6).setPaddingRight(6);
+                if (imgIdx < imageBlobs.length) {
+                  const p = cell.getChild(0).asParagraph();
+                  p.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+                  const img = p.appendInlineImage(imageBlobs[imgIdx]);
+                  
+                  const origWidth = img.getWidth();
+                  const origHeight = img.getHeight();
+                  const targetWidth = 220;
+                  
+                  if (origWidth > targetWidth) {
+                    const ratio = targetWidth / origWidth;
+                    img.setWidth(targetWidth);
+                    img.setHeight(origHeight * ratio);
+                  }
+                  imgIdx++;
+                }
+              }
+            }
+            imageCount = imageBlobs.length;
+          } catch (imgTableErr) {
+            Logger.log("Erro ao criar tabela de imagens no Doc: " + imgTableErr.toString());
+          }
+        }
+        
+        if (imageCount === 0) {
+          parentParagraph.appendText("Nenhuma imagem/evidência enviada.");
+        }
       }
     }
     
