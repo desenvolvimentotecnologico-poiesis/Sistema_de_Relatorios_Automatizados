@@ -13,7 +13,7 @@ O **SRA (Sistema de Relatórios Automatizados)** é uma plataforma web desenvolv
 ### Qual problema ele resolve?
 Antes, o processo de criação de relatórios gerenciais exigia a compilação manual de textos, tabelas e fotos em arquivos de texto, formatação individual de páginas e envio por e-mail ou pastas soltas. 
 
-Com o novo portal:
+Com o SRA:
 1. O profissional preenche um formulário simples e intuitivo no computador ou celular.
 2. O sistema organiza as fotos e dados automaticamente no **Google Drive** e **Google Sheets**.
 3. O sistema gera um **relatório oficial em PDF** totalmente formatado, com identidade visual da instituição e pronto para impressão ou auditoria, em menos de 1 minuto.
@@ -46,7 +46,7 @@ Visualmente, a jornada do dado funciona como uma "linha de montagem" automática
 
 ## 🎨 3. As 4 Frentes de Trabalho e Suas Identidades Visuais
 
-O portal é dividido em 4 frentes operacionais institucionais, cada uma identificada por uma cor exclusiva em todo o sistema:
+O SRA é dividido em 4 frentes operacionais institucionais, cada uma identificada por uma cor exclusiva em todo o sistema:
 
 | Frente de Trabalho | Cor de Destaque | Tipo de Atividade Registrada |
 | :--- | :---: | :--- |

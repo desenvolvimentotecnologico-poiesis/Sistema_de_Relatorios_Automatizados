@@ -32,5 +32,5 @@ const CONFIG = {
   DOC_TEMPLATE_BIBLIOTECA_ID: "1LQDwMp1kVA-xAk539zN4Q64ExhLEO9nmZXcnRkUeeR8",
   
   // Nome institucional do sistema usado nos títulos e cabeçalhos
-  SYSTEM_NAME: "Portal de Relatórios - Fábricas de Cultura"
+  SYSTEM_NAME: "SRA - Sistema de Relatórios Automatizados"
 };
