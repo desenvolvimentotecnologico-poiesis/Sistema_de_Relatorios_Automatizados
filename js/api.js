@@ -15,12 +15,13 @@ const GAS_API_URL_PROD    = "https://script.google.com/macros/s/AKfycbxm5BpWN_4q
 function getActiveBackendUrl() {
   const host = (window.location.hostname || "").toLowerCase();
 
-  // Ativa o backend de PRODUÇÃO se estiver no domínio de produção
-  const isProduction = host.includes("sra-producao") || 
-                       host === "sra.fabricasdecultura.org.br";
+  // Em localhost, IP local ou qualquer subdomínio contendo "homolog", usa o backend de HOMOLOGAÇÃO
+  const isHomologation = host.includes("localhost") || 
+                         host.includes("127.0.0.1") || 
+                         host.includes("homolog");
 
-  // Em localhost, dev ou vercel de homologação, redireciona para HOMOLOGAÇÃO
-  return isProduction ? GAS_API_URL_PROD : GAS_API_URL_HOMOLOG;
+  // No domínio principal da Vercel (sistema-de-relatorios-automatizados.vercel.app) ou domínio oficial, usa PRODUÇÃO
+  return isHomologation ? GAS_API_URL_HOMOLOG : GAS_API_URL_PROD;
 }
 
 const GAS_API_URL = getActiveBackendUrl();
