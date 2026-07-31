@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupFormSubmission();
   setupOutroFieldsListeners();
   setupCharacterCounters();
-  setupPlanoModoToggle();
+  initDynamicPlanoTable();
 });
 
 /* Overlay de Carregamento Intuitivo com Barra de Progresso */
@@ -302,49 +302,15 @@ function setupDragAndDrop() {
 async function handleFiles(files) {
   const form = document.getElementById("reportForm");
   const isCasaForm = form && form.getAttribute("data-theme") === "fundacaocasa";
+  if (isCasaForm) return;
+
   const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB em bytes
 
-  if (isCasaForm) {
-    // Formulário Fundação CASA: exige exatamente 1 arquivo em PDF
-    if (files.length > 1) {
-      alert("Aviso: O formulário da Fundação CASA permite anexar apenas 1 arquivo em formato PDF.");
-    }
-    const file = files[0];
-    if (!file) return;
-
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      alert("Formato Incompatível: Por favor, selecione um arquivo no formato PDF.");
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      alert(`Arquivo muito grande: O PDF excede o limite permitido de 15MB (Tamanho do arquivo: ${(file.size / (1024 * 1024)).toFixed(1)}MB).`);
-      return;
-    }
-
-    showOverlay("Carregando arquivo PDF do Plano de Atividades...");
-    try {
-      const base64Data = await readAsBase64(file);
-      uploadedFiles = [{
-        name: file.name,
-        size: file.size,
-        mimeType: "application/pdf",
-        base64Data: base64Data,
-        isPdf: true
-      }];
-    } catch (err) {
-      alert("Erro ao ler o arquivo PDF: " + err.message);
-    }
-    hideOverlay();
-    renderPreviewGrid();
-
-  } else {
-    // Formulários das demais áreas (Pedagógico, Articulação, Biblioteca): mínimo 3, máximo 5 mídias
-    if (uploadedFiles.length + files.length > 5) {
-      alert(`Limite Excedido: É permitido anexar no máximo 5 mídias por envio. Você já possui ${uploadedFiles.length} arquivo(s) selecionado(s).`);
-      return;
-    }
+  // Formulários das demais áreas (Pedagógico, Articulação, Biblioteca): mínimo 3, máximo 5 mídias
+  if (uploadedFiles.length + files.length > 5) {
+    alert(`Limite Excedido: É permitido anexar no máximo 5 mídias por envio. Você já possui ${uploadedFiles.length} arquivo(s) selecionado(s).`);
+    return;
+  }
 
     showOverlay("Otimizando e compactando mídias para envio...");
     for (let i = 0; i < files.length; i++) {
@@ -457,31 +423,21 @@ function setupFormSubmission() {
 
     // Validação estrita da Seção de Evidências (Arquivos / Tabela)
     if (isCasaForm) {
-      const modoPlanoRadio = form.querySelector('input[name="modoPlanoAtividade"]:checked');
-      const modoPlano = modoPlanoRadio ? modoPlanoRadio.value : "tabela";
-
-      if (modoPlano === "pdf") {
-        if (uploadedFiles.length !== 1) {
-          alert("Atenção: Na Opção 2, é obrigatório fazer o upload do Plano de Atividades em formato PDF.");
-          return;
+      // Validação da Tabela Dinâmica do Plano de Atividades
+      const tbody = document.getElementById("tabelaEncontrosBody");
+      const rows = tbody ? tbody.querySelectorAll("tr") : [];
+      let hasContent = false;
+      rows.forEach(tr => {
+        const dataEl = tr.querySelector(".input-plano-data");
+        const descEl = tr.querySelector(".input-plano-descricao");
+        if ((dataEl && dataEl.value) || (descEl && descEl.value.trim())) {
+          hasContent = true;
         }
-      } else {
-        // Validação da Opção 1: Tabela Dinâmica
-        const tbody = document.getElementById("tabelaEncontrosBody");
-        const rows = tbody ? tbody.querySelectorAll("tr") : [];
-        let hasContent = false;
-        rows.forEach(tr => {
-          const dataEl = tr.querySelector(".input-plano-data");
-          const descEl = tr.querySelector(".input-plano-descricao");
-          if ((dataEl && dataEl.value) || (descEl && descEl.value.trim())) {
-            hasContent = true;
-          }
-        });
+      });
 
-        if (!hasContent) {
-          alert("Atenção: Por favor, preencha a data e a descrição de pelo menos 1 encontro na tabela do Plano de Atividades.");
-          return;
-        }
+      if (!hasContent) {
+        alert("Atenção: Por favor, preencha a data e a descrição de pelo menos 1 encontro na tabela do Plano de Atividades.");
+        return;
       }
     } else {
       if (uploadedFiles.length < 3) {

@@ -104,9 +104,9 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     let registroFolder = null;
     let relatorioFolder = null;
 
-    if (setorUpper === "FUNDAÇÃO CASA") {
+    if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
       relatorioFolder = activityFolder;
-      registroFolder = getOrCreateSubFolder(activityFolder, "Plano de Atividade");
+      registroFolder = null;
     } else {
       registroFolder = getOrCreateSubFolder(activityFolder, "Registro Fotográfico");
       relatorioFolder = getOrCreateSubFolder(activityFolder, "Relatório");

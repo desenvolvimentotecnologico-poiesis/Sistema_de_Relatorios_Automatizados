@@ -214,12 +214,10 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         }
       }
       
-      if (setorUpper === "FUNDAÇÃO CASA") {
-        const modoPlano = data.modoPlanoAtividade || (data.planoTabela && data.planoTabela.length > 0 ? "tabela" : "pdf");
-
-        if (modoPlano === "tabela" && data.planoTabela && Array.isArray(data.planoTabela) && data.planoTabela.length > 0) {
-          // OPÇÃO 1: Monta a Tabela Dinâmica do Plano de Atividades no Google Docs (Idêntica ao modelo planoDeAtividade.png)
-          parentParagraph.setText("Plano de Atividades do Período:");
+      if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
+        // Monta a Tabela Dinâmica do Plano de Atividades no Google Docs (Idêntica ao modelo planoDeAtividade.png)
+        parentParagraph.setText("Plano de Atividades do Período:");
+        if (data.planoTabela && Array.isArray(data.planoTabela) && data.planoTabela.length > 0) {
           try {
             const attachIndex = body.getChildIndex(parentParagraph);
             const table = body.insertTable(attachIndex + 1);
@@ -290,32 +288,6 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
             });
           } catch (tabErr) {
             Logger.log("Erro ao criar Tabela do Plano no Doc: " + tabErr.toString());
-          }
-        } else {
-          // OPÇÃO 2: Anexo em PDF e link direto no Drive
-          let pdfFileName = "Plano de Atividades em PDF";
-          let pdfUrl = "";
-
-          if (registroFolder) {
-            try {
-              const files = registroFolder.getFiles();
-              if (files.hasNext()) {
-                const pdfF = files.next();
-                pdfFileName = pdfF.getName();
-                pdfUrl = pdfF.getUrl();
-              }
-            } catch (err) {
-              Logger.log("Erro ao buscar PDF na pasta de Plano de Atividade: " + err.toString());
-            }
-          }
-
-          parentParagraph.setText("Plano de Atividades (PDF) anexado no Google Drive:");
-          if (pdfUrl) {
-            const linkText = parentParagraph.appendText("\n👉 Clique aqui para visualizar o Plano de Atividades em PDF");
-            linkText.setLinkUrl(pdfUrl);
-            linkText.setBold(true);
-          } else {
-            parentParagraph.appendText("\n" + pdfFileName + " (Salvo na subpasta 'Plano de Atividade' no Google Drive)");
           }
         }
       } else {
