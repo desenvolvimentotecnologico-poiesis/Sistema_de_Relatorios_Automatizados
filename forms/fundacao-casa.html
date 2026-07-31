@@ -463,21 +463,8 @@
 
           <p class="section-description-text">Insira abaixo os encontros e conteúdos trabalhados durante o período para o relatório da Fundação CASA. Clique no botão ao final para adicionar mais encontros se necessário.</p>
 
-          <div class="table-responsive">
-            <table class="plano-dinamico-table">
-              <thead>
-                <tr>
-                  <th style="width: 16%;">DATA</th>
-                  <th style="width: 22%;">UNIDADE</th>
-                  <th style="width: 24%;">HORÁRIO</th>
-                  <th style="width: 32%;">DESCRIÇÃO DAS ATIVIDADES</th>
-                  <th style="width: 6%; text-align: center;">AÇÃO</th>
-                </tr>
-              </thead>
-              <tbody id="tabelaEncontrosBody">
-                <!-- Linhas iniciais gerenciadas via JS -->
-              </tbody>
-            </table>
+          <div id="tabelaEncontrosBody" class="encontros-list-container">
+            <!-- Cards de encontros gerados dinamicamente via JS -->
           </div>
 
           <button type="button" id="btnAddEncontro" class="btn btn-tertiary btn-sm" style="margin-top: 0.85rem;">

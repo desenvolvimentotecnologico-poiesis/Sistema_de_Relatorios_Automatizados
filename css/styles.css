@@ -1387,69 +1387,89 @@ select:disabled {
         width: 100%;
     }
 
-    /* Transformação da Tabela da Seção 03 em Blocos Verticais no Celular */
-    .table-responsive {
-        border: none;
-        background: transparent;
-        overflow-x: visible;
-        box-shadow: none;
-        margin-bottom: 0.5rem;
+    /* Responsividade dos Cards da Seção 03 no Celular (Alinhamento 100% à esquerda) */
+    .encontro-card {
+        padding: 1.15rem 1rem 1rem 1rem !important;
+        position: relative !important;
     }
 
-    .plano-dinamico-table {
+    .btn-remove-row {
+        position: absolute !important;
+        top: 0.75rem !important;
+        right: 0.75rem !important;
+        margin: 0 !important;
+    }
+
+    .encontro-header-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.85rem !important;
+        width: 100% !important;
+        padding-right: 0 !important;
+    }
+
+    .encontro-field {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .encontro-field-data,
+    .encontro-field-unidade,
+    .encontro-field-horario {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+    }
+
+    .encontro-field label,
+    .encontro-body-row label {
+        text-align: left !important;
+        align-self: flex-start !important;
+        width: 100% !important;
+        margin-bottom: 0.2rem !important;
+    }
+
+    .encontro-field input[type="date"],
+    .encontro-field input[type="text"] {
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .horario-inputs-inline {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+    }
+
+    .horario-inputs-inline input[type="time"] {
+        flex: 1 !important;
+        width: 50% !important;
         min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .horario-divisor {
+        flex-shrink: 0 !important;
+    }
+
+    .encontro-body-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
         width: 100% !important;
     }
 
-    .plano-dinamico-table, 
-    .plano-dinamico-table thead, 
-    .plano-dinamico-table tbody, 
-    .plano-dinamico-table th, 
-    .plano-dinamico-table td, 
-    .plano-dinamico-table tr {
-        display: block;
+    .encontro-body-row textarea {
         width: 100% !important;
-    }
-
-    .plano-dinamico-table thead {
-        display: none !important;
-    }
-
-    .plano-dinamico-table tr {
-        background-color: #FFFFFF;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        padding: 0.85rem;
-        margin-bottom: 0.85rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .plano-dinamico-table td {
-        padding: 0.4rem 0;
-        border-bottom: none;
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .plano-dinamico-table td::before {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--bg-dark-purple);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-top: 0.2rem;
-    }
-
-    .plano-dinamico-table td:nth-child(1)::before { content: "DATA DO ENCONTRO"; }
-    .plano-dinamico-table td:nth-child(2)::before { content: "UNIDADE"; }
-    .plano-dinamico-table td:nth-child(3)::before { content: "HORÁRIO (INÍCIO ÀS FIM)"; }
-    .plano-dinamico-table td:nth-child(4)::before { content: "DESCRIÇÃO DAS ATIVIDADES"; }
-    .plano-dinamico-table td:nth-child(5) {
-        align-items: flex-end;
-        padding-top: 0.5rem;
-        border-top: 1px dashed var(--border-color);
-        margin-top: 0.35rem;
+        box-sizing: border-box !important;
     }
 }
 
@@ -1505,83 +1525,127 @@ select:disabled {
     margin-top: 0.25rem;
 }
 
-/* Tabela Dinâmica do Plano de Atividades (Seção 03 Fundação CASA) */
-.table-responsive {
+/* Cards de Encontro do Plano de Atividades (Seção 03 Fundação CASA) */
+.encontros-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1.25rem;
+}
+
+.encontro-card {
+    background-color: #FFFFFF;
+    border: 1.5px solid var(--border-color);
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
-    background-color: #FFFFFF;
-    margin-bottom: 0.85rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: var(--transition);
+    position: relative;
 }
 
-.plano-dinamico-table {
+.encontro-card:hover {
+    border-color: var(--fabrica-purple);
+    box-shadow: 0 4px 14px rgba(94, 23, 235, 0.08);
+}
+
+.encontro-header-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.25rem;
     width: 100%;
-    min-width: 680px; /* Impede que UNIDADE, DATA e HORÁRIO fiquem cortados ou espremidos */
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    background-color: #FFFFFF;
+    padding-right: 2.5rem;
+    box-sizing: border-box;
 }
 
-.plano-dinamico-table th {
-    background-color: var(--bg-dark-purple);
-    color: #FFFFFF;
-    padding: 0.75rem 0.85rem;
-    font-weight: 700;
+.encontro-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-start;
     text-align: left;
-    font-size: 0.82rem;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
 }
 
-.plano-dinamico-table td {
-    padding: 0.65rem 0.75rem;
-    border-bottom: 1px solid var(--border-color);
-    vertical-align: middle;
+.encontro-field label,
+.encontro-body-row label {
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: var(--bg-dark-purple);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    text-align: left;
 }
 
-.plano-dinamico-table input[type="text"],
-.plano-dinamico-table input[type="date"],
-.plano-dinamico-table input[type="time"],
-.plano-dinamico-table textarea {
-    font-family: var(--font-sans);
-    font-size: 0.83rem;
-    height: 38px;
-    padding: 0.4rem 0.65rem;
+.encontro-field-data {
+    width: 155px;
+    flex-shrink: 0;
+}
+
+.encontro-field-unidade {
+    flex: 1;
+    min-width: 160px;
+}
+
+.encontro-field-horario {
+    width: 220px;
+    flex-shrink: 0;
+}
+
+.horario-inputs-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.horario-inputs-inline input[type="time"] {
+    flex: 1;
+    min-width: 0;
+}
+
+.horario-divisor {
+    font-size: 0.8rem;
+    color: var(--txt-muted);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.encontro-body-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.encontro-body-row textarea {
+    width: 100%;
+    min-height: 84px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.88rem;
+    line-height: 1.45;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    background-color: #FFFFFF;
-    color: var(--txt-main);
-    width: 100%;
     box-sizing: border-box;
+    font-family: var(--font-sans);
     outline: none;
     transition: var(--transition);
 }
 
-.plano-dinamico-table input:focus,
-.plano-dinamico-table textarea:focus {
+.encontro-body-row textarea:focus,
+.encontro-field input:focus {
     border-color: var(--border-focus);
     box-shadow: 0 0 0 3px rgba(94, 23, 235, 0.09);
 }
 
-.plano-dinamico-table input.input-plano-unidade {
-    min-width: 140px;
+.encontro-field input.input-plano-unidade {
     background-color: #F8FAFC;
     color: var(--txt-muted);
     font-weight: 600;
-}
-
-.plano-dinamico-table input.input-plano-data {
-    min-width: 130px;
-}
-
-.plano-dinamico-table textarea.input-plano-descricao {
-    min-height: 52px;
-    height: auto;
-    resize: vertical;
-    line-height: 1.4;
 }
 
 .btn-remove-row {
@@ -1598,6 +1662,10 @@ select:disabled {
     align-items: center;
     justify-content: center;
     transition: var(--transition);
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 2;
 }
 
 .btn-remove-row:hover {

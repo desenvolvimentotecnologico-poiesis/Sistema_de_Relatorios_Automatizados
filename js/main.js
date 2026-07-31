@@ -422,20 +422,20 @@ function setupFormSubmission() {
 
     // Validação estrita da Seção de Evidências (Arquivos / Tabela)
     if (isCasaForm) {
-      // Validação da Tabela Dinâmica do Plano de Atividades
-      const tbody = document.getElementById("tabelaEncontrosBody");
-      const rows = tbody ? tbody.querySelectorAll("tr") : [];
+      // Validação dos Cards do Plano de Atividades
+      const container = document.getElementById("tabelaEncontrosBody");
+      const cards = container ? container.querySelectorAll(".encontro-card, tr") : [];
       let hasContent = false;
-      rows.forEach(tr => {
-        const dataEl = tr.querySelector(".input-plano-data");
-        const descEl = tr.querySelector(".input-plano-descricao");
+      cards.forEach(card => {
+        const dataEl = card.querySelector(".input-plano-data");
+        const descEl = card.querySelector(".input-plano-descricao");
         if ((dataEl && dataEl.value) || (descEl && descEl.value.trim())) {
           hasContent = true;
         }
       });
 
       if (!hasContent) {
-        alert("Atenção: Por favor, preencha a data e a descrição de pelo menos 1 encontro na tabela do Plano de Atividades.");
+        alert("Atenção: Por favor, preencha a data e a descrição de pelo menos 1 encontro no Plano de Atividades.");
         return;
       }
     } else {
@@ -504,53 +504,51 @@ function extractFormData(form) {
 
   const isCasaForm = form.getAttribute("data-theme") === "fundacaocasa";
   if (isCasaForm) {
-    const modoPlano = data.modoPlanoAtividade || "tabela";
-    if (modoPlano === "tabela") {
-      const tbody = document.getElementById("tabelaEncontrosBody");
-      const rows = tbody ? tbody.querySelectorAll("tr") : [];
-      const planoTabela = [];
-      const unidadeAtual = data.unidade || data.centroAtendimento || getSelectedUnidadeName();
+    const container = document.getElementById("tabelaEncontrosBody");
+    const cards = container ? container.querySelectorAll(".encontro-card, tr") : [];
+    const planoTabela = [];
+    const unidadeAtual = data.unidade || data.centroAtendimento || getSelectedUnidadeName();
 
-      rows.forEach(tr => {
-        const dataEl = tr.querySelector(".input-plano-data");
-        const inicioEl = tr.querySelector(".input-plano-inicio");
-        const fimEl = tr.querySelector(".input-plano-fim");
-        const descEl = tr.querySelector(".input-plano-descricao");
+    cards.forEach(card => {
+      const dataEl = card.querySelector(".input-plano-data");
+      const inicioEl = card.querySelector(".input-plano-inicio");
+      const fimEl = card.querySelector(".input-plano-fim");
+      const descEl = card.querySelector(".input-plano-descricao");
 
-        const rawData = dataEl ? dataEl.value : "";
-        const inicio = inicioEl ? inicioEl.value : "";
-        const fim = fimEl ? fimEl.value : "";
-        const desc = descEl ? descEl.value.trim() : "";
+      const rawData = dataEl ? dataEl.value : "";
+      const inicio = inicioEl ? inicioEl.value : "";
+      const fim = fimEl ? fimEl.value : "";
+      const desc = descEl ? descEl.value.trim() : "";
 
-        let dataFormatada = rawData;
-        if (rawData && rawData.includes("-")) {
-          const parts = rawData.split("-");
-          if (parts.length === 3) {
-            dataFormatada = `${parts[2]}/${parts[1]}/${parts[0]}`;
-          }
+      let dataFormatada = rawData;
+      if (rawData && rawData.includes("-")) {
+        const parts = rawData.split("-");
+        if (parts.length === 3) {
+          dataFormatada = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
+      }
 
-        let horarioStr = "";
-        if (inicio && fim) {
-          horarioStr = `Das ${inicio}h às ${fim}h`;
-        } else if (inicio) {
-          horarioStr = `${inicio}h`;
-        } else if (fim) {
-          horarioStr = `Até ${fim}h`;
-        }
+      let horarioStr = "";
+      if (inicio && fim) {
+        horarioStr = `Das ${inicio}h às ${fim}h`;
+      } else if (inicio) {
+        horarioStr = `${inicio}h`;
+      } else if (fim) {
+        horarioStr = `Até ${fim}h`;
+      }
 
-        if (dataFormatada || horarioStr || desc) {
-          planoTabela.push({
-            data: dataFormatada || "---",
-            unidade: unidadeAtual || "CASA",
-            horario: horarioStr || "---",
-            descricao: desc || "---"
-          });
-        }
-      });
+      if (dataFormatada || horarioStr || desc) {
+        planoTabela.push({
+          data: dataFormatada || "---",
+          unidade: unidadeAtual || "CASA",
+          horario: horarioStr || "---",
+          descricao: desc || "---"
+        });
+      }
+    });
 
-      data.planoTabela = planoTabela;
-    }
+    data.planoTabela = planoTabela;
+    data.files = [];
   }
 
   // Normaliza aliases de contrato
@@ -755,42 +753,50 @@ function initDynamicPlanoTable() {
 }
 
 function addEncontroRow(dataVal, inicioVal, fimVal, descVal) {
-  const tbody = document.getElementById("tabelaEncontrosBody");
-  if (!tbody) return;
+  const container = document.getElementById("tabelaEncontrosBody");
+  if (!container) return;
 
   const nomeUnidade = getSelectedUnidadeName();
 
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>
-      <input type="date" class="input-plano-data" value="${dataVal}" style="font-size:0.8rem; padding:0.35rem 0.4rem;">
-    </td>
-    <td>
-      <input type="text" class="input-plano-unidade" value="${nomeUnidade}" readonly style="background-color: #F1F5F9; color: #475569; font-weight: 600; font-size:0.8rem;">
-    </td>
-    <td>
-      <div style="display:flex; align-items:center; gap:0.2rem;">
-        <input type="time" class="input-plano-inicio" value="${inicioVal}" title="Início" style="font-size:0.8rem; padding:0.3rem;">
-        <span style="font-size:0.75rem; color:#64748B;">às</span>
-        <input type="time" class="input-plano-fim" value="${fimVal}" title="Fim" style="font-size:0.8rem; padding:0.3rem;">
+  const card = document.createElement("div");
+  card.className = "encontro-card";
+  card.innerHTML = `
+    <button type="button" class="btn-remove-row" title="Remover este encontro">×</button>
+    <div class="encontro-header-row">
+      <div class="encontro-field encontro-field-data">
+        <label>DATA DO ENCONTRO <span class="required">*</span></label>
+        <input type="date" class="input-plano-data" value="${dataVal}">
       </div>
-    </td>
-    <td>
-      <textarea class="input-plano-descricao" placeholder="Descrição detalhada das atividades..." style="font-size:0.8rem; min-height:48px;">${descVal}</textarea>
-    </td>
-    <td style="text-align: center; vertical-align: middle;">
-      <button type="button" class="btn-remove-row" title="Remover linha">×</button>
-    </td>
+
+      <div class="encontro-field encontro-field-unidade">
+        <label>UNIDADE</label>
+        <input type="text" class="input-plano-unidade" value="${nomeUnidade}" readonly>
+      </div>
+
+      <div class="encontro-field encontro-field-horario">
+        <label>HORÁRIO (INÍCIO ÀS FIM)</label>
+        <div class="horario-inputs-inline">
+          <input type="time" class="input-plano-inicio" value="${inicioVal}" title="Horário de Início">
+          <span class="horario-divisor">às</span>
+          <input type="time" class="input-plano-fim" value="${fimVal}" title="Horário de Término">
+        </div>
+      </div>
+    </div>
+
+    <div class="encontro-body-row">
+      <label>DESCRIÇÃO DAS ATIVIDADES <span class="required">*</span></label>
+      <textarea class="input-plano-descricao" placeholder="Descreva detalhadamente as atividades realizadas neste encontro...">${descVal}</textarea>
+    </div>
   `;
 
-  const btnRemove = tr.querySelector(".btn-remove-row");
+  const btnRemove = card.querySelector(".btn-remove-row");
   btnRemove.onclick = () => {
-    if (tbody.querySelectorAll("tr").length <= 1) {
-      alert("É necessário manter pelo menos 1 encontro na tabela.");
+    if (container.querySelectorAll(".encontro-card").length <= 1) {
+      alert("É necessário manter pelo menos 1 encontro no Plano de Atividades.");
       return;
     }
-    tr.remove();
+    card.remove();
   };
 
-  tbody.appendChild(tr);
+  container.appendChild(card);
 }
