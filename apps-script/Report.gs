@@ -198,7 +198,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     setBoldForRange(body, "Declarante / Responsável:");
     setBoldForRange(body, "Data/Hora do Registro:");
     
-    const position = body.findText("\\{\\{ANEXOS\\}\\}");
+    let position = body.findText("\\{\\{ANEXOS\\}\\}") || 
+                   body.findText("\\{\\{PLANO_DE_ATIVIDADES\\}\\}") || 
+                   body.findText("\\{\\{PLANO\\}\\}") || 
+                   body.findText("\\{\\{TABELA\\}\\}") || 
+                   body.findText("\\{\\{ENCONTROS\\}\\}");
     
     if (position) {
       const element = position.getElement();
@@ -224,17 +228,17 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
             table.setBorderWidth(1);
             table.setBorderColor("#C084FC");
 
-            // Limpa qualquer linha padrão que o DocumentApp possa ter inserido automaticamente
-            while (table.getNumRows() > 0) {
-              table.removeRow(0);
-            }
-
             // Cabeçalho da Tabela (DATA, UNIDADE, HORÁRIO, DESCRIÇÃO DAS ATIVIDADES)
             const headerRow = table.appendTableRow();
             headerRow.appendTableCell("DATA");
             headerRow.appendTableCell("UNIDADE");
             headerRow.appendTableCell("HORÁRIO");
             headerRow.appendTableCell("DESCRIÇÃO DAS ATIVIDADES");
+
+            // Remove a linha vazia inicial gerada automaticamente pelo DocumentApp
+            if (table.getNumRows() > 1) {
+              table.removeRow(0);
+            }
 
             for (let i = 0; i < 4; i++) {
               const cell = headerRow.getCell(i);
@@ -379,6 +383,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     }
     
     doc.saveAndClose();
+    Utilities.sleep(1500);
     
     const pdfBlob = copiedFile.getAs("application/pdf");
     pdfBlob.setName(documentName + ".pdf");
