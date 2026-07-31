@@ -1386,6 +1386,71 @@ select:disabled {
     .btn-block {
         width: 100%;
     }
+
+    /* Transformação da Tabela da Seção 03 em Blocos Verticais no Celular */
+    .table-responsive {
+        border: none;
+        background: transparent;
+        overflow-x: visible;
+        box-shadow: none;
+        margin-bottom: 0.5rem;
+    }
+
+    .plano-dinamico-table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .plano-dinamico-table, 
+    .plano-dinamico-table thead, 
+    .plano-dinamico-table tbody, 
+    .plano-dinamico-table th, 
+    .plano-dinamico-table td, 
+    .plano-dinamico-table tr {
+        display: block;
+        width: 100% !important;
+    }
+
+    .plano-dinamico-table thead {
+        display: none !important;
+    }
+
+    .plano-dinamico-table tr {
+        background-color: #FFFFFF;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 0.85rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .plano-dinamico-table td {
+        padding: 0.4rem 0;
+        border-bottom: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .plano-dinamico-table td::before {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--bg-dark-purple);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-top: 0.2rem;
+    }
+
+    .plano-dinamico-table td:nth-child(1)::before { content: "DATA DO ENCONTRO"; }
+    .plano-dinamico-table td:nth-child(2)::before { content: "UNIDADE"; }
+    .plano-dinamico-table td:nth-child(3)::before { content: "HORÁRIO (INÍCIO ÀS FIM)"; }
+    .plano-dinamico-table td:nth-child(4)::before { content: "DESCRIÇÃO DAS ATIVIDADES"; }
+    .plano-dinamico-table td:nth-child(5) {
+        align-items: flex-end;
+        padding-top: 0.5rem;
+        border-top: 1px dashed var(--border-color);
+        margin-top: 0.35rem;
+    }
 }
 
 /* Card Exemplo Modelo Plano de Atividades (Fundação CASA) */
