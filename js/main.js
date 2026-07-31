@@ -338,9 +338,8 @@ async function handleFiles(files) {
         console.warn("Falha ao processar mídia:", file.name, err);
       }
     }
-    hideOverlay();
-    renderPreviewGrid();
-  }
+  hideOverlay();
+  renderPreviewGrid();
 }
 
 function readAsBase64(file) {
