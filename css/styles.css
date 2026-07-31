@@ -1440,63 +1440,105 @@ select:disabled {
     margin-top: 0.25rem;
 }
 
-/* Tabela Dinâmica do Plano de Atividades */
+/* Tabela Dinâmica do Plano de Atividades (Seção 03 Fundação CASA) */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background-color: #FFFFFF;
+    margin-bottom: 0.85rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
 .plano-dinamico-table {
     width: 100%;
+    min-width: 680px; /* Impede que UNIDADE, DATA e HORÁRIO fiquem cortados ou espremidos */
     border-collapse: collapse;
     font-size: 0.85rem;
     background-color: #FFFFFF;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
 }
 
 .plano-dinamico-table th {
     background-color: var(--bg-dark-purple);
     color: #FFFFFF;
-    padding: 0.65rem 0.75rem;
+    padding: 0.75rem 0.85rem;
     font-weight: 700;
     text-align: left;
     font-size: 0.82rem;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
 .plano-dinamico-table td {
-    padding: 0.5rem 0.65rem;
+    padding: 0.65rem 0.75rem;
     border-bottom: 1px solid var(--border-color);
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 .plano-dinamico-table input[type="text"],
+.plano-dinamico-table input[type="date"],
+.plano-dinamico-table input[type="time"],
 .plano-dinamico-table textarea {
-    font-size: 0.82rem;
+    font-family: var(--font-sans);
+    font-size: 0.83rem;
     height: 38px;
     padding: 0.4rem 0.65rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
+    background-color: #FFFFFF;
+    color: var(--txt-main);
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: var(--transition);
 }
 
-.plano-dinamico-table textarea {
-    min-height: 54px;
+.plano-dinamico-table input:focus,
+.plano-dinamico-table textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(94, 23, 235, 0.09);
+}
+
+.plano-dinamico-table input.input-plano-unidade {
+    min-width: 140px;
+    background-color: #F8FAFC;
+    color: var(--txt-muted);
+    font-weight: 600;
+}
+
+.plano-dinamico-table input.input-plano-data {
+    min-width: 130px;
+}
+
+.plano-dinamico-table textarea.input-plano-descricao {
+    min-height: 52px;
+    height: auto;
+    resize: vertical;
+    line-height: 1.4;
 }
 
 .btn-remove-row {
     background: #FEE2E2;
     color: #DC2626;
-    border: none;
+    border: 1px solid #FCA5A5;
     width: 32px;
     height: 32px;
     border-radius: 50%;
     font-weight: 700;
     font-size: 1.1rem;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: var(--transition);
 }
 
 .btn-remove-row:hover {
-    background: #FCA5A5;
-    color: #991B1B;
+    background: #DC2626;
+    color: #FFFFFF;
+    border-color: #B91C1C;
+    transform: scale(1.08);
 }
 
