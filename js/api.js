@@ -1,10 +1,29 @@
 /**
  * CAMADA DE COMUNICAÇÃO DE DADOS (FRONTEND VERCEL -> APPS SCRIPT API)
- * Envia requisições via POST para a URL do Web App do Google Apps Script.
+ * Gerencia a detecção automática de ambiente (Homologação vs. Produção)
+ * e envia requisições HTTP POST para o Google Apps Script.
  */
 
-// Insira aqui a URL oficial da sua Implantação Web App do Apps Script (terminando em /exec)
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyWO4D0qteOCibVVaM1x1WXdOdCpbfNTSCUeUs3gKEPNE4NWNtcB5c2FPefXKMpmZHZDA/exec";
+// URLs públicas dos dois ambientes do Google Apps Script
+const GAS_API_URL_HOMOLOG = "https://script.google.com/macros/s/AKfycby2BFuc7DSyLLz_VIK1OVstF1qknXLbd4Plc4e1CKF9mNR5uEzdCyxccQ9sMcqI04PF/exec";
+const GAS_API_URL_PROD    = "https://script.google.com/macros/s/AKfycbxm5BpWN_4qsrBVuCfx020zW8s1SZHfdoRYVRN9EMnuY9VJ6afl4lYz39fk2_s7q16p4g/exec";
+
+/**
+ * Retorna dinamicamente a URL do Backend com base no Hostname do navegador
+ * @returns {string} URL ativa do Apps Script
+ */
+function getActiveBackendUrl() {
+  const host = (window.location.hostname || "").toLowerCase();
+
+  // Ativa o backend de PRODUÇÃO se estiver no domínio de produção
+  const isProduction = host.includes("sra-producao") || 
+                       host === "sra.fabricasdecultura.org.br";
+
+  // Em localhost, dev ou vercel de homologação, redireciona para HOMOLOGAÇÃO
+  return isProduction ? GAS_API_URL_PROD : GAS_API_URL_HOMOLOG;
+}
+
+const GAS_API_URL = getActiveBackendUrl();
 
 /**
  * Envia requisições assíncronas para o Apps Script
