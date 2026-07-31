@@ -1,14 +1,14 @@
-# 📘 Documentação Oficial: Portal de Relatórios & Memória Cultural
+# 📘 Documentação Oficial: SRA - Sistema de Relatórios Automatizados
 **Fábricas de Cultura • Instituto Poiesis**
 
-> Esta documentação foi elaborada para explicar de forma simples, acessível e didática o funcionamento completo do **Portal de Relatórios**, servindo tanto para pessoas sem conhecimento em tecnologia quanto para gestores e equipe de TI realizarem manutenções no futuro.
+> Esta documentação foi elaborada para explicar de forma simples, acessível e didática o funcionamento completo do **SRA (Sistema de Relatórios Automatizados)**, servindo tanto para pessoas sem conhecimento em tecnologia quanto para gestores e equipe de TI realizarem manutenções no futuro.
 
 ---
 
 ## 📌 1. Visão Geral e Objetivo do Sistema
 
 ### O que é o sistema?
-O **Portal de Relatórios de Ações Culturais** é uma plataforma web desenvolvida para automatizar, padronizar e organizar o registro de todas as atividades realizadas nas **Fábricas de Cultura** gerenciadas pelo **Instituto Poiesis**.
+O **SRA (Sistema de Relatórios Automatizados)** é uma plataforma web desenvolvida para automatizar, padronizar e organizar o registro de todas as atividades realizadas nas **Fábricas de Cultura** gerenciadas pelo **Instituto Poiesis**.
 
 ### Qual problema ele resolve?
 Antes, o processo de criação de relatórios gerenciais exigia a compilação manual de textos, tabelas e fotos em arquivos de texto, formatação individual de páginas e envio por e-mail ou pastas soltas. 
