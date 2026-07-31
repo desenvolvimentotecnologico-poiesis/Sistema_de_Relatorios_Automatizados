@@ -473,7 +473,12 @@ function setupFormSubmission() {
     }
 
     const formDataObj = extractFormData(form);
-    formDataObj.files = (formDataObj.modoPlanoAtividade === "pdf") ? uploadedFiles : [];
+    const isCasaForm = form.getAttribute("data-theme") === "fundacaocasa";
+    if (isCasaForm) {
+      formDataObj.files = (formDataObj.modoPlanoAtividade === "pdf") ? uploadedFiles : [];
+    } else {
+      formDataObj.files = uploadedFiles;
+    }
     currentSubmittedData = formDataObj;
 
     showOverlay("Salvando dados da atividade na planilha e arquivos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações", true);
