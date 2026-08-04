@@ -142,6 +142,27 @@ function onDropdownDataError(errMessage) {
   alert("Aviso de Conexão: " + errMessage);
 }
 
+function matchActivityType(itemType, selectedTipo) {
+  if (!itemType || typeof itemType !== "string") return false;
+
+  const typeNorm = itemType.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const selectedNorm = selectedTipo.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  if (selectedNorm.includes("moda")) {
+    return typeNorm.includes("moda") || (typeNorm.includes("nucleo") && !typeNorm.includes("trilha") && !typeNorm.includes("atelie"));
+  }
+
+  if (selectedNorm.includes("trilha")) {
+    return typeNorm.includes("trilha") && !typeNorm.includes("moda");
+  }
+
+  if (selectedNorm.includes("atelie")) {
+    return typeNorm.includes("atelie") && !typeNorm.includes("moda");
+  }
+
+  return typeNorm.includes(selectedNorm) || selectedNorm.includes(typeNorm);
+}
+
 function updateAtividadeDropdown() {
   const unidadeSelect = document.getElementById("unidadeSelect");
   const tipoSelect = document.getElementById("tipoPedagogicoSelect");
@@ -165,25 +186,33 @@ function updateAtividadeDropdown() {
     return;
   }
 
-  atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Atividade...</option>';
-  atividadeSelect.disabled = false;
-
   const rawItems = dropDownHierarchy[unidade] || [];
   let filteredItems = rawItems;
 
   if (tipo) {
-    const tipoNorm = tipo.toLowerCase().trim();
     filteredItems = rawItems.filter(item => {
       if (typeof item === "string") return true;
-      if (!item.type) return true;
-      const itemTypeNorm = item.type.toLowerCase().trim();
-      return itemTypeNorm.includes(tipoNorm) || tipoNorm.includes(itemTypeNorm);
+      if (!item.type || item.type.trim() === "") return false;
+      return matchActivityType(item.type, tipo);
     });
+
+    // Se nenhum item passou no filtro, verifica se a planilha sequer definiu a coluna "type"
+    if (filteredItems.length === 0) {
+      const hasAnyTypeDefined = rawItems.some(item => typeof item === "object" && item.type && item.type.trim() !== "");
+      if (!hasAnyTypeDefined) {
+        filteredItems = rawItems; // Fallback apenas para planilhas legadas sem coluna de tipo
+      }
+    }
   }
 
   if (filteredItems.length === 0) {
-    filteredItems = rawItems; // Fallback para exibir todos se o filtro for estrito
+    atividadeSelect.innerHTML = `<option value="" disabled selected>Nenhuma atividade de "${tipo}" encontrada para esta unidade...</option>`;
+    atividadeSelect.disabled = true;
+    return;
   }
+
+  atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Atividade...</option>';
+  atividadeSelect.disabled = false;
 
   filteredItems.forEach(item => {
     const name = typeof item === "string" ? item : item.name;

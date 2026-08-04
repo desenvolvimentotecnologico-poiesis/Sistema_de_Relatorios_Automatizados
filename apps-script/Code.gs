@@ -22,8 +22,9 @@ function doPost(e) {
     let result;
 
     if (action === "getDropdownData") {
+      const force = payload && (payload.forceRefresh || payload.nocache);
       result = Utils.createResponse(true, "Listas obtidas com sucesso", {
-        hierarchy: getDropdownData()
+        hierarchy: getDropdownData(force)
       });
     } else if (action === "submitForm") {
       result = submitForm(payload.formData);
@@ -58,7 +59,8 @@ function doGet(e) {
   try {
     const action = e && e.parameter ? e.parameter.action : null;
     if (action === "getDropdownData") {
-      const data = getDropdownData();
+      const force = e && e.parameter && (e.parameter.forceRefresh === "true" || e.parameter.nocache === "true");
+      const data = getDropdownData(force);
       return responseJSON(Utils.createResponse(true, "Listas obtidas com sucesso", { hierarchy: data }));
     }
     

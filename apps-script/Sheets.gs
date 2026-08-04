@@ -50,12 +50,14 @@ function getResponsesSpreadsheetConnection(area) {
   }
 }
 
-function getDropdownData() {
+function getDropdownData(forceRefresh) {
   try {
     const cache = CacheService.getScriptCache();
-    const cachedData = cache.get("poiesis_dropdown_hierarchy");
-    if (cachedData) {
-      return JSON.parse(cachedData);
+    if (!forceRefresh) {
+      const cachedData = cache.get("poiesis_dropdown_hierarchy");
+      if (cachedData) {
+        return JSON.parse(cachedData);
+      }
     }
 
     const ss = getListsSpreadsheetConnection();
@@ -104,7 +106,7 @@ function getDropdownData() {
       }
     }
     
-    cache.put("poiesis_dropdown_hierarchy", JSON.stringify(hierarchy), 300);
+    cache.put("poiesis_dropdown_hierarchy", JSON.stringify(hierarchy), 60);
     return hierarchy;
   } catch (error) {
     Logger.log("Erro no getDropdownData: " + error.toString());
