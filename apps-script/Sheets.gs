@@ -120,7 +120,7 @@ function getSheetConfigForArea(area) {
       sheetName: CONFIG.SHEET_RESPONSES_PEDAGOGICO,
       headers: [
         "Carimbo de Data/Hora", "Unidade", "Número do Contrato", "Meta de Referência",
-        "Tipo (Trilha/Ateliê)", "Nome da Atividade", "Ano de Referência", "Mês de Referência",
+        "Tipo (Trilha/Ateliê/Núcleo)", "Nome da Atividade", "Ano de Referência", "Mês de Referência",
         "Responsável", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
         "Carga Horária Realizada", "Data de Eventual Reposição", "Público Total", "Perfil do Público",
         "Faixa Etária Predominante", "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
