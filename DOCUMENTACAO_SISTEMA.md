@@ -86,7 +86,7 @@ Toda vez que uma atividade é registrada, o sistema cria (ou reaproveita) a segu
       └── 📁 [Ano] (ex: 2026)
            └── 📁 [Nome da Unidade] (ex: Cidade Tiradentes)
                 └── 📁 [Mês] (ex: 05 - Maio)
-                     └── 📁 [Tipo de Ateliê / Trilha]
+                     └── 📁 [Tipo de Ateliê / Trilha / Núcleo]
                           └── 📁 [Nome da Atividade]
                                ├── 📁 Registro Fotográfico  (Contém as imagens originais)
                                ├── 📁 Relatório             (Contém o PDF e o Docs gerados)
