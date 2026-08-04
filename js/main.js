@@ -70,12 +70,17 @@ function onDropdownDataReceived(response) {
       }
     });
 
-    unidadeSelect.addEventListener("change", updateAtividadeDropdown);
+    unidadeSelect.addEventListener("change", () => {
+      updateTipoPedagogicoOptions();
+      updateAtividadeDropdown();
+    });
   }
 
   if (tipoPedagogicoSelect) {
     tipoPedagogicoSelect.addEventListener("change", updateAtividadeDropdown);
   }
+
+  updateTipoPedagogicoOptions();
 
   // Preenche a Divisão Regional da Fundação Casa se estiver presente
   const divisaoSelect = document.getElementById("divisaoRegionalSelect");
@@ -89,6 +94,46 @@ function onDropdownDataReceived(response) {
     });
 
     divisaoSelect.addEventListener("change", handleDivisaoCasaChange);
+  }
+}
+
+function isJardimSaoLuis(unidadeName) {
+  if (!unidadeName) return false;
+  const norm = unidadeName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  return norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ");
+}
+
+function updateTipoPedagogicoOptions() {
+  const unidadeSelect = document.getElementById("unidadeSelect");
+  const tipoPedagogicoSelect = document.getElementById("tipoPedagogicoSelect");
+  if (!tipoPedagogicoSelect) return;
+
+  const selectedUnidade = unidadeSelect ? unidadeSelect.value : "";
+  const isJSL = isJardimSaoLuis(selectedUnidade);
+
+  const label = document.querySelector('label[for="tipoPedagogicoSelect"]');
+  if (label) {
+    label.innerHTML = isJSL
+      ? 'Trilha, Ateliê ou Núcleo de Moda? <span class="required">*</span>'
+      : 'Trilha ou Ateliê? <span class="required">*</span>';
+  }
+
+  let nucleoOpt = Array.from(tipoPedagogicoSelect.options).find(opt => opt.value === "Núcleo de Moda");
+
+  if (isJSL) {
+    if (!nucleoOpt) {
+      nucleoOpt = document.createElement("option");
+      nucleoOpt.value = "Núcleo de Moda";
+      nucleoOpt.textContent = "Núcleo de Moda";
+      tipoPedagogicoSelect.appendChild(nucleoOpt);
+    }
+  } else {
+    if (nucleoOpt) {
+      if (tipoPedagogicoSelect.value === "Núcleo de Moda") {
+        tipoPedagogicoSelect.value = "";
+      }
+      nucleoOpt.remove();
+    }
   }
 }
 
