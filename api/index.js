@@ -546,6 +546,80 @@ async function getOrCreateFullFolderStructure(drive, data) {
   };
 }
 
+async function uploadFilesToFolder(drive, files, targetFolderId, data = {}) {
+  try {
+    if (!files || !Array.isArray(files) || files.length === 0 || !targetFolderId) {
+      return [];
+    }
+
+    const setorUpper = (data.setor || data.area || "").toString().trim().toUpperCase();
+    const uploadedFiles = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const fileData = files[i];
+      let base64 = fileData.base64Data || "";
+      if (base64.includes(",")) {
+        base64 = base64.split(",")[1];
+      }
+      if (!base64) continue;
+
+      const buffer = Buffer.from(base64, "base64");
+      const mime = fileData.mimeType || fileData.type || (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA" ? "application/pdf" : "image/jpeg");
+
+      const parts = (fileData.name || "arquivo.jpg").split(".");
+      const ext = parts.length > 1 ? parts.pop().toLowerCase() : (mime === "application/pdf" ? "pdf" : "jpg");
+
+      let cleanFileName = "";
+      if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
+        const mesExt = getMonthNameExtenso(data.mesReferencia);
+        const cleanCentro = sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
+        const cleanAtividade = sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
+        cleanFileName = `${mesExt}_${cleanCentro}_${cleanAtividade}_PlanoDeAtividade.${ext}`;
+      } else {
+        const unidadeSigla = getUnidadeSigla(data.unidade);
+        const cleanResponsavel = sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
+        const cleanAtividade = sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
+        const indexStr = (i + 1).toString().padStart(2, "0");
+        cleanFileName = `${unidadeSigla}_${cleanResponsavel}_${cleanAtividade}_${indexStr}.${ext}`;
+      }
+
+      const createdFile = await drive.files.create({
+        requestBody: {
+          name: cleanFileName,
+          parents: [targetFolderId],
+          mimeType: mime
+        },
+        media: {
+          mimeType: mime,
+          body: require("stream").Readable.from(buffer)
+        },
+        supportsAllDrives: true,
+        supportsTeamDrives: true,
+        fields: "id, name, webViewLink"
+      });
+
+      await drive.permissions.create({
+        fileId: createdFile.data.id,
+        requestBody: { role: "reader", type: "anyone" },
+        supportsAllDrives: true,
+        supportsTeamDrives: true
+      }).catch(() => {});
+
+      uploadedFiles.push({
+        id: createdFile.data.id,
+        name: cleanFileName,
+        mimeType: mime,
+        uri: `https://lh3.googleusercontent.com/d/${createdFile.data.id}`
+      });
+    }
+
+    return uploadedFiles;
+  } catch (error) {
+    console.error("Erro no uploadFilesToFolder:", error.message);
+    return [];
+  }
+}
+
 /**
  * Salva a resposta do formulário principal na aba e planilha do setor correspondente
  */
