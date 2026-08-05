@@ -1,0 +1,13 @@
+{
+  "name": "sistema-de-relatorios-automatizados",
+  "version": "2.0.0",
+  "description": "Sistema de Relatórios Automatizados (SRA) - Instituto Poiesis • Vercel Serverless Architecture",
+  "main": "api/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}

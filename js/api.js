@@ -12,22 +12,19 @@ const GAS_API_URL_PROD    = "https://script.google.com/macros/s/AKfycbxm5BpWN_4q
  * Retorna dinamicamente a URL do Backend com base no Hostname do navegador
  * @returns {string} URL ativa do Apps Script
  */
+/**
+ * Retorna a URL do endpoint backend.
+ * Na Vercel Serverless, utiliza a rota nativa '/api' no mesmo domínio (0ms latência de CORS).
+ */
 function getActiveBackendUrl() {
-  const host = (window.location.hostname || "").toLowerCase();
-
-  // Em localhost, IP local ou qualquer subdomínio contendo "homolog", usa o backend de HOMOLOGAÇÃO
-  const isHomologation = host.includes("localhost") || 
-                         host.includes("127.0.0.1") || 
-                         host.includes("homolog");
-
-  // No domínio principal da Vercel (sistema-de-relatorios-automatizados.vercel.app) ou domínio oficial, usa PRODUÇÃO
-  return isHomologation ? GAS_API_URL_HOMOLOG : GAS_API_URL_PROD;
+  // Rota interna Vercel Serverless em Node.js
+  return "/api";
 }
 
 const GAS_API_URL = getActiveBackendUrl();
 
 /**
- * Envia requisições assíncronas para o Apps Script com re-tentativa automática
+ * Envia requisições assíncronas para a Vercel Serverless API
  * @param {string} action Nome da ação ('getDropdownData', 'verifyUserAccess', 'checkActivityStatus', 'uploadComplementaryDocs')
  * @param {Object} payload Dados adicionais
  * @param {Function} onSuccess Callback de sucesso
@@ -35,21 +32,16 @@ const GAS_API_URL = getActiveBackendUrl();
  * @param {number} [retryCount=0] Contador interno de tentativas
  */
 function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
-  if (!GAS_API_URL || GAS_API_URL.includes("INSIRA_AQUI")) {
-    if (onError) onError("URL da API do Google Apps Script ainda não configurada em js/api.js.");
-    return;
-  }
-
-  const maxRetries = 2; // Até 3 tentativas no total (tentativa inicial + 2 retentativas)
+  const maxRetries = 2;
   const controller = new AbortController();
-  const timeoutMs = 35000; // 35 segundos por tentativa
+  const timeoutMs = 25000;
   const timeoutId = setTimeout(() => {
     controller.abort();
   }, timeoutMs);
 
   fetch(GAS_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: action, ...payload }),
     signal: controller.signal
   })
@@ -64,28 +56,26 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
       } catch (e) {
         console.error("Erro ao interpretar JSON (Tentativa " + (retryCount + 1) + "):", text);
         if (retryCount < maxRetries) {
-          console.warn("Re-tentando conexão com o servidor em 1.5s...");
           setTimeout(() => {
             callBackendAPI(action, payload, onSuccess, onError, retryCount + 1);
-          }, 1500);
+          }, 1000);
         } else {
-          if (onError) onError("Resposta inválida do servidor. Verifique a implantação do Apps Script.");
+          if (onError) onError("Resposta inválida do servidor Vercel.");
         }
       }
     })
     .catch(err => {
       clearTimeout(timeoutId);
-      console.warn("Oscilação de rede ou inicialização a frio (Tentativa " + (retryCount + 1) + "):", err);
+      console.warn("Falha na chamada da Vercel API (Tentativa " + (retryCount + 1) + "):", err);
       if (retryCount < maxRetries) {
-        console.warn("Re-tentando conexão em 1.5s...");
         setTimeout(() => {
           callBackendAPI(action, payload, onSuccess, onError, retryCount + 1);
-        }, 1500);
+        }, 1000);
       } else {
         if (err.name === "AbortError") {
-          if (onError) onError("O servidor demorou para responder. Por favor, tente novamente.");
+          if (onError) onError("Tempo limite excedido na Vercel API. Tente novamente.");
         } else {
-          if (onError) onError("Falha de conexão ao comunicar com o servidor. Verifique sua conexão com a internet.");
+          if (onError) onError("Falha de conexão com o servidor Vercel.");
         }
       }
     });
