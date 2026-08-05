@@ -1,4 +1,4 @@
-const { getSheetsService, getDriveService } = require("./_googleAuth");
+const { getSheetsService, getDriveService, getDocsService } = require("./_googleAuth");
 const CONFIG = require("./_config");
 
 const SPREADSHEET_LISTS_ID = CONFIG.SPREADSHEET_LISTS_ID;
@@ -669,6 +669,54 @@ async function handleSubmitForm(payload) {
   };
 }
 
+function getUnidadeSigla(unidadeName) {
+  if (!unidadeName) return "UNIDADE";
+  const norm = unidadeName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+  if (norm.includes("CAPAO REDONDO")) return "CPR";
+  if (norm.includes("DIADEMA")) return "DDM";
+  if (norm.includes("HELIOPOLIS")) return "HLP";
+  if (norm.includes("IGUAPE")) return "IGP";
+  if (norm.includes("JACANA") || norm.includes("JACANAA")) return "JCN";
+  if (norm.includes("BRASILANDIA")) return "BRL";
+  if (norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ")) return "JSL";
+  if (norm.includes("OSASCO")) return "OSC";
+  if (norm.includes("VILA NOVA CACHOEIRINHA") || norm.includes("CACHOEIRINHA")) return "VNC";
+  if (norm.includes("TAIPAS")) return "TAIPAS";
+  return sanitizeFileName(unidadeName).toUpperCase().replace(/\s+/g, "_");
+}
+
+function sanitizeFileName(text) {
+  if (!text) return "";
+  return text.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9\s-_]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function getMonthNameExtenso(mesStr) {
+  if (!mesStr) return "Mes";
+  const months = {
+    "01": "Janeiro", "1": "Janeiro", "janeiro": "Janeiro",
+    "02": "Fevereiro", "2": "Fevereiro", "fevereiro": "Fevereiro",
+    "03": "Março", "3": "Março", "marco": "Março", "março": "Março",
+    "04": "Abril", "4": "Abril", "abril": "Abril",
+    "05": "Maio", "5": "Maio", "maio": "Maio",
+    "06": "Junho", "6": "Junho", "junho": "Junho",
+    "07": "Julho", "7": "Julho", "julho": "Julho",
+    "08": "Agosto", "8": "Agosto", "agosto": "Agosto",
+    "09": "Setembro", "9": "Setembro", "setembro": "Setembro",
+    "10": "Outubro", "outubro": "Outubro",
+    "11": "Novembro", "novembro": "Novembro",
+    "12": "Dezembro", "dezembro": "Dezembro"
+  };
+  const clean = String(mesStr).trim().toLowerCase();
+  return months[clean] || sanitizeFileName(mesStr);
+}
+
+function formatDateToBR(dateStr) {
+  if (!dateStr) return "";
+  const parts = String(dateStr).split("-");
+  if (parts.length !== 3) return dateStr;
+  return parts[2] + "/" + parts[1] + "/" + parts[0];
+}
+
 /**
  * Compila o relatório em PDF usando Google Docs Template e Google Drive
  */
@@ -679,7 +727,7 @@ async function handleGeneratePdfReportAsync(payload) {
   let templateId = "";
   if (setorUpper === "PEDAGÓGICO") templateId = CONFIG.DOC_TEMPLATE_PEDAGOGICO_ID;
   else if (setorUpper === "ARTICULAÇÃO E DIFUSÃO") templateId = CONFIG.DOC_TEMPLATE_ARTICULACAO_ID;
-  else if (setorUpper === "FUNDAÇÃO CASA") templateId = CONFIG.DOC_TEMPLATE_FUNDACAO_CASA_ID;
+  else if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") templateId = CONFIG.DOC_TEMPLATE_FUNDACAO_CASA_ID;
   else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") templateId = CONFIG.DOC_TEMPLATE_BIBLIOTECA_ID;
 
   const drive = getDriveService();
@@ -700,13 +748,35 @@ async function handleGeneratePdfReportAsync(payload) {
     };
   }
 
-  const docName = `Relatorio_${(data.unidade || "Unidade").replace(/\s+/g, "_")}_${(data.atividade || "Atividade").replace(/\s+/g, "_")}`;
+  const unidadeSigla = getUnidadeSigla(data.unidade);
+  const cleanCentro = sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
+  const cleanResponsavel = sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
+  const cleanAtividade = sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
+
+  let documentName = "";
+  if (setorUpper === "PEDAGÓGICO") {
+    documentName = `${unidadeSigla}_${cleanResponsavel}_${cleanAtividade}`;
+  } else if (setorUpper === "ARTICULAÇÃO E DIFUSÃO") {
+    let diaStr = data.diasAtividade ? String(data.diasAtividade).split(",")[0].trim() : "01";
+    if (diaStr.length === 1) diaStr = "0" + diaStr;
+    const mesStr = data.mesReferencia || "01";
+    const anoStr = data.anoReferencia || new Date().getFullYear().toString();
+    documentName = `${diaStr}-${mesStr}-${anoStr}_${unidadeSigla}_${cleanAtividade}`;
+  } else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") {
+    let dataAtiv = data.dataRelatorio ? formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
+    documentName = `${dataAtiv}_${unidadeSigla}_${cleanAtividade}_${cleanResponsavel}`;
+  } else if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
+    const mesExt = getMonthNameExtenso(data.mesReferencia);
+    documentName = `${mesExt}_${cleanCentro}_${cleanAtividade}_${cleanResponsavel}`;
+  } else {
+    documentName = `${unidadeSigla}_${cleanResponsavel}_${cleanAtividade}`;
+  }
 
   // Clona o template do Google Docs diretamente na pasta Relatório
   const copyRes = await drive.files.copy({
     fileId: templateId,
     requestBody: {
-      name: docName,
+      name: documentName,
       parents: [relatorioFolderId]
     },
     supportsAllDrives: true,
@@ -719,6 +789,29 @@ async function handleGeneratePdfReportAsync(payload) {
   const contratoVal = String(data.contrato || data.numeroContrato || "");
   const impactoVal = String(data.impactoCultural || data.impactoTerritorial || "");
   const formatField = val => (val === null || val === undefined) ? "" : (Array.isArray(val) ? val.join("; ") : String(val));
+
+  const nowBR = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const responsavelNome = formatField(data.responsavel).toUpperCase();
+  let declaracaoTexto = "";
+  if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
+    declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +
+      "1. Declaração de Conformidade com o ECA, Proteção de Imagem e Normas Internas:\n\n" +
+      "Declaro que executei as atividades em conformidade com o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990), observando integralmente as normas de segurança, disciplina, acesso e funcionamento da unidade da Fundação CASA, bem como as orientações da CONTRATANTE, não tendo praticado qualquer conduta incompatível com as regras institucionais.\n\n" +
+      "Declaro que não captei, registrei, reproduzi, divulguei, compartilhei ou utilizei imagens, vídeos, áudios, dados pessoais ou quaisquer informações que permitam identificar adolescentes atendidos durante a execução das atividades, salvo quando previamente autorizado, por escrito, pela CONTRATANTE e/ou pela Fundação CASA, quando aplicável.\n\n" +
+      "Declaro que todos os produtos, obras, materiais, registros ou demais itens produzidos durante a execução das atividades permaneceram integralmente na unidade da Fundação CASA onde foram desenvolvidos, não tendo sido retirados, cedidos, comercializados ou destinados a finalidade diversa daquela prevista contratualmente.\n\n" +
+      "Declaro que tenho ciência das obrigações previstas nas cláusulas contratuais relativas à proteção de crianças e adolescentes, ao sigilo das informações, ao uso de imagem, à preservação dos materiais produzidos e às normas internas da Fundação CASA, afirmando que atuei em conformidade com tais disposições durante todo o período de execução dos serviços.\n\n" +
+      "2. Declaração de Veracidade e Prestação de Contas:\n\n" +
+      "Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.\n\n" +
+      "[☑] TERMOS LIDOS E ACEITOS ELETRONICAMENTE NO ATO DO ENVIO\n" +
+      "Declarante / Responsável: " + responsavelNome + "\n" +
+      "Data/Hora do Registro: " + nowBR + " (Horário Oficial de Brasília)";
+  } else {
+    declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +
+      "Declaro que as informações e evidências apresentadas neste relatório correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o acompanhamento institucional e a prestação de contas.\n\n" +
+      "[☑] TERMO LIDO E ACEITO ELETRONICAMENTE NO ATO DO ENVIO\n" +
+      "Declarante / Responsável: " + responsavelNome + "\n" +
+      "Data/Hora do Registro: " + nowBR + " (Horário Oficial de Brasília)";
+  }
 
   // Preenche TODOS os placeholders no Docs garantindo que string vazia vire espaço " " para evitar erro 400 na API v1
   const createReplaceReq = (tag, val) => {
@@ -773,7 +866,10 @@ async function handleGeneratePdfReportAsync(payload) {
     createReplaceReq("{{DESCRICAO_METODOLOGIA}}", formatField(data.descricaoMetodologia)),
     createReplaceReq("{{ENGAJAMENTO_PARTICIPACAO}}", formatField(data.engajamentoParticipacao)),
     createReplaceReq("{{PONTOS_FORTES}}", formatField(data.pontosFortes)),
-    createReplaceReq("{{PONTOS_FRACOS}}", formatField(data.pontosFracos))
+    createReplaceReq("{{PONTOS_FRACOS}}", formatField(data.pontosFracos)),
+    createReplaceReq("{{DECLARACAO_RESPONSABILIDADE}}", declaracaoTexto),
+    createReplaceReq("{{DECLARACAO}}", declaracaoTexto),
+    createReplaceReq("{{TERMOS}}", declaracaoTexto)
   ];
 
   try {
@@ -797,7 +893,7 @@ async function handleGeneratePdfReportAsync(payload) {
 
     const pdfFileCreated = await drive.files.create({
       requestBody: {
-        name: docName + ".pdf",
+        name: documentName + ".pdf",
         parents: [relatorioFolderId],
         mimeType: "application/pdf"
       },
