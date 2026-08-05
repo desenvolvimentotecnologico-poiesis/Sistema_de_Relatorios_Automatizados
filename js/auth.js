@@ -103,7 +103,7 @@ function handleUserLoggedIn(user) {
     } else {
       showAuthLoading(false);
       alert(
-        "🚫 Acesso Não Autorizado\n\n" +
+        "Acesso Não Autorizado\n\n" +
         "O e-mail (" + email + ") não está cadastrado na planilha de responsáveis autorizados.\n\n" +
         "Caso você seja um responsável de fábrica e precise de acesso, entre em contato com a equipe de Sistemas para liberar a permissão."
       );
@@ -112,7 +112,7 @@ function handleUserLoggedIn(user) {
   }, (err) => {
     showAuthLoading(false);
     alert(
-      "⚠️ Falha na Comunicação com o Servidor\n\n" +
+      "Falha na Comunicação com o Servidor\n\n" +
       "Não foi possível consultar a permissão do e-mail (" + email + ").\n\n" +
       "Verifique se a nova versão da API do Google Apps Script foi implantada."
     );
@@ -356,16 +356,16 @@ function checkActivityDocsStatus() {
       if (!data.exists) {
         if (statusBox) {
           statusBox.className = "status-box warning";
-          statusBox.textContent = "⚠️ Atividade não localizada nos registros de relatórios pedagógicos. O relatório inicial do educador precisa ser enviado primeiro.";
+          statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Atividade não localizada nos registros de relatórios pedagógicos deste mês/ano. O relatório inicial do educador precisa ser enviado primeiro.';
         }
         if (submitBtn) submitBtn.disabled = true;
       } else {
         if (statusBox) {
           statusBox.className = "status-box success";
-          let text = "✅ Atividade localizada! Documentos no sistema:";
-          text += data.hasInscricao ? " [Inscrição: ENVIADO]" : " [Inscrição: PENDENTE]";
-          text += data.hasPresenca ? " [Presença: ENVIADO]" : " [Presença: PENDENTE]";
-          statusBox.textContent = text;
+          let html = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>Atividade localizada! Documentos no sistema:';
+          html += data.hasInscricao ? " [Inscrição: ENVIADO]" : " [Inscrição: PENDENTE]";
+          html += data.hasPresenca ? " [Presença: ENVIADO]" : " [Presença: PENDENTE]";
+          statusBox.innerHTML = html;
         }
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -373,7 +373,7 @@ function checkActivityDocsStatus() {
   }, (err) => {
     if (statusBox) {
       statusBox.className = "status-box error";
-      statusBox.textContent = "Erro ao consultar atividade: " + err;
+      statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Erro ao consultar atividade: ' + err;
     }
     if (submitBtn) submitBtn.disabled = true;
   });

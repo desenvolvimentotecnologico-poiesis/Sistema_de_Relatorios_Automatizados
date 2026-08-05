@@ -402,24 +402,21 @@ function findActivityRowAndDocs(params) {
   const lastCol = sheet.getLastColumn();
   if (lastRow < 2) return { exists: false };
 
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h ? h.toString().trim().toUpperCase() : "");
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h ? h.toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "");
   
-  // Localização dinâmica das colunas pelos cabeçalhos da planilha
-  const idxUnidade = headers.indexOf("UNIDADE");
-  let idxAtividade = headers.indexOf("ATIVIDADE");
-  if (idxAtividade === -1) idxAtividade = headers.indexOf("NOME DA ATIVIDADE");
-  if (idxAtividade === -1) idxAtividade = 4;
-  
-  let idxAno = headers.indexOf("ANO DE REFERÊNCIA");
-  if (idxAno === -1) idxAno = headers.indexOf("ANO");
-  if (idxAno === -1) idxAno = 5;
-  
-  let idxMes = headers.indexOf("MÊS DE REFERÊNCIA");
-  if (idxMes === -1) idxMes = headers.indexOf("MÊS");
-  if (idxMes === -1) idxMes = 6;
+  // Localização dinâmica flexível das colunas pelos cabeçalhos da planilha
+  let idxUnidade = headers.findIndex(h => h.includes("UNIDADE"));
+  let idxAtividade = headers.findIndex(h => h.includes("ATIVIDADE"));
+  let idxAno = headers.findIndex(h => h.includes("ANO"));
+  let idxMes = headers.findIndex(h => h.includes("MES"));
 
-  const idxInscricao = headers.indexOf("INSCRIÇÃO ENVIADA");
-  const idxPresenca = headers.indexOf("PRESENÇA ENVIADA");
+  if (idxUnidade === -1) idxUnidade = 1; // Fallback Coluna B
+  if (idxAtividade === -1) idxAtividade = 4; // Fallback Coluna E
+  if (idxAno === -1) idxAno = 5; // Fallback Coluna F
+  if (idxMes === -1) idxMes = 6; // Fallback Coluna G
+
+  const idxInscricao = headers.findIndex(h => h.includes("INSCRICAO"));
+  const idxPresenca = headers.findIndex(h => h.includes("PRESENCA"));
 
   const searchUnidade = params.unidade ? params.unidade.trim().toUpperCase() : "";
   const searchAtividade = params.atividade ? params.atividade.trim().toUpperCase() : "";
