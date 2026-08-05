@@ -5,17 +5,34 @@ const { google } = require("googleapis");
  * @returns {google.auth.JWT} Cliente de Autenticação JWT do Google
  */
 function getGoogleAuthClient() {
+  const oauthClientId = process.env.OAUTH_CLIENT_ID;
+  const oauthClientSecret = process.env.OAUTH_CLIENT_SECRET;
+  const oauthRefreshToken = process.env.OAUTH_REFRESH_TOKEN;
+
+  // Prioridade 1: OAuth 2.0 com Refresh Token (Conta oficial humana da Poiesis)
+  if (oauthClientId && oauthClientSecret && oauthRefreshToken) {
+    const oauth2Client = new google.auth.OAuth2(
+      oauthClientId.trim(),
+      oauthClientSecret.trim(),
+      "https://developers.google.com/oauthplayground"
+    );
+    oauth2Client.setCredentials({
+      refresh_token: oauthRefreshToken.trim()
+    });
+    return oauth2Client;
+  }
+
+  // Prioridade 2: Service Account JWT Bot
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
   if (!clientEmail || !privateKey) {
-    throw new Error("Variáveis de ambiente GOOGLE_SERVICE_ACCOUNT_EMAIL e GOOGLE_PRIVATE_KEY não configuradas na Vercel.");
+    throw new Error("Credenciais do Google não configuradas na Vercel (cadastre OAUTH_REFRESH_TOKEN, OAUTH_CLIENT_ID e OAUTH_CLIENT_SECRET).");
   }
 
-  // Corrige aspas em volta da string, espaços e quebras de linha escapadas
   privateKey = privateKey.trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
 
-  const auth = new google.auth.JWT(
+  return new google.auth.JWT(
     clientEmail,
     null,
     privateKey,
@@ -25,8 +42,6 @@ function getGoogleAuthClient() {
       "https://www.googleapis.com/auth/documents"
     ]
   );
-
-  return auth;
 }
 
 function getSheetsService() {
