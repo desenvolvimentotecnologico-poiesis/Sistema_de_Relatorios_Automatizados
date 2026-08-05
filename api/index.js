@@ -322,21 +322,10 @@ async function handleUploadComplementaryDocs(payload) {
     return { success: false, message: "ID da pasta raiz do Drive (DRIVE_ROOT_FOLDER_ID) não configurado na Vercel." };
   }
 
-  // Localiza/Cria subpastas: Setor -> Ano -> Unidade -> Mês -> Tipo -> Atividade
-  const mesName = getMonthFolderName(payload.mesReferencia);
-  const setorFolderId = await getOrCreateSubFolder(drive, rootFolderId, payload.setor || "Pedagógico");
-  const anoFolderId = await getOrCreateSubFolder(drive, setorFolderId, payload.anoReferencia || "2026");
-  const unidadeFolderId = await getOrCreateSubFolder(drive, anoFolderId, payload.unidade);
-  const mesFolderId = await getOrCreateSubFolder(drive, unidadeFolderId, mesName);
-
-  let parentFolderId = mesFolderId;
-  if (payload.tipoPedagogico) {
-    parentFolderId = await getOrCreateSubFolder(drive, mesFolderId, payload.tipoPedagogico);
-  }
-
-  const activityFolderId = await getOrCreateSubFolder(drive, parentFolderId, payload.atividade);
-  const inscricaoFolderId = await getOrCreateSubFolder(drive, activityFolderId, "Relação de Inscritos");
-  const presencaFolderId = await getOrCreateSubFolder(drive, activityFolderId, "Lista de Presença");
+  // Localiza a estrutura oficial de pastas sob 'Fábricas de Cultura'
+  const folders = await getOrCreateFullFolderStructure(drive, payload);
+  const inscricaoFolderId = folders.relacaoInscritosFolderId || folders.activityFolderId;
+  const presencaFolderId = folders.listaPresencaFolderId || folders.activityFolderId;
 
   let subiuInscricao = "Não";
   let subiuPresenca = "Não";
@@ -1161,7 +1150,7 @@ async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId
               uri: imageUris[imgIdx],
               location: { index: cellStartIndex },
               objectSize: {
-                width: { magnitude: 220, unit: "PT" }
+                width: { magnitude: 180, unit: "PT" }
               }
             }
           });
@@ -1172,6 +1161,25 @@ async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId
 
     if (imageRequests.length > 0) {
       imageRequests.sort((a, b) => b.insertInlineImage.location.index - a.insertInlineImage.location.index);
+
+      // Remove as bordas pretas da tabela
+      imageRequests.push({
+        updateTableCellStyle: {
+          tableCellStyle: {
+            borderTop: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
+            borderBottom: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
+            borderLeft: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
+            borderRight: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } }
+          },
+          fields: "borderTop,borderBottom,borderLeft,borderRight",
+          tableRange: {
+            location: { index: createdTable.startIndex },
+            rowSpan: createdTable.tableRows.length,
+            columnSpan: 2
+          }
+        }
+      });
+
       await docs.documents.batchUpdate({
         documentId,
         requestBody: { requests: imageRequests }
