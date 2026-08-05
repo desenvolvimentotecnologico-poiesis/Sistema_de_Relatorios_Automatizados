@@ -825,29 +825,204 @@ async function handleGeneratePdfReportAsync(payload) {
     };
   };
 
-  let hasImages = false;
-  let hasVideo = false;
+async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId, files) {
+  try {
+    let docRes = await docs.documents.get({ documentId });
+    let content = docRes.data.body.content || [];
 
-  if (data.files && Array.isArray(data.files) && data.files.length > 0) {
-    data.files.forEach(f => {
-      if (f.mimeType && f.mimeType.startsWith("video/")) {
-        hasVideo = true;
-      } else if (!f.mimeType || f.mimeType.startsWith("image/")) {
-        hasImages = true;
+    let targetIndex = -1;
+    for (const element of content) {
+      if (element.paragraph) {
+        for (const run of element.paragraph.elements || []) {
+          if (run.textRun && run.textRun.content && run.textRun.content.includes("{{ANEXOS}}")) {
+            targetIndex = run.startIndex + run.textRun.content.indexOf("{{ANEXOS}}");
+            break;
+          }
+        }
+      }
+      if (targetIndex !== -1) break;
+    }
+
+    if (targetIndex === -1) {
+      return;
+    }
+
+    const imageUris = [];
+    let hasVideo = false;
+
+    if (files && Array.isArray(files) && files.length > 0) {
+      for (const f of files) {
+        if (f.mimeType && f.mimeType.startsWith("video/")) {
+          hasVideo = true;
+        } else if (f.base64Data && (!f.mimeType || f.mimeType.startsWith("image/"))) {
+          try {
+            const base64Data = f.base64Data.split(",")[1] || f.base64Data;
+            const buffer = Buffer.from(base64Data, "base64");
+            const mimeType = f.mimeType || "image/jpeg";
+
+            const uploaded = await drive.files.create({
+              requestBody: {
+                name: f.name || `foto_${Date.now()}.jpg`,
+                parents: registroFolderId ? [registroFolderId] : [],
+                mimeType: mimeType
+              },
+              media: {
+                mimeType: mimeType,
+                body: require("stream").Readable.from(buffer)
+              },
+              supportsAllDrives: true,
+              supportsTeamDrives: true,
+              fields: "id"
+            });
+
+            await drive.permissions.create({
+              fileId: uploaded.data.id,
+              requestBody: { role: "reader", type: "anyone" },
+              supportsAllDrives: true,
+              supportsTeamDrives: true
+            });
+
+            imageUris.push(`https://lh3.googleusercontent.com/d/${uploaded.data.id}`);
+          } catch (err) {
+            console.warn("Erro ao enviar foto pro Docs:", err.message);
+          }
+        }
+      }
+    }
+
+    if (imageUris.length === 0 && registroFolderId) {
+      try {
+        const driveList = await drive.files.list({
+          q: `'${registroFolderId}' in parents and mimeType contains 'image/' and trashed = false`,
+          fields: "files(id, mimeType)",
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          supportsTeamDrives: true,
+          includeItemsFromTeamDrives: true
+        });
+
+        for (const imgFile of driveList.data.files || []) {
+          await drive.permissions.create({
+            fileId: imgFile.id,
+            requestBody: { role: "reader", type: "anyone" },
+            supportsAllDrives: true,
+            supportsTeamDrives: true
+          });
+          imageUris.push(`https://lh3.googleusercontent.com/d/${imgFile.id}`);
+        }
+      } catch (e) {
+        console.warn("Erro ao buscar fotos na pasta do Drive:", e.message);
+      }
+    }
+
+    if (imageUris.length === 0) {
+      let noPicText = "Nenhuma imagem/evidência fotográfica enviada.";
+      if (hasVideo) {
+        noPicText += "\n\n🎬 NOTA DE EVIDÊNCIA EM VÍDEO: Esta atividade possui registro(s) audiovisual(is) em vídeo salvo(s) diretamente na pasta de evidências da atividade no Google Drive.";
+      }
+      await docs.documents.batchUpdate({
+        documentId,
+        requestBody: {
+          requests: [
+            {
+              replaceAllText: {
+                containsText: { text: "{{ANEXOS}}", matchCase: true },
+                replaceText: noPicText
+              }
+            }
+          ]
+        }
+      });
+      return;
+    }
+
+    const numRows = Math.ceil(imageUris.length / 2);
+
+    await docs.documents.batchUpdate({
+      documentId,
+      requestBody: {
+        requests: [
+          {
+            replaceAllText: {
+              containsText: { text: "{{ANEXOS}}", matchCase: true },
+              replaceText: " "
+            }
+          },
+          {
+            insertTable: {
+              rows: numRows,
+              columns: 2,
+              location: { index: targetIndex }
+            }
+          }
+        ]
       }
     });
-  }
 
-  let anexosTexto = "";
-  if (hasImages) {
-    anexosTexto = "Evidências fotográficas salvas na pasta 'Registro Fotográfico' no Google Drive.";
-  } else {
-    anexosTexto = "Nenhuma imagem/evidência fotográfica enviada.";
-  }
+    docRes = await docs.documents.get({ documentId });
+    content = docRes.data.body.content || [];
 
-  if (hasVideo) {
-    anexosTexto += "\n\n🎬 NOTA DE EVIDÊNCIA EM VÍDEO: Esta atividade possui registro(s) audiovisual(is) em vídeo salvo(s) diretamente na pasta de evidências da atividade no Google Drive.";
+    let createdTable = null;
+    for (const element of content) {
+      if (element.table && element.startIndex >= targetIndex) {
+        createdTable = element.table;
+        break;
+      }
+    }
+
+    if (!createdTable) return;
+
+    const imageRequests = [];
+    let imgIdx = 0;
+
+    for (let r = 0; r < createdTable.tableRows.length; r++) {
+      const row = createdTable.tableRows[r];
+      for (let c = 0; c < row.tableCells.length; c++) {
+        if (imgIdx < imageUris.length) {
+          const cell = row.tableCells[c];
+          const cellStartIndex = cell.content[0].startIndex;
+
+          imageRequests.push({
+            insertInlineImage: {
+              uri: imageUris[imgIdx],
+              location: { index: cellStartIndex },
+              objectSize: {
+                width: { magnitude: 220, unit: "PT" }
+              }
+            }
+          });
+          imgIdx++;
+        }
+      }
+    }
+
+    if (imageRequests.length > 0) {
+      imageRequests.sort((a, b) => b.insertInlineImage.location.index - a.insertInlineImage.location.index);
+      await docs.documents.batchUpdate({
+        documentId,
+        requestBody: { requests: imageRequests }
+      });
+    }
+
+    if (hasVideo) {
+      await docs.documents.batchUpdate({
+        documentId,
+        requestBody: {
+          requests: [
+            {
+              insertText: {
+                location: { index: targetIndex + 1 },
+                text: "\n\n🎬 NOTA DE EVIDÊNCIA EM VÍDEO: Esta atividade possui registro(s) audiovisual(is) em vídeo salvo(s) diretamente na pasta de evidências da atividade no Google Drive."
+              }
+            }
+          ]
+        }
+      });
+    }
+  } catch (err) {
+    console.warn("Erro ao inserir grade de fotos no Docs:", err.message);
   }
+}
 
   let planoTexto = "Plano de Atividades do Período:";
   if (data.planoTabela && Array.isArray(data.planoTabela) && data.planoTabela.length > 0) {
@@ -896,7 +1071,6 @@ async function handleGeneratePdfReportAsync(payload) {
     createReplaceReq("{{ENGAJAMENTO_PARTICIPACAO}}", formatField(data.engajamentoParticipacao)),
     createReplaceReq("{{PONTOS_FORTES}}", formatField(data.pontosFortes)),
     createReplaceReq("{{PONTOS_FRACOS}}", formatField(data.pontosFracos)),
-    createReplaceReq("{{ANEXOS}}", anexosTexto),
     createReplaceReq("{{PLANO_DE_ATIVIDADES}}", planoTexto),
     createReplaceReq("{{PLANO}}", planoTexto),
     createReplaceReq("{{TABELA}}", planoTexto),
@@ -914,6 +1088,10 @@ async function handleGeneratePdfReportAsync(payload) {
   } catch (e) {
     console.warn("Erro ao preencher texto no Docs:", e.message);
   }
+
+  // Insere a grade de fotos de 2 colunas na tag {{ANEXOS}}
+  const registroFolderId = payload.registroFolderId || data.registroFolderId;
+  await insertImageGridIntoDocs(drive, docs, copiedDocId, registroFolderId, data.files);
 
   // Exporta o Google Doc preenchido em formato PDF e salva na pasta Relatório
   let pdfUrl = "";
