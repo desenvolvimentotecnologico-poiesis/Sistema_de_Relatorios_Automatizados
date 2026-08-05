@@ -126,6 +126,7 @@ async function handleGetDropdownData(payload) {
 
   for (const s of sheetList) {
     const title = s.properties.title.trim();
+    const titleUpper = title.toUpperCase();
     if (s.properties.hidden || title.startsWith("_")) continue;
 
     const res = await sheets.spreadsheets.values.get({
@@ -134,17 +135,31 @@ async function handleGetDropdownData(payload) {
     });
 
     const rows = res.data.values || [];
-    const items = [];
 
-    for (const r of rows) {
-      const colA = r[0] ? r[0].toString().trim() : "";
-      const colB = r[1] ? r[1].toString().trim() : "";
-      if (colA) {
-        items.push({ name: colA, type: colB || colA });
+    if (titleUpper.includes("CASA")) {
+      const casaMap = {};
+      for (let j = 0; j < rows.length; j++) {
+        const divisao = rows[j][0] ? rows[j][0].toString().trim() : "";
+        const centro = rows[j][1] ? rows[j][1].toString().trim() : "";
+        if (divisao && centro) {
+          if (!casaMap[divisao]) casaMap[divisao] = [];
+          if (!casaMap[divisao].includes(centro)) {
+            casaMap[divisao].push(centro);
+          }
+        }
       }
+      hierarchy["Fundação Casa"] = casaMap;
+    } else {
+      const items = [];
+      for (const r of rows) {
+        const type = r[0] ? r[0].toString().trim() : "";
+        const name = r[1] ? r[1].toString().trim() : "";
+        if (name) {
+          items.push({ type: type, name: name });
+        }
+      }
+      hierarchy[title] = items;
     }
-
-    hierarchy[title] = items;
   }
 
   return { success: true, hierarchy: hierarchy };
