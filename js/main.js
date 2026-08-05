@@ -692,14 +692,17 @@ function onStage1Success(response) {
 
   showOverlay("Compilando documento oficial e exportando PDF no Google Drive...", 75, "Etapa 2 de 2: Gerando PDF", true);
 
-  const stage1Data = response;
+  const stage1Data = response.data || response;
+  const relatorioFolderId = response.relatorioFolderId || (response.data && response.data.relatorioFolderId);
+  const registroFolderId = response.registroFolderId || (response.data && response.data.registroFolderId);
+
   callBackendAPI(
     "generatePdfReportAsync",
     {
       sheetName: stage1Data.sheetName,
       rowNumber: stage1Data.rowNumber,
-      relatorioFolderId: stage1Data.relatorioFolderId,
-      registroFolderId: stage1Data.registroFolderId,
+      relatorioFolderId: relatorioFolderId,
+      registroFolderId: registroFolderId,
       area: stage1Data.area,
       formData: currentSubmittedData
     },

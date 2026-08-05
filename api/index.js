@@ -423,25 +423,60 @@ async function getOrCreateFullFolderStructure(drive, data) {
   }
 
   const fabricasFolderId = await getOrCreateSubFolder(drive, rootFolderId, "Fábricas de Cultura");
-  const setorFolderId = await getOrCreateSubFolder(drive, fabricasFolderId, data.setor || data.area || "Pedagógico");
-  const anoFolderId = await getOrCreateSubFolder(drive, setorFolderId, data.anoReferencia || "2026");
 
-  const unidadeName = data.unidade || data.divisaoRegional || "Geral";
-  const unidadeFolderId = await getOrCreateSubFolder(drive, anoFolderId, unidadeName);
+  let anoStr = data.anoReferencia ? String(data.anoReferencia).trim() : "";
+  let mesNum = data.mesReferencia ? String(data.mesReferencia).trim() : "";
+  if (!anoStr) anoStr = new Date().getFullYear().toString();
+  if (!mesNum) mesNum = (new Date().getMonth() + 1).toString().padStart(2, "0");
+  if (mesNum.length === 1) mesNum = "0" + mesNum;
+  const mesStr = getMonthFolderName(mesNum);
 
-  const mesName = getMonthFolderName(data.mesReferencia || "01");
-  const mesFolderId = await getOrCreateSubFolder(drive, unidadeFolderId, mesName);
+  const setorStr = (data.setor || data.area || "Pedagógico").trim();
+  const setorUpper = setorStr.toUpperCase();
+  const atividadeName = (data.atividade || "Atividade").trim();
 
-  let parentFolderId = mesFolderId;
-  if (data.tipoPedagogico) {
-    parentFolderId = await getOrCreateSubFolder(drive, mesFolderId, data.tipoPedagogico);
+  const setorFolderId = await getOrCreateSubFolder(drive, fabricasFolderId, setorStr);
+  const anoFolderId = await getOrCreateSubFolder(drive, setorFolderId, anoStr);
+
+  let parentFolderId;
+
+  if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
+    const drFolderId = await getOrCreateSubFolder(drive, anoFolderId, data.divisaoRegional ? data.divisaoRegional.trim() : "DR INDEFINIDA");
+    const drUnidadeFolderId = await getOrCreateSubFolder(drive, drFolderId, data.unidade ? data.unidade.trim() : "UNIDADE");
+    parentFolderId = await getOrCreateSubFolder(drive, drUnidadeFolderId, mesStr);
+  } else {
+    const unidadeFolderId = await getOrCreateSubFolder(drive, anoFolderId, data.unidade ? data.unidade.trim() : "UNIDADE");
+    const mesFolderId = await getOrCreateSubFolder(drive, unidadeFolderId, mesStr);
+    parentFolderId = mesFolderId;
+
+    if (setorUpper === "PEDAGÓGICO" && data.tipoPedagogico) {
+      parentFolderId = await getOrCreateSubFolder(drive, mesFolderId, data.tipoPedagogico.trim());
+    }
   }
 
-  const atividadeFolderId = await getOrCreateSubFolder(drive, parentFolderId, data.atividade || "Atividade");
-  const relatorioFolderId = await getOrCreateSubFolder(drive, atividadeFolderId, "Relatório");
-  const registroFolderId = await getOrCreateSubFolder(drive, atividadeFolderId, "Registro Fotográfico");
+  const activityFolderId = await getOrCreateSubFolder(drive, parentFolderId, atividadeName);
 
-  return { relatorioFolderId, registroFolderId };
+  let relatorioFolderId = activityFolderId;
+  let registroFolderId = null;
+  let listaPresencaFolderId = null;
+  let relacaoInscritosFolderId = null;
+
+  if (setorUpper !== "FUNDAÇÃO CASA" && setorUpper !== "FUNDACAO CASA") {
+    registroFolderId = await getOrCreateSubFolder(drive, activityFolderId, "Registro Fotográfico");
+    relatorioFolderId = await getOrCreateSubFolder(drive, activityFolderId, "Relatório");
+    if (setorUpper === "PEDAGÓGICO") {
+      listaPresencaFolderId = await getOrCreateSubFolder(drive, activityFolderId, "Lista de Presença");
+      relacaoInscritosFolderId = await getOrCreateSubFolder(drive, activityFolderId, "Relação de Inscritos");
+    }
+  }
+
+  return {
+    activityFolderId,
+    relatorioFolderId,
+    registroFolderId,
+    listaPresencaFolderId,
+    relacaoInscritosFolderId
+  };
 }
 
 /**
@@ -464,7 +499,7 @@ async function handleSubmitForm(payload) {
   const { relatorioFolderId, registroFolderId } = await getOrCreateFullFolderStructure(drive, data);
 
   // 2. Salva anexos de fotos no Drive se enviados
-  if (data.files && data.files.length > 0) {
+  if (data.files && data.files.length > 0 && registroFolderId) {
     for (const f of data.files) {
       if (f.base64Data) {
         const base64Data = f.base64Data.split(",")[1] || f.base64Data;
@@ -685,13 +720,17 @@ async function handleGeneratePdfReportAsync(payload) {
   const impactoVal = String(data.impactoCultural || data.impactoTerritorial || "");
   const formatField = val => (val === null || val === undefined) ? "" : (Array.isArray(val) ? val.join("; ") : String(val));
 
-  // Preenche TODOS os placeholders do Google Docs com a sintaxe oficial { containsText: { text: "..." } }
-  const createReplaceReq = (tag, val) => ({
-    replaceAllText: {
-      containsText: { text: tag, matchCase: true },
-      replaceText: String(val || "")
-    }
-  });
+  // Preenche TODOS os placeholders no Docs garantindo que string vazia vire espaço " " para evitar erro 400 na API v1
+  const createReplaceReq = (tag, val) => {
+    let strVal = (val === null || val === undefined) ? " " : String(val);
+    if (strVal.trim() === "") strVal = " ";
+    return {
+      replaceAllText: {
+        containsText: { text: tag, matchCase: true },
+        replaceText: strVal
+      }
+    };
+  };
 
   const replaceRequests = [
     createReplaceReq("{{AREA}}", formatField(data.area)),
