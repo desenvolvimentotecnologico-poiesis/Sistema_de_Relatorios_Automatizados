@@ -498,27 +498,10 @@ async function handleSubmitForm(payload) {
   // 1. Cria estrutura de pastas no Drive
   const { relatorioFolderId, registroFolderId } = await getOrCreateFullFolderStructure(drive, data);
 
-  // 2. Salva anexos de fotos no Drive se enviados
-  if (data.files && data.files.length > 0 && registroFolderId) {
-    for (const f of data.files) {
-      if (f.base64Data) {
-        const base64Data = f.base64Data.split(",")[1] || f.base64Data;
-        const buffer = Buffer.from(base64Data, "base64");
-        await drive.files.create({
-          requestBody: {
-            name: f.name || `foto_${Date.now()}.jpg`,
-            parents: [registroFolderId],
-            mimeType: f.type || "image/jpeg"
-          },
-          media: {
-            mimeType: f.type || "image/jpeg",
-            body: require("stream").Readable.from(buffer)
-          },
-          supportsAllDrives: true,
-          supportsTeamDrives: true
-        });
-      }
-    }
+  // 2. Salva anexos de fotos no Drive com a nomenclatura institucional exata do Apps Script
+  const targetUploadFolder = registroFolderId || relatorioFolderId;
+  if (data.files && data.files.length > 0 && targetUploadFolder) {
+    await uploadFilesToFolder(drive, data.files, targetUploadFolder, data);
   }
 
   const contratoVal = data.contrato || data.numeroContrato || "";
@@ -825,7 +808,81 @@ async function handleGeneratePdfReportAsync(payload) {
     };
   };
 
-async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId, files) {
+async function uploadFilesToFolder(drive, files, targetFolderId, data = {}) {
+  try {
+    if (!files || !Array.isArray(files) || files.length === 0 || !targetFolderId) {
+      return [];
+    }
+
+    const setorUpper = (data.setor || data.area || "").toString().trim().toUpperCase();
+    const uploadedFiles = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const fileData = files[i];
+      let base64 = fileData.base64Data || "";
+      if (base64.includes(",")) {
+        base64 = base64.split(",")[1];
+      }
+      if (!base64) continue;
+
+      const buffer = Buffer.from(base64, "base64");
+      const mime = fileData.mimeType || fileData.type || (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA" ? "application/pdf" : "image/jpeg");
+
+      const parts = (fileData.name || "arquivo.jpg").split(".");
+      const ext = parts.length > 1 ? parts.pop().toLowerCase() : (mime === "application/pdf" ? "pdf" : "jpg");
+
+      let cleanFileName = "";
+      if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
+        const mesExt = getMonthNameExtenso(data.mesReferencia);
+        const cleanCentro = sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
+        const cleanAtividade = sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
+        cleanFileName = `${mesExt}_${cleanCentro}_${cleanAtividade}_PlanoDeAtividade.${ext}`;
+      } else {
+        const unidadeSigla = getUnidadeSigla(data.unidade);
+        const cleanResponsavel = sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
+        const cleanAtividade = sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
+        const indexStr = (i + 1).toString().padStart(2, "0");
+        cleanFileName = `${unidadeSigla}_${cleanResponsavel}_${cleanAtividade}_${indexStr}.${ext}`;
+      }
+
+      const createdFile = await drive.files.create({
+        requestBody: {
+          name: cleanFileName,
+          parents: [targetFolderId],
+          mimeType: mime
+        },
+        media: {
+          mimeType: mime,
+          body: require("stream").Readable.from(buffer)
+        },
+        supportsAllDrives: true,
+        supportsTeamDrives: true,
+        fields: "id, name, webViewLink"
+      });
+
+      await drive.permissions.create({
+        fileId: createdFile.data.id,
+        requestBody: { role: "reader", type: "anyone" },
+        supportsAllDrives: true,
+        supportsTeamDrives: true
+      }).catch(() => {});
+
+      uploadedFiles.push({
+        id: createdFile.data.id,
+        name: cleanFileName,
+        mimeType: mime,
+        uri: `https://lh3.googleusercontent.com/d/${createdFile.data.id}`
+      });
+    }
+
+    return uploadedFiles;
+  } catch (error) {
+    console.error("Erro no uploadFilesToFolder:", error.message);
+    return [];
+  }
+}
+
+async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId) {
   try {
     let docRes = await docs.documents.get({ documentId });
     let content = docRes.data.body.content || [];
@@ -850,65 +907,29 @@ async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId
     const imageUris = [];
     let hasVideo = false;
 
-    if (files && Array.isArray(files) && files.length > 0) {
-      for (const f of files) {
-        if (f.mimeType && f.mimeType.startsWith("video/")) {
-          hasVideo = true;
-        } else if (f.base64Data && (!f.mimeType || f.mimeType.startsWith("image/"))) {
-          try {
-            const base64Data = f.base64Data.split(",")[1] || f.base64Data;
-            const buffer = Buffer.from(base64Data, "base64");
-            const mimeType = f.mimeType || "image/jpeg";
-
-            const uploaded = await drive.files.create({
-              requestBody: {
-                name: f.name || `foto_${Date.now()}.jpg`,
-                parents: registroFolderId ? [registroFolderId] : [],
-                mimeType: mimeType
-              },
-              media: {
-                mimeType: mimeType,
-                body: require("stream").Readable.from(buffer)
-              },
-              supportsAllDrives: true,
-              supportsTeamDrives: true,
-              fields: "id"
-            });
-
-            await drive.permissions.create({
-              fileId: uploaded.data.id,
-              requestBody: { role: "reader", type: "anyone" },
-              supportsAllDrives: true,
-              supportsTeamDrives: true
-            });
-
-            imageUris.push(`https://lh3.googleusercontent.com/d/${uploaded.data.id}`);
-          } catch (err) {
-            console.warn("Erro ao enviar foto pro Docs:", err.message);
-          }
-        }
-      }
-    }
-
-    if (imageUris.length === 0 && registroFolderId) {
+    if (registroFolderId) {
       try {
         const driveList = await drive.files.list({
-          q: `'${registroFolderId}' in parents and mimeType contains 'image/' and trashed = false`,
-          fields: "files(id, mimeType)",
+          q: `'${registroFolderId}' in parents and trashed = false`,
+          fields: "files(id, name, mimeType)",
           supportsAllDrives: true,
           includeItemsFromAllDrives: true,
           supportsTeamDrives: true,
           includeItemsFromTeamDrives: true
         });
 
-        for (const imgFile of driveList.data.files || []) {
-          await drive.permissions.create({
-            fileId: imgFile.id,
-            requestBody: { role: "reader", type: "anyone" },
-            supportsAllDrives: true,
-            supportsTeamDrives: true
-          });
-          imageUris.push(`https://lh3.googleusercontent.com/d/${imgFile.id}`);
+        for (const file of driveList.data.files || []) {
+          if (file.mimeType && file.mimeType.startsWith("video/")) {
+            hasVideo = true;
+          } else if (file.mimeType && file.mimeType.startsWith("image/")) {
+            await drive.permissions.create({
+              fileId: file.id,
+              requestBody: { role: "reader", type: "anyone" },
+              supportsAllDrives: true,
+              supportsTeamDrives: true
+            }).catch(() => {});
+            imageUris.push(`https://lh3.googleusercontent.com/d/${file.id}`);
+          }
         }
       } catch (e) {
         console.warn("Erro ao buscar fotos na pasta do Drive:", e.message);
@@ -1091,7 +1112,7 @@ async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId
 
   // Insere a grade de fotos de 2 colunas na tag {{ANEXOS}}
   const registroFolderId = payload.registroFolderId || data.registroFolderId;
-  await insertImageGridIntoDocs(drive, docs, copiedDocId, registroFolderId, data.files);
+  await insertImageGridIntoDocs(drive, docs, copiedDocId, registroFolderId);
 
   // Exporta o Google Doc preenchido em formato PDF e salva na pasta Relatório
   let pdfUrl = "";
