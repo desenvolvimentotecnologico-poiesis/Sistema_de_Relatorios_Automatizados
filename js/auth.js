@@ -171,8 +171,13 @@ function displayAuthenticatedView(profile) {
   if (typeof callBackendAPI === "function") {
     callBackendAPI("getDropdownData", {}, (response) => {
       showAuthLoading(false);
-      const hierarchy = response && response.hierarchy ? response.hierarchy : (response || {});
-      restrictedHierarchy = hierarchy;
+      if (response && response.success && response.hierarchy) {
+        restrictedHierarchy = response.hierarchy;
+      } else {
+        console.error("Erro ao obter lista de unidades:", response);
+        restrictedHierarchy = {};
+        alert("Aviso: Não foi possível carregar a lista de unidades. Verifique se as Variáveis de Ambiente (SPREADSHEET_LISTS_ID) foram configuradas na Vercel.");
+      }
       populateRestrictedUnidades(profile);
     }, (err) => {
       showAuthLoading(false);

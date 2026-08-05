@@ -52,8 +52,14 @@ function initializeDropdowns() {
 
 function onDropdownDataReceived(response) {
   hideOverlay();
-  const hierarchy = response && response.hierarchy ? response.hierarchy : (response || {});
-  dropDownHierarchy = hierarchy;
+  if (response && response.success && response.hierarchy) {
+    dropDownHierarchy = response.hierarchy;
+  } else {
+    console.error("Erro ao obter lista de unidades:", response);
+    dropDownHierarchy = {};
+    alert("Aviso: Não foi possível carregar as listas de unidades. Verifique se as Variáveis de Ambiente foram configuradas na Vercel.");
+  }
+  const hierarchy = dropDownHierarchy;
 
   const unidadeSelect = document.getElementById("unidadeSelect");
   const tipoPedagogicoSelect = document.getElementById("tipoPedagogicoSelect");
