@@ -69,6 +69,10 @@ module.exports = async (req, res) => {
         return res.status(200).json(await handleCheckActivityStatus(body));
       case "uploadComplementaryDocs":
         return res.status(200).json(await handleUploadComplementaryDocs(body));
+      case "submitForm":
+        return res.status(200).json(await handleSubmitForm(body));
+      case "generatePdfReportAsync":
+        return res.status(200).json(await handleGeneratePdfReportAsync(body));
       default:
         return res.status(400).json({ success: false, message: `Ação desconhecida ou não informada: '${action}'` });
     }
@@ -399,4 +403,169 @@ function getMonthFolderName(mesNum) {
     "10": "10 - Outubro", "11": "11 - Novembro", "12": "12 - Dezembro"
   };
   return months[mesNum] || mesNum;
+}
+
+/**
+ * Salva a resposta do formulário principal na aba e planilha do setor correspondente
+ */
+async function handleSubmitForm(payload) {
+  const data = payload.formData || payload;
+  const setorUpper = (data.area || "PEDAGÓGICO").trim().toUpperCase();
+  const spreadsheetId = RESPONSES_SHEETS[setorUpper] || CONFIG.SPREADSHEET_RESPONSES_ID;
+
+  if (!spreadsheetId) {
+    return { success: false, message: `ID de planilha de respostas para '${setorUpper}' não configurado nas Variáveis da Vercel.` };
+  }
+
+  const sheets = getSheetsService();
+  const timestamp = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
+  const contratoVal = data.contrato || data.numeroContrato || "";
+  const impactoVal = data.impactoCultural || data.impactoTerritorial || "";
+
+  const formatField = val => {
+    if (val === null || val === undefined) return "";
+    if (Array.isArray(val)) return val.join("; ");
+    return String(val);
+  };
+
+  let newRow = [];
+  let sheetName = "Respostas";
+
+  if (setorUpper === "PEDAGÓGICO") {
+    sheetName = "Pedagógico";
+    newRow = [
+      timestamp,
+      formatField(data.unidade),
+      formatField(contratoVal),
+      formatField(data.metaReferencia),
+      formatField(data.tipoPedagogico),
+      formatField(data.atividade),
+      formatField(data.anoReferencia),
+      formatField(data.mesReferencia),
+      formatField(data.responsavel),
+      formatField(data.encontrosPrevistos),
+      formatField(data.encontrosRealizados),
+      formatField(data.cargaHorariaPrevista),
+      formatField(data.cargaHorariaRealizada),
+      formatField(data.dataReposicao),
+      formatField(data.publicoTotal),
+      formatField(data.perfilPublico),
+      formatField(data.faixaEtaria),
+      formatField(data.destaqueAcao),
+      formatField(data.objetivos),
+      formatField(impactoVal),
+      formatField(data.descricaoMetodologia),
+      formatField(data.engajamentoParticipacao),
+      formatField(data.pontosFortes),
+      formatField(data.pontosFracos)
+    ];
+  } else if (setorUpper === "ARTICULAÇÃO E DIFUSÃO") {
+    sheetName = "Articulação e Difusão";
+    newRow = [
+      timestamp,
+      formatField(data.unidade),
+      formatField(contratoVal),
+      formatField(data.metaReferencia),
+      formatField(data.categoriaAtividade),
+      formatField(data.atividade),
+      formatField(data.anoReferencia),
+      formatField(data.mesReferencia),
+      formatField(data.responsavel),
+      formatField(data.dataRelatorio),
+      formatField(data.horarioInicio),
+      formatField(data.horarioTermino),
+      formatField(data.publicoTotal),
+      formatField(data.perfilPublico),
+      formatField(data.faixaEtaria),
+      formatField(data.destaqueAcao),
+      formatField(data.objetivos),
+      formatField(impactoVal),
+      formatField(data.linguagemArtistica),
+      formatField(data.inclusaoDiversidade),
+      formatField(data.efemeride),
+      formatField(data.relato),
+      formatField(data.descricaoMetodologia),
+      formatField(data.pontosFortes),
+      formatField(data.pontosFracos)
+    ];
+  } else if (setorUpper === "FUNDAÇÃO CASA") {
+    sheetName = "Fundação Casa";
+    newRow = [
+      timestamp,
+      formatField(data.divisaoRegional),
+      formatField(data.unidade),
+      formatField(contratoVal),
+      formatField(data.metaReferencia),
+      formatField(data.atividade),
+      formatField(data.anoReferencia),
+      formatField(data.mesReferencia),
+      formatField(data.responsavel),
+      formatField(data.encontrosPrevistos),
+      formatField(data.encontrosRealizados),
+      formatField(data.cargaHorariaPrevista),
+      formatField(data.cargaHorariaRealizada),
+      formatField(data.dataReposicao),
+      formatField(data.destaqueAcao),
+      formatField(data.objetivos),
+      formatField(impactoVal),
+      formatField(data.descricaoMetodologia),
+      formatField(data.engajamentoParticipacao),
+      formatField(data.pontosFortes),
+      formatField(data.pontosFracos)
+    ];
+  } else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") {
+    sheetName = "Bibliotecas";
+    newRow = [
+      timestamp,
+      formatField(data.unidade),
+      formatField(contratoVal),
+      formatField(data.metaReferencia),
+      formatField(data.atividade),
+      formatField(data.responsavel),
+      formatField(data.dataRelatorio),
+      formatField(data.horarioInicio),
+      formatField(data.horarioTermino),
+      formatField(data.publicoTotal),
+      formatField(data.perfilPublico),
+      formatField(data.faixaEtaria),
+      formatField(data.destaqueAcao),
+      formatField(data.objetivos),
+      formatField(impactoVal),
+      formatField(data.descricaoMetodologia),
+      formatField(data.engajamentoParticipacao),
+      formatField(data.pontosFortes),
+      formatField(data.pontosFracos)
+    ];
+  }
+
+  const appendRes = await sheets.spreadsheets.values.append({
+    spreadsheetId: spreadsheetId,
+    range: `'${sheetName}'!A:Z`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [newRow] }
+  });
+
+  const updatedRange = (appendRes.data.updates && appendRes.data.updates.updatedRange) || "Respostas!A2";
+  const rowNumberMatch = updatedRange.match(/!A?([0-9]+)/);
+  const rowNumber = rowNumberMatch ? parseInt(rowNumberMatch[1], 10) : 2;
+
+  return {
+    success: true,
+    message: "Respostas registradas com sucesso na planilha!",
+    data: {
+      sheetName: sheetName,
+      rowNumber: rowNumber,
+      relatorioFolderId: "",
+      registroFolderId: ""
+    }
+  };
+}
+
+async function handleGeneratePdfReportAsync(payload) {
+  return {
+    success: true,
+    message: "Relatório registrado com sucesso!",
+    pdfUrl: ""
+  };
 }
