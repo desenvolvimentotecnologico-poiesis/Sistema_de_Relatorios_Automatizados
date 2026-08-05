@@ -386,8 +386,20 @@ async function handleUploadComplementaryDocs(payload) {
   let idxUser = headers.findIndex(h => h.includes("ATUALIZADO POR") || h.includes("LOGIN"));
   let idxData = headers.findIndex(h => h.includes("DATA/HORA ATUALIZACAO"));
 
+function getA1NotationColumn(index) {
+  let temp;
+  let letter = "";
+  let col = index + 1;
+  while (col > 0) {
+    temp = (col - 1) % 26;
+    letter = String.fromCharCode(65 + temp) + letter;
+    col = Math.floor((col - temp) / 26);
+  }
+  return letter;
+}
+
   if (idxInsc === -1) {
-    const colStart = String.fromCharCode(65 + headers.length);
+    const colStart = getA1NotationColumn(headers.length);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: `'${sheetName}'!${colStart}1`,
@@ -405,7 +417,7 @@ async function handleUploadComplementaryDocs(payload) {
   const nowStr = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
   if (subiuInscricao === "Sim") {
-    const colChar = String.fromCharCode(65 + idxInsc);
+    const colChar = getA1NotationColumn(idxInsc);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: `'${sheetName}'!${colChar}${rowNum}`,
@@ -415,7 +427,7 @@ async function handleUploadComplementaryDocs(payload) {
   }
 
   if (subiuPresenca === "Sim") {
-    const colChar = String.fromCharCode(65 + idxPres);
+    const colChar = getA1NotationColumn(idxPres);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: `'${sheetName}'!${colChar}${rowNum}`,
@@ -425,8 +437,8 @@ async function handleUploadComplementaryDocs(payload) {
   }
 
   if (idxUser !== -1 && idxData !== -1) {
-    const colUserChar = String.fromCharCode(65 + idxUser);
-    const colDataChar = String.fromCharCode(65 + idxData);
+    const colUserChar = getA1NotationColumn(idxUser);
+    const colDataChar = getA1NotationColumn(idxData);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
       range: `'${sheetName}'!${colUserChar}${rowNum}:${colDataChar}${rowNum}`,
