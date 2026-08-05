@@ -201,22 +201,57 @@ async function handleGetDropdownData(payload) {
 /**
  * Checa se a atividade existe no Sheets do setor e se possui Inscrição/Presença enviadas
  */
+async function getResponseSheetName(sheets, spreadsheetId, area) {
+  const areaUpper = (area || "PEDAGÓGICO").trim().toUpperCase();
+  let preferredName = "Pedagógico";
+  if (areaUpper === "ARTICULAÇÃO E DIFUSÃO") preferredName = "Articulação e Difusão";
+  else if (areaUpper === "FUNDAÇÃO CASA" || areaUpper === "FUNDACAO CASA") preferredName = "Fundação CASA";
+  else if (areaUpper === "BIBLIOTECA" || areaUpper === "BIBLIOTECAS") preferredName = "Bibliotecas";
+
+  try {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetList = meta.data.sheets || [];
+    if (sheetList.length === 0) return preferredName;
+
+    const normPreferred = preferredName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (const s of sheetList) {
+      const title = s.properties.title.trim();
+      const normTitle = title.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (normTitle === normPreferred || normTitle.includes(normPreferred)) {
+        return title;
+      }
+    }
+    for (const s of sheetList) {
+      const title = s.properties.title.trim();
+      if (title.toUpperCase().includes("RESPOSTA")) return title;
+    }
+    return sheetList[0].properties.title;
+  } catch (err) {
+    return preferredName;
+  }
+}
+
+/**
+ * Checa se a atividade existe no Sheets do setor e se possui Inscrição/Presença enviadas
+ */
 async function handleCheckActivityStatus(payload) {
-  const setorUpper = (payload.setor || "PEDAGÓGICO").trim().toUpperCase();
-  const spreadsheetId = RESPONSES_SHEETS[setorUpper] || process.env.SPREADSHEET_RESPONSES_PEDAGOGICO_ID;
+  const setorUpper = (payload.setor || payload.area || "PEDAGÓGICO").trim().toUpperCase();
+  const spreadsheetId = RESPONSES_SHEETS[setorUpper] || CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID || CONFIG.SPREADSHEET_RESPONSES_ID;
 
   if (!spreadsheetId) {
     return { success: false, message: `ID de respostas para '${setorUpper}' não configurado nas variáveis da Vercel.` };
   }
 
   const sheets = getSheetsService();
+  const sheetName = await getResponseSheetName(sheets, spreadsheetId, setorUpper);
+
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId,
-    range: "Respostas!A1:Z5000"
+    range: `'${sheetName}'!A1:Z5000`
   });
 
   const values = res.data.values || [];
-  if (values.length < 2) return { success: true, exists: false };
+  if (values.length < 2) return { success: true, exists: false, sheetName };
 
   const headers = values[0].map(h => h ? h.toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "");
 
@@ -233,15 +268,17 @@ async function handleCheckActivityStatus(payload) {
   const idxInscricao = headers.findIndex(h => h.includes("INSCRICAO"));
   const idxPresenca = headers.findIndex(h => h.includes("PRESENCA"));
 
-  const searchUnidade = (payload.unidade || "").trim().toUpperCase();
-  const searchAtividade = (payload.atividade || "").trim().toUpperCase();
+  const normStr = str => (str || "").toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+
+  const searchUnidade = normStr(payload.unidade);
+  const searchAtividade = normStr(payload.atividade);
   const searchAno = (payload.anoReferencia || "").toString().trim();
   const searchMesNorm = normalizeMonth(payload.mesReferencia);
 
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
-    const rowUnidade = row[idxUnidade] ? row[idxUnidade].toString().trim().toUpperCase() : "";
-    const rowAtividade = row[idxAtividade] ? row[idxAtividade].toString().trim().toUpperCase() : "";
+    const rowUnidade = normStr(row[idxUnidade]);
+    const rowAtividade = normStr(row[idxAtividade]);
     const rowAno = row[idxAno] ? row[idxAno].toString().trim() : "";
     const rowMesNorm = normalizeMonth(row[idxMes]);
 
@@ -251,12 +288,13 @@ async function handleCheckActivityStatus(payload) {
     const matchMes = !searchMesNorm || rowMesNorm === searchMesNorm;
 
     if (matchUnidade && matchAtividade && matchAno && matchMes) {
-      const hasInsc = idxInscricao !== -1 ? row[idxInscricao] === "Sim" : false;
-      const hasPres = idxPresenca !== -1 ? row[idxPresenca] === "Sim" : false;
+      const hasInsc = idxInscricao !== -1 ? (row[idxInscricao] === "Sim" || row[idxInscricao] === "SIM") : false;
+      const hasPres = idxPresenca !== -1 ? (row[idxPresenca] === "Sim" || row[idxPresenca] === "SIM") : false;
 
       return {
         success: true,
         exists: true,
+        sheetName: sheetName,
         rowNumber: i + 1,
         hasInscricao: hasInsc,
         hasPresenca: hasPres
@@ -264,7 +302,7 @@ async function handleCheckActivityStatus(payload) {
     }
   }
 
-  return { success: true, exists: false };
+  return { success: true, exists: false, sheetName };
 }
 
 /**
@@ -332,12 +370,13 @@ async function handleUploadComplementaryDocs(payload) {
 
   // Atualiza colunas no Sheets
   const setorUpper = (payload.setor || "PEDAGÓGICO").trim().toUpperCase();
-  const spreadsheetId = RESPONSES_SHEETS[setorUpper] || process.env.SPREADSHEET_RESPONSES_PEDAGOGICO_ID;
+  const spreadsheetId = RESPONSES_SHEETS[setorUpper] || CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID || CONFIG.SPREADSHEET_RESPONSES_ID;
+  const sheetName = status.sheetName || await getResponseSheetName(sheets, spreadsheetId, setorUpper);
   const rowNum = status.rowNumber;
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId,
-    range: "Respostas!1:1"
+    range: `'${sheetName}'!1:1`
   });
 
   const headers = (res.data.values || [[]])[0].map(h => h ? h.toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "");
@@ -348,11 +387,10 @@ async function handleUploadComplementaryDocs(payload) {
   let idxData = headers.findIndex(h => h.includes("DATA/HORA ATUALIZACAO"));
 
   if (idxInsc === -1) {
-    // Se colunas não existirem, adiciona ao final
     const colStart = String.fromCharCode(65 + headers.length);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
-      range: `Respostas!${colStart}1`,
+      range: `'${sheetName}'!${colStart}1`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [["Inscrição Enviada", "Presença Enviada", "Atualizado Por (Login)", "Data/Hora Atualização"]]
@@ -370,7 +408,7 @@ async function handleUploadComplementaryDocs(payload) {
     const colChar = String.fromCharCode(65 + idxInsc);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
-      range: `Respostas!${colChar}${rowNum}`,
+      range: `'${sheetName}'!${colChar}${rowNum}`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [["Sim"]] }
     });
@@ -380,7 +418,7 @@ async function handleUploadComplementaryDocs(payload) {
     const colChar = String.fromCharCode(65 + idxPres);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
-      range: `Respostas!${colChar}${rowNum}`,
+      range: `'${sheetName}'!${colChar}${rowNum}`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [["Sim"]] }
     });
@@ -391,7 +429,7 @@ async function handleUploadComplementaryDocs(payload) {
     const colDataChar = String.fromCharCode(65 + idxData);
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheetId,
-      range: `Respostas!${colUserChar}${rowNum}:${colDataChar}${rowNum}`,
+      range: `'${sheetName}'!${colUserChar}${rowNum}:${colDataChar}${rowNum}`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [[payload.userName + " (" + payload.userEmail + ")", nowStr]] }
     });
