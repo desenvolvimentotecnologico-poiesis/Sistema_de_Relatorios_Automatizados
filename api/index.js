@@ -619,6 +619,11 @@ async function handleSubmitForm(payload) {
   return {
     success: true,
     message: "Respostas registradas com sucesso na planilha!",
+    sheetName: sheetName,
+    rowNumber: rowNumber,
+    relatorioFolderId: relatorioFolderId,
+    registroFolderId: registroFolderId,
+    area: setorUpper,
     data: {
       sheetName: sheetName,
       rowNumber: rowNumber,
@@ -643,10 +648,9 @@ async function handleGeneratePdfReportAsync(payload) {
   else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") templateId = CONFIG.DOC_TEMPLATE_BIBLIOTECA_ID;
 
   const drive = getDriveService();
-  const relatorioFolderId = payload.relatorioFolderId || CONFIG.DRIVE_ROOT_FOLDER_ID;
+  const relatorioFolderId = payload.relatorioFolderId || data.relatorioFolderId || CONFIG.DRIVE_ROOT_FOLDER_ID;
 
   if (!templateId) {
-    // Se o template ainda não tiver sido configurado, retorna link para a pasta no Drive
     const folderRes = await drive.files.get({
       fileId: relatorioFolderId,
       fields: "webViewLink",
@@ -663,7 +667,7 @@ async function handleGeneratePdfReportAsync(payload) {
 
   const docName = `Relatorio_${(data.unidade || "Unidade").replace(/\s+/g, "_")}_${(data.atividade || "Atividade").replace(/\s+/g, "_")}`;
 
-  // Clona o template do Google Docs
+  // Clona o template do Google Docs diretamente na pasta Relatório
   const copyRes = await drive.files.copy({
     fileId: templateId,
     requestBody: {
@@ -677,17 +681,60 @@ async function handleGeneratePdfReportAsync(payload) {
   const copiedDocId = copyRes.data.id;
   const docs = getDocsService();
 
-  // Preenche placeholders no Google Docs
+  const contratoVal = String(data.contrato || data.numeroContrato || "");
+  const impactoVal = String(data.impactoCultural || data.impactoTerritorial || "");
+  const formatField = val => (val === null || val === undefined) ? "" : (Array.isArray(val) ? val.join("; ") : String(val));
+
+  // Preenche TODOS os placeholders do Google Docs com a sintaxe oficial { containsText: { text: "..." } }
+  const createReplaceReq = (tag, val) => ({
+    replaceAllText: {
+      containsText: { text: tag, matchCase: true },
+      replaceText: String(val || "")
+    }
+  });
+
   const replaceRequests = [
-    { replaceAllText: { containsText: "{{UNIDADE}}", replaceText: String(data.unidade || "").toUpperCase() } },
-    { replaceAllText: { containsText: "{{ATIVIDADE}}", replaceText: String(data.atividade || "").toUpperCase() } },
-    { replaceAllText: { containsText: "{{RESPONSAVEIS}}", replaceText: String(data.responsavel || "") } },
-    { replaceAllText: { containsText: "{{RESPONSAVEL}}", replaceText: String(data.responsavel || "") } },
-    { replaceAllText: { containsText: "{{ANO_REFERENCIA}}", replaceText: String(data.anoReferencia || "") } },
-    { replaceAllText: { containsText: "{{MES_REFERENCIA}}", replaceText: String(data.mesReferencia || "") } },
-    { replaceAllText: { containsText: "{{DESCRICAO_METODOLOGIA}}", replaceText: String(data.descricaoMetodologia || "") } },
-    { replaceAllText: { containsText: "{{PONTOS_FORTES}}", replaceText: String(data.pontosFortes || "") } },
-    { replaceAllText: { containsText: "{{PONTOS_FRACOS}}", replaceText: String(data.pontosFracos || "") } }
+    createReplaceReq("{{AREA}}", formatField(data.area)),
+    createReplaceReq("{{DIVISAO_REGIONAL}}", formatField(data.divisaoRegional).toUpperCase()),
+    createReplaceReq("{{CENTRO_ATENDIMENTO}}", formatField(data.unidade).toUpperCase()),
+    createReplaceReq("{{UNIDADE}}", formatField(data.unidade).toUpperCase()),
+    createReplaceReq("{{CONTRATO}}", contratoVal),
+    createReplaceReq("{{NUMERO_CONTRATO}}", contratoVal),
+    createReplaceReq("{{META_REFERENCIA}}", formatField(data.metaReferencia)),
+    createReplaceReq("{{TIPO_PEDAGOGICO}}", formatField(data.tipoPedagogico)),
+    createReplaceReq("{{ATIVIDADE}}", formatField(data.atividade).toUpperCase()),
+    createReplaceReq("{{ANO_REFERENCIA}}", formatField(data.anoReferencia)),
+    createReplaceReq("{{MES_REFERENCIA}}", formatField(data.mesReferencia)),
+    createReplaceReq("{{DIAS_ATIVIDADE}}", formatField(data.diasAtividade)),
+    createReplaceReq("{{RESPONSAVEL}}", formatField(data.responsavel).toUpperCase()),
+    createReplaceReq("{{RAZAO_SOCIAL}}", formatField(data.responsavel).toUpperCase()),
+    createReplaceReq("{{HORARIO_INICIO}}", formatField(data.horarioInicio)),
+    createReplaceReq("{{HORARIO_TERMINO}}", formatField(data.horarioTermino)),
+    createReplaceReq("{{ENCONTROS_PREVISTOS}}", formatField(data.encontrosPrevistos)),
+    createReplaceReq("{{ENCONTROS_REALIZADOS}}", formatField(data.encontrosRealizados)),
+    createReplaceReq("{{CARGA_HORARIA_PREVISTA}}", formatField(data.cargaHorariaPrevista)),
+    createReplaceReq("{{CARGA_HORARIA_REALIZADA}}", formatField(data.cargaHorariaRealizada)),
+    createReplaceReq("{{CARGA_HORARIA_TOTAL}}", formatField(data.cargaHorariaTotal)),
+    createReplaceReq("{{NUMERO_SESSOES}}", formatField(data.numSessoes)),
+    createReplaceReq("{{NUM_SESSOES}}", formatField(data.numSessoes)),
+    createReplaceReq("{{DATA_RELATORIO}}", formatField(data.dataRelatorio)),
+    createReplaceReq("{{DATA_REPOSICAO}}", formatField(data.dataReposicao)),
+    createReplaceReq("{{PUBLICO_TOTAL}}", formatField(data.publicoTotal)),
+    createReplaceReq("{{PUBLICO_SESSAO}}", formatField(data.publicoSessao)),
+    createReplaceReq("{{PERFIL_PUBLICO}}", formatField(data.perfilPublico)),
+    createReplaceReq("{{FAIXA_ETARIA}}", formatField(data.faixaEtaria)),
+    createReplaceReq("{{DESTAQUE_ACAO}}", formatField(data.destaqueAcao)),
+    createReplaceReq("{{OBJETIVOS}}", formatField(data.objetivos)),
+    createReplaceReq("{{IMPACTO_CULTURAL}}", impactoVal),
+    createReplaceReq("{{IMPACTO_TERRITORIAL}}", impactoVal),
+    createReplaceReq("{{LINGUAGEM_ARTISTICA}}", formatField(data.linguagemArtistica)),
+    createReplaceReq("{{INCLUSAO_DIVERSIDADE}}", formatField(data.inclusaoDiversidade)),
+    createReplaceReq("{{EFEMERIDE}}", formatField(data.efemeride)),
+    createReplaceReq("{{RELATO}}", formatField(data.relato)),
+    createReplaceReq("{{DESCRICAO_METODOLOGIA}}", formatField(data.descricaoMetodologia)),
+    createReplaceReq("{{ENGAJAMENTO_PARTICIPACAO}}", formatField(data.engajamentoParticipacao)),
+    createReplaceReq("{{PONTOS_FORTES}}", formatField(data.pontosFortes)),
+    createReplaceReq("{{PONTOS_FRACOS}}", formatField(data.pontosFracos))
   ];
 
   try {
@@ -699,7 +746,36 @@ async function handleGeneratePdfReportAsync(payload) {
     console.warn("Erro ao preencher texto no Docs:", e.message);
   }
 
-  // Obter link do documento e da pasta no Drive
+  // Exporta o Google Doc preenchido em formato PDF e salva na pasta Relatório
+  let pdfUrl = "";
+  try {
+    const pdfRes = await drive.files.export({
+      fileId: copiedDocId,
+      mimeType: "application/pdf"
+    }, { responseType: "arraybuffer" });
+
+    const pdfBuffer = Buffer.from(pdfRes.data);
+
+    const pdfFileCreated = await drive.files.create({
+      requestBody: {
+        name: docName + ".pdf",
+        parents: [relatorioFolderId],
+        mimeType: "application/pdf"
+      },
+      media: {
+        mimeType: "application/pdf",
+        body: require("stream").Readable.from(pdfBuffer)
+      },
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
+      fields: "id, webViewLink"
+    });
+
+    pdfUrl = pdfFileCreated.data.webViewLink;
+  } catch (pdfErr) {
+    console.warn("Aviso ao exportar PDF:", pdfErr.message);
+  }
+
   const docFile = await drive.files.get({
     fileId: copiedDocId,
     fields: "id, webViewLink",
@@ -710,7 +786,7 @@ async function handleGeneratePdfReportAsync(payload) {
   return {
     success: true,
     message: "Relatório gerado com sucesso no Google Drive!",
-    pdfUrl: docFile.data.webViewLink,
+    pdfUrl: pdfUrl || docFile.data.webViewLink,
     docUrl: docFile.data.webViewLink
   };
 }
