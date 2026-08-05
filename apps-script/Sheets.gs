@@ -324,3 +324,154 @@ function saveResponseRow(data) {
     throw new Error("Falha ao salvar respostas: " + error.message);
   }
 }
+
+/**
+ * Busca o e-mail na planilha exclusiva de Usuários da equipe de Sistemas
+ */
+function getUsersSpreadsheetConnection() {
+  const usersId = CONFIG.SPREADSHEET_USERS_ID ? CONFIG.SPREADSHEET_USERS_ID.trim() : "";
+  if (usersId && !usersId.startsWith("INSIRA_O_ID")) {
+    try {
+      return SpreadsheetApp.openById(usersId);
+    } catch (err) {
+      Logger.log("Falha ao abrir Planilha Exclusiva de Usuários: " + err.toString());
+    }
+  }
+  return getListsSpreadsheetConnection();
+}
+
+function checkEmailInWhitelist(email) {
+  const ss = getUsersSpreadsheetConnection();
+  let sheet = ss.getSheetByName("Responsaveis_Autorizados") || ss.getSheetByName("Usuários") || ss.getSheets()[0];
+  
+  if (!sheet) {
+    return null;
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  for (let i = 0; i < values.length; i++) {
+    const rowEmail = values[i][0] ? values[i][0].toString().trim().toLowerCase() : "";
+    if (rowEmail === email) {
+      return {
+        email: rowEmail,
+        nome: values[i][1] ? values[i][1].toString().trim() : "Responsável",
+        unidade: values[i][2] ? values[i][2].toString().trim() : "Todas",
+        setor: values[i][3] ? values[i][3].toString().trim() : "Pedagógico"
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Localiza a atividade na planilha de respostas e verifica presença de documentos
+ */
+function findActivityRowAndDocs(params) {
+  const ss = getResponsesSpreadsheetConnection(params.setor);
+  const config = getSheetConfigForArea(params.setor);
+  const sheet = ss.getSheetByName(config.sheetName);
+
+  if (!sheet) return { exists: false };
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { exists: false };
+
+  const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const searchAtividade = params.atividade ? params.atividade.trim().toUpperCase() : "";
+  const searchUnidade = params.unidade ? params.unidade.trim().toUpperCase() : "";
+
+  for (let i = 0; i < values.length; i++) {
+    const rowUnidade = values[i][1] ? values[i][1].toString().trim().toUpperCase() : "";
+    const rowAtividade = values[i][5] ? values[i][5].toString().trim().toUpperCase() : "";
+
+    if (rowUnidade === searchUnidade && rowAtividade === searchAtividade) {
+      const lastCol = sheet.getLastColumn();
+      return {
+        exists: true,
+        rowNumber: i + 2,
+        hasInscricao: values[i][lastCol - 4] === "Sim",
+        hasPresenca: values[i][lastCol - 3] === "Sim"
+      };
+    }
+  }
+  return { exists: false };
+}
+
+/**
+ * Grava documentos no Drive e atualiza colunas de controle na planilha
+ */
+function saveComplementaryDocsAndRow(payload) {
+  const folders = getOrCreateFolderStructure(
+    payload.setor,
+    payload.mesReferencia + "/" + payload.anoReferencia,
+    payload.unidade,
+    payload.atividade,
+    "", "", payload.userName,
+    payload.mesReferencia,
+    payload.anoReferencia
+  );
+
+  let subiuInscricao = "Não";
+  let subiuPresenca = "Não";
+
+  if (payload.files && payload.files.length > 0) {
+    for (let i = 0; i < payload.files.length; i++) {
+      const f = payload.files[i];
+      if (f.docType === "fileInscricao" && (folders.relacaoInscritosFolder || folders.activityFolder)) {
+        const targetFolder = folders.relacaoInscritosFolder || folders.activityFolder;
+        uploadSingleFile(f, targetFolder, payload);
+        subiuInscricao = "Sim";
+      } else if (f.docType === "filePresenca" && (folders.listaPresencaFolder || folders.activityFolder)) {
+        const targetFolder = folders.listaPresencaFolder || folders.activityFolder;
+        uploadSingleFile(f, targetFolder, payload);
+        subiuPresenca = "Sim";
+      }
+    }
+  }
+
+  const ss = getResponsesSpreadsheetConnection(payload.setor);
+  const config = getSheetConfigForArea(payload.setor);
+  const sheet = ss.getSheetByName(config.sheetName);
+
+  if (sheet) {
+    let lastCol = sheet.getLastColumn();
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+    if (!headers.includes("Inscrição Enviada")) {
+      sheet.getRange(1, lastCol + 1, 1, 4).setValues([[
+        "Inscrição Enviada", "Presença Enviada", "Atualizado Por (Login)", "Data/Hora Atualização"
+      ]]).setFontWeight("bold").setBackground("#e2e8f0");
+      lastCol += 4;
+    }
+
+    const activityInfo = findActivityRowAndDocs(payload);
+    const timestamp = Utils.getFormattedTimestampBR(new Date());
+
+    if (activityInfo.exists) {
+      const colStart = sheet.getLastColumn() - 3;
+      sheet.getRange(activityInfo.rowNumber, colStart, 1, 4).setValues([[
+        subiuInscricao === "Sim" ? "Sim" : (activityInfo.hasInscricao ? "Sim" : "Não"),
+        subiuPresenca === "Sim" ? "Sim" : (activityInfo.hasPresenca ? "Sim" : "Não"),
+        payload.userEmail,
+        timestamp
+      ]]);
+    }
+  }
+
+  return { success: true };
+}
+
+function uploadSingleFile(fileObj, folder, payload) {
+  let base64 = fileObj.base64Data || "";
+  if (base64.includes(",")) base64 = base64.split(",")[1];
+  const bytes = Utilities.base64Decode(base64);
+  const blob = Utilities.newBlob(bytes, fileObj.mimeType, fileObj.name);
+  const file = folder.createFile(blob);
+  const sigla = Utils.getUnidadeSigla(payload.unidade);
+  const cleanAtv = Utils.sanitizeFileName(payload.atividade).toUpperCase().replace(/\s+/g, "_");
+  file.setName(sigla + "_" + fileObj.docType + "_" + cleanAtv + "_" + fileObj.name);
+}
+

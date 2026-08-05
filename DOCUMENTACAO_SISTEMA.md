@@ -107,7 +107,13 @@ Toda vez que uma atividade é registrada, o sistema cria (ou reaproveita) a segu
 - Você pode alterar logotipos, mudar a cor de cabeçalhos ou reorganizar parágrafos.
 - **Atenção**: Mantenha as palavras-chave entre chaves duplas (ex: `{{UNIDADE}}`, `{{RESPONSAVEL}}`, `{{ANEXOS}}`), pois é nelas que o sistema insere os dados do formulário.
 
-### C. O que fazer se alterar o código no Google Apps Script?
+### D. Como liberar ou remover o acesso de um Responsável de Fábrica (Lista Branca)?
+- **Onde alterar**: Abra a **Planilha de Listas Institucionais** do Google Sheets.
+- Acesse a aba chamada **`Responsaveis_Autorizados`**.
+- Para adicionar alguém: inclua o e-mail corporativo da pessoa (coluna A), Nome (coluna B), Unidade (coluna C) e Setor (coluna D).
+- Para remover o acesso de alguém: exclua a linha do e-mail da pessoa. A alteração tem efeito imediato no próximo login.
+
+### E. O que fazer se alterar o código no Google Apps Script?
 Toda vez que o arquivo `Code.gs`, `Report.gs`, `Drive.gs` ou `Sheets.gs` for alterado no editor do Google Apps Script:
 1. Clique no botão azul **Implantar (Deploy)** no canto superior direito.
 2. Escolha **Gerenciar implantações (Manage deployments)**.

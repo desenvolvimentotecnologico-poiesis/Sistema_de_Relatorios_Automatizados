@@ -1674,4 +1674,106 @@ select:disabled {
     border-color: #B91C1C;
     transform: scale(1.08);
 }
+
+/* ==========================================================================
+   7. ESTILOS DE AUTENTICAÇÃO E ÁREA RESTRITA (SECRETARIA / REGISTROS)
+   ========================================================================== */
+.header-auth-area {
+    display: flex;
+    align-items: center;
+}
+
+.btn-restricted-access {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-restricted-access:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-color: #ffffff;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-card {
+    background: #ffffff;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.modal-header {
+    background: #1e293b;
+    color: #ffffff;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.close-modal-btn {
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-modal-btn:hover {
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.user-logged-info {
+    font-size: 0.875rem;
+    color: #475569;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.status-box {
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin-top: 12px;
+}
+
+.status-box.info { background: #e0f2fe; color: #0369a1; }
+.status-box.success { background: #dcfce7; color: #15803d; }
+.status-box.warning { background: #fef3c7; color: #b45309; }
+.status-box.error { background: #fee2e2; color: #b91c1c; }
+
 

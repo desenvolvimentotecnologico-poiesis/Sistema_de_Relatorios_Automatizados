@@ -37,6 +37,12 @@ function doPost(e) {
         payload.area,
         payload.formData
       );
+    } else if (action === "verifyUserAccess") {
+      result = verifyUserAccess(payload.email);
+    } else if (action === "checkActivityStatus") {
+      result = checkActivityStatus(payload);
+    } else if (action === "uploadComplementaryDocs") {
+      result = uploadComplementaryDocs(payload);
     } else {
       result = Utils.createResponse(false, "Ação não reconhecida: '" + action + "'");
     }
@@ -182,3 +188,52 @@ function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registr
     return Utils.createResponse(false, "Falha na compilação em segundo plano: " + error.message);
   }
 }
+
+/**
+ * Valida o e-mail do usuário contra a aba 'Responsaveis_Autorizados' no Sheets
+ */
+function verifyUserAccess(email) {
+  try {
+    if (!email) {
+      return Utils.createResponse(false, "E-mail não fornecido.");
+    }
+    const authorizedUser = checkEmailInWhitelist(email.trim().toLowerCase());
+    if (authorizedUser) {
+      return Utils.createResponse(true, "Acesso autorizado.", {
+        authorized: true,
+        user: authorizedUser
+      });
+    } else {
+      return Utils.createResponse(true, "Acesso não localizado na lista branca.", {
+        authorized: false
+      });
+    }
+  } catch (error) {
+    return Utils.createResponse(false, "Erro ao verificar permissão: " + error.message);
+  }
+}
+
+/**
+ * Checa se a atividade existe e qual o estado atual dos anexos
+ */
+function checkActivityStatus(params) {
+  try {
+    const status = findActivityRowAndDocs(params);
+    return Utils.createResponse(true, "Consulta realizada com sucesso.", status);
+  } catch (error) {
+    return Utils.createResponse(false, "Erro ao consultar atividade: " + error.message);
+  }
+}
+
+/**
+ * Salva arquivos de Inscrição e/ou Presença no Drive e atualiza a planilha do Sheets
+ */
+function uploadComplementaryDocs(payload) {
+  try {
+    const result = saveComplementaryDocsAndRow(payload);
+    return Utils.createResponse(true, "Documentos salvos e planilha atualizada com sucesso!", result);
+  } catch (error) {
+    return Utils.createResponse(false, "Erro no upload complementar: " + error.message);
+  }
+}
+

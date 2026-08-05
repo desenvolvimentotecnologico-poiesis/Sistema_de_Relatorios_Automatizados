@@ -45,6 +45,16 @@ O projeto foi construído sob uma **arquitetura Serverless Jamstack desacoplada*
 - **Fuso Horário Brasília (`America/Sao_Paulo`):** Todas as operações de timestamp e formatação de datas utilizam explicitamente o fuso horário oficial `America/Sao_Paulo` para garantir auditoria temporal sem divergências de servidor.
 - **Resiliência Serverless & Cache:** Utilização do `CacheService` do Apps Script para memorizar IDs de pastas no Drive por até 6 horas, reduzindo em até 70% as chamadas da API do Google Workspace por envio.
 
+### 2.1 Módulo de Autenticação e Controle de Acesso Restrito (Firebase + Lista Branca)
+
+Para o envio de documentos complementares de prestação de contas (Lista de Presença e Registro de Inscrição por atividade), o sistema conta com uma camada de segurança baseada em **Firebase Authentication (Google Identity Provider)** integrada a uma **Lista Branca no Google Sheets**.
+
+#### Fluxo Operacional de Autenticação:
+1. **Autenticação:** O responsável da fábrica realiza login via Google Auth Provider (`@poiesis.org.br`).
+2. **Autorização (Lista Branca):** O frontend envia a credencial para a API do Google Apps Script (`verifyUserAccess`), que realiza a consulta server-side na aba `Responsaveis_Autorizados` da Planilha Institucional.
+3. **Validação de Registro:** O sistema verifica se o formulário primário da atividade já foi gravado no Sheets e se a pasta da atividade existe no Drive.
+4. **Governança de Documentos:** Os arquivos de Inscrição e Presença são destinados automaticamente às subpastas `📁 Relação de Inscritos` e `📁 Lista de Presença` no Drive, e as colunas auditáveis (`Inscrição Enviada`, `Presença Enviada`, `Atualizado Por`, `Data/Hora Atualização`) são gravadas na planilha.
+
 ---
 
 ## 3. Pré-requisitos
@@ -58,6 +68,7 @@ Para ambiente de desenvolvimento local e manutenção do projeto, são recomenda
 | **Vercel CLI** | `>= 33.x.x` | Simulação de ambiente de produção e deploy local |
 | **Navegador Web** | Chrome `>= 115`, Firefox `>= 115`, Safari `>= 16.5` | Suporte nativo a ES6+, CSS Grid `:has()` e Canvas API |
 | **Conta Google Workspace** | Institucional | Acesso às APIs do Google Sheets, Drive e Docs |
+| **Firebase Console** | Projeto Ativo | Autenticação Google OAuth para Responsáveis de Fábrica |
 
 ---
 
@@ -79,11 +90,14 @@ O backend em Google Apps Script centraliza suas constantes e variáveis instituc
 | `DOC_TEMPLATE_FUNDACAO_CASA_ID`| `String` | ID do arquivo modelo (Template) no Google Docs para Fundação CASA | `'1Nnh4ptK6znL1CX3rMOJJQha-sample'` |
 | `DOC_TEMPLATE_BIBLIOTECA_ID` | `String` | ID do arquivo modelo (Template) no Google Docs para Biblioteca | `'1Nnh4ptK6znL1CX3rMOJJQha-sample'` |
 
-### Variáveis do Frontend (`js/api.js`)
+### Variáveis do Frontend (`js/api.js` e `js/auth.js`)
 
 | Constant | Tipo | Descrição | Exemplo / Placeholder |
 | :--- | :--- | :--- | :--- |
 | `GAS_API_URL` | `String` | Endpoint público do Web App implantado no Google Apps Script | `'https://script.google.com/macros/s/AKfycb.../exec'` |
+| `firebaseConfig.apiKey` | `String` | Chave de API pública do Firebase Auth | `'AIzaSy...'` |
+| `firebaseConfig.authDomain` | `String` | Domínio do app Firebase | `'projeto.firebaseapp.com'` |
+| `firebaseConfig.projectId` | `String` | ID do projeto no Firebase Console | `'projeto'` |
 
 ---
 

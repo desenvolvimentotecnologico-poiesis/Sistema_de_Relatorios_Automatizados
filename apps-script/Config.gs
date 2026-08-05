@@ -6,6 +6,9 @@
 const CONFIG = {
   // ID da planilha que contém as configurações das listas suspensas (Cada aba é uma Unidade)
   SPREADSHEET_LISTS_ID: "INSIRA_O_ID_DA_PLANILHA_DE_LISTAS_AQUI",
+
+  // ID exclusivo da planilha de gestão de usuários e lista branca (Acesso restrito à equipe de Sistemas)
+  SPREADSHEET_USERS_ID: "INSIRA_O_ID_DA_PLANILHA_DE_USUARIOS_AQUI",
   
   // ID padrão da planilha de respostas (fallback)
   SPREADSHEET_RESPONSES_ID: "INSIRA_O_ID_DA_PLANILHA_DE_RESPOSTAS_GERAL_AQUI",
