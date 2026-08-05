@@ -12,8 +12,8 @@ function getGoogleAuthClient() {
     throw new Error("Variáveis de ambiente GOOGLE_SERVICE_ACCOUNT_EMAIL e GOOGLE_PRIVATE_KEY não configuradas na Vercel.");
   }
 
-  // Corrige formatação de quebras de linha na chave privada
-  privateKey = privateKey.replace(/\\n/g, "\n");
+  // Corrige aspas em volta da string, espaços e quebras de linha escapadas
+  privateKey = privateKey.trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
 
   const auth = new google.auth.JWT(
     clientEmail,

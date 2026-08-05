@@ -176,7 +176,8 @@ function displayAuthenticatedView(profile) {
       } else {
         console.error("Erro ao obter lista de unidades:", response);
         restrictedHierarchy = {};
-        alert("Aviso: Não foi possível carregar a lista de unidades. Verifique se as Variáveis de Ambiente (SPREADSHEET_LISTS_ID) foram configuradas na Vercel.");
+        const errMsg = response && response.message ? response.message : "Não foi possível carregar as listas de unidades. Verifique as Variáveis de Ambiente na Vercel.";
+        alert("Aviso do Servidor: " + errMsg);
       }
       populateRestrictedUnidades(profile);
     }, (err) => {

@@ -57,7 +57,8 @@ function onDropdownDataReceived(response) {
   } else {
     console.error("Erro ao obter lista de unidades:", response);
     dropDownHierarchy = {};
-    alert("Aviso: Não foi possível carregar as listas de unidades. Verifique se as Variáveis de Ambiente foram configuradas na Vercel.");
+    const errMsg = response && response.message ? response.message : "Não foi possível carregar as listas de unidades. Verifique as Variáveis de Ambiente na Vercel.";
+    alert("Aviso do Servidor: " + errMsg);
   }
   const hierarchy = dropDownHierarchy;
 
