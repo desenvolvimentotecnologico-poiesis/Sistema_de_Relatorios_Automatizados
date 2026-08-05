@@ -88,16 +88,18 @@ function handleUserLoggedIn(user) {
 
   callBackendAPI("verifyUserAccess", { email: email }, (response) => {
     showAuthLoading(false);
-    if (response && response.success && response.data && response.data.authorized) {
-      currentUserProfile = response.data.user;
+    const isAuthorized = response && response.success && (response.authorized === true || (response.data && response.data.authorized === true));
+    const userProfile = response ? (response.user || (response.data && response.data.user)) : null;
+
+    if (isAuthorized && userProfile) {
+      currentUserProfile = userProfile;
       showRestrictedAreaModal(currentUserProfile);
     } else {
       const msg = response && response.message ? response.message : "";
       alert(
         "🚫 Acesso Não Autorizado\n\n" +
         "O e-mail (" + email + ") não está cadastrado na planilha de responsáveis autorizados.\n\n" +
-        "Caso você seja um responsável de fábrica e precise de acesso, entre em contato com a equipe de Sistemas para liberar a permissão.\n\n" +
-        (msg ? "Detalhe técnico: " + msg : "")
+        "Caso você seja um responsável de fábrica e precise de acesso, entre em contato com a equipe de Sistemas para liberar a permissão."
       );
       logoutUser();
     }
@@ -322,8 +324,8 @@ function checkActivityDocsStatus() {
     unidade: unidade,
     atividade: atividade
   }, (response) => {
-    if (response && response.success && response.data) {
-      const data = response.data;
+    const data = response ? (response.data || response) : {};
+    if (response && response.success && typeof data.exists !== "undefined") {
       if (!data.exists) {
         if (statusBox) {
           statusBox.className = "status-box warning";
