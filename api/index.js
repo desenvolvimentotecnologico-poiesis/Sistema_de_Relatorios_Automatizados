@@ -291,7 +291,9 @@ async function handleUploadComplementaryDocs(payload) {
         media: {
           mimeType: "application/pdf",
           body: require("stream").Readable.from(buffer)
-        }
+        },
+        supportsAllDrives: true,
+        supportsTeamDrives: true
       });
 
       if (isPresenca) subiuPresenca = "Sim";
@@ -373,7 +375,14 @@ async function getOrCreateSubFolder(drive, parentId, folderName) {
   const cleanSearch = folderName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
   const query = `'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-  const res = await drive.files.list({ q: query, fields: "files(id, name)" });
+  const res = await drive.files.list({
+    q: query,
+    fields: "files(id, name)",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+    supportsTeamDrives: true,
+    includeItemsFromTeamDrives: true
+  });
   const files = res.data.files || [];
 
   for (const f of files) {
@@ -389,6 +398,8 @@ async function getOrCreateSubFolder(drive, parentId, folderName) {
       mimeType: "application/vnd.google-apps.folder",
       parents: [parentId]
     },
+    supportsAllDrives: true,
+    supportsTeamDrives: true,
     fields: "id"
   });
 
@@ -467,7 +478,9 @@ async function handleSubmitForm(payload) {
           media: {
             mimeType: f.type || "image/jpeg",
             body: require("stream").Readable.from(buffer)
-          }
+          },
+          supportsAllDrives: true,
+          supportsTeamDrives: true
         });
       }
     }
@@ -634,7 +647,12 @@ async function handleGeneratePdfReportAsync(payload) {
 
   if (!templateId) {
     // Se o template ainda não tiver sido configurado, retorna link para a pasta no Drive
-    const folderRes = await drive.files.get({ fileId: relatorioFolderId, fields: "webViewLink" });
+    const folderRes = await drive.files.get({
+      fileId: relatorioFolderId,
+      fields: "webViewLink",
+      supportsAllDrives: true,
+      supportsTeamDrives: true
+    });
     return {
       success: true,
       message: "Relatório registrado com sucesso!",
@@ -651,7 +669,9 @@ async function handleGeneratePdfReportAsync(payload) {
     requestBody: {
       name: docName,
       parents: [relatorioFolderId]
-    }
+    },
+    supportsAllDrives: true,
+    supportsTeamDrives: true
   });
 
   const copiedDocId = copyRes.data.id;
@@ -680,7 +700,12 @@ async function handleGeneratePdfReportAsync(payload) {
   }
 
   // Obter link do documento e da pasta no Drive
-  const docFile = await drive.files.get({ fileId: copiedDocId, fields: "id, webViewLink" });
+  const docFile = await drive.files.get({
+    fileId: copiedDocId,
+    fields: "id, webViewLink",
+    supportsAllDrives: true,
+    supportsTeamDrives: true
+  });
 
   return {
     success: true,
