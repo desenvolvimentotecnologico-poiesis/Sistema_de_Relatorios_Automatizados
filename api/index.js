@@ -92,26 +92,55 @@ async function handleVerifyUserAccess(payload) {
   }
 
   const sheets = getSheetsService();
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_USERS_ID,
-    range: "Responsaveis_Autorizados!A2:D100"
-  });
+  const spreadsheetIds = Array.from(new Set([
+    SPREADSHEET_USERS_ID,
+    SPREADSHEET_LISTS_ID
+  ])).filter(id => id && !id.startsWith("INSIRA_O_ID"));
 
-  const rows = response.data.values || [];
-  for (let i = 0; i < rows.length; i++) {
-    const rowEmail = rows[i][0] ? rows[i][0].toString().trim().toLowerCase() : "";
-    if (rowEmail === email) {
-      return {
-        success: true,
-        authorized: true,
-        message: "Acesso autorizado.",
-        user: {
-          email: rowEmail,
-          nome: rows[i][1] ? rows[i][1].toString().trim() : "Responsável",
-          unidade: rows[i][2] ? rows[i][2].toString().trim() : "Todas",
-          setor: rows[i][3] ? rows[i][3].toString().trim() : "Pedagógico"
+  for (const spreadsheetId of spreadsheetIds) {
+    try {
+      const meta = await sheets.spreadsheets.get({ spreadsheetId });
+      const sheetList = meta.data.sheets || [];
+      if (sheetList.length === 0) continue;
+
+      let targetSheetName = "";
+      for (const s of sheetList) {
+        const title = s.properties.title.trim();
+        const normTitle = title.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (normTitle.includes("RESPONSAVEIS") || normTitle.includes("USUARIOS") || normTitle.includes("WHITELIST")) {
+          targetSheetName = title;
+          break;
         }
-      };
+      }
+
+      if (!targetSheetName) {
+        targetSheetName = sheetList[0].properties.title;
+      }
+
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: spreadsheetId,
+        range: `'${targetSheetName}'!A2:D1000`
+      });
+
+      const rows = response.data.values || [];
+      for (let i = 0; i < rows.length; i++) {
+        const rowEmail = rows[i][0] ? rows[i][0].toString().trim().toLowerCase() : "";
+        if (rowEmail === email) {
+          return {
+            success: true,
+            authorized: true,
+            message: "Acesso autorizado.",
+            user: {
+              email: rowEmail,
+              nome: rows[i][1] ? rows[i][1].toString().trim() : "Responsável",
+              unidade: rows[i][2] ? rows[i][2].toString().trim() : "Todas",
+              setor: rows[i][3] ? rows[i][3].toString().trim() : "Pedagógico"
+            }
+          };
+        }
+      }
+    } catch (err) {
+      console.warn(`Erro ao consultar lista de usuários no spreadsheetId ${spreadsheetId}:`, err.message);
     }
   }
 
