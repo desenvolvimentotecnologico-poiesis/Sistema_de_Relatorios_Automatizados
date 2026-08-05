@@ -215,8 +215,8 @@ function populateRestrictedUnidades(profile) {
 
 function isJardimSaoLuis(unidadeName) {
   if (!unidadeName) return false;
-  const norm = unidadeName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-  return norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ");
+  const norm = unidadeName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  return norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ") || norm.includes("SAO LUIS") || norm.includes("SAO LUIZ") || norm.includes("JSL");
 }
 
 function onRestrictedUnidadeChange() {
