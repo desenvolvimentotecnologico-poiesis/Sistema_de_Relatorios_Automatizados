@@ -1776,4 +1776,116 @@ select:disabled {
 .status-box.warning { background: #fef3c7; color: #b45309; }
 .status-box.error { background: #fee2e2; color: #b91c1c; }
 
+/* Estilos de customização para inputs de arquivo em PDF */
+input[type="file"] {
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: #F8FAFC;
+    color: var(--txt-main);
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+}
+
+input[type="file"]:hover {
+    border-color: var(--fabrica-purple);
+    background-color: #F5F3FF;
+}
+
+input[type="file"]::file-selector-button {
+    background: #5E17EB;
+    color: #FFFFFF;
+    border: none;
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    margin-right: 0.75rem;
+    transition: background 0.2s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: #4A10C4;
+}
+
+/* Estilos refinados para o Modal de Sucesso */
+.success-modal-card {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.2);
+    outline: none;
+    border: none;
+}
+
+.success-icon-badge {
+    width: 64px;
+    height: 64px;
+    background: #DCFCE7;
+    color: #16A34A;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem auto;
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.15);
+}
+
+.btn-modal-primary {
+    background: linear-gradient(135deg, #7C3AED 0%, #5E17EB 100%);
+    color: #FFFFFF !important;
+    border: none !important;
+    outline: none !important;
+    padding: 0.85rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(94, 23, 235, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.btn-modal-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(94, 23, 235, 0.35);
+}
+
+.btn-modal-primary:focus, .btn-modal-primary:active {
+    outline: none !important;
+    border: none !important;
+}
+
+.btn-modal-secondary {
+    background: #F8FAFC;
+    color: #475569 !important;
+    border: 1px solid #CBD5E1 !important;
+    outline: none !important;
+    padding: 0.85rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: block;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.btn-modal-secondary:hover {
+    background: #F1F5F9;
+    color: #1E293B !important;
+    border-color: #94A3B8 !important;
+}
+
+
 
