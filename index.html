@@ -28,9 +28,9 @@
                 <p>Fábricas de Cultura • Instituto Poiesis</p>
             </div>
             <div class="header-auth-area">
-                <button type="button" class="btn-restricted-access" onclick="loginWithGoogle()">
+                <a href="forms/secretaria.html" class="btn-restricted-access" style="text-decoration: none;">
                     🔒 Área Restrita / Secretaria
-                </button>
+                </a>
             </div>
         </div>
         <div class="header-gradient-bar"></div>
@@ -124,97 +124,6 @@
             <p>© Fábricas de Cultura • Instituto Poiesis. Todos os direitos reservados.</p>
         </div>
     </footer>
-
-    <!-- SDKs do Firebase Auth (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
-
-    <!-- Modal de Área Restrita (Envio de Inscrição e Presença) -->
-    <div id="restrictedAreaModal" class="modal-overlay" style="display: none;">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3>🔒 Área Restrita — Documentação Complementar</h3>
-                <button type="button" class="close-modal-btn" onclick="logoutUser()">✕ Sair</button>
-            </div>
-            <div class="modal-body">
-                <p class="user-logged-info">Usuário: <strong id="userInfoDisplay">---</strong></p>
-                <div id="authStatusMessage" class="status-message" style="display: none;"></div>
-
-                <form id="restrictedDocsForm" onsubmit="submitComplementaryDocs(event)">
-                    <input type="hidden" id="restritoSetor" value="Pedagógico">
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="restritoUnidade">Unidade <span class="required">*</span></label>
-                            <select id="restritoUnidade" required onchange="onRestrictedUnidadeChange()">
-                                <option value="" disabled selected>Selecione a Unidade...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="restritoAno">Ano de Referência <span class="required">*</span></label>
-                            <select id="restritoAno" required onchange="checkActivityDocsStatus()">
-                                <option value="2026" selected>2026</option>
-                                <option value="2025">2025</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="restritoMes">Mês de Referência <span class="required">*</span></label>
-                            <select id="restritoMes" required onchange="checkActivityDocsStatus()">
-                                <option value="01">01 - Janeiro</option>
-                                <option value="02">02 - Fevereiro</option>
-                                <option value="03">03 - Março</option>
-                                <option value="04">04 - Abril</option>
-                                <option value="05">05 - Maio</option>
-                                <option value="06">06 - Junho</option>
-                                <option value="07">07 - Julho</option>
-                                <option value="08">08 - Agosto</option>
-                                <option value="09">09 - Setembro</option>
-                                <option value="10">10 - Outubro</option>
-                                <option value="11">11 - Novembro</option>
-                                <option value="12">12 - Dezembro</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="restritoTipoPedagogico" id="restritoTipoLabel">Trilha ou Ateliê? <span class="required">*</span></label>
-                            <select id="restritoTipoPedagogico" required onchange="updateRestrictedAtividadeDropdown()">
-                                <option value="" disabled selected>Selecione...</option>
-                                <option value="Trilha">Trilha</option>
-                                <option value="Ateliê">Ateliê</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="restritoAtividade">Nome da Atividade / Curso (Pedagógico) <span class="required">*</span></label>
-                        <select id="restritoAtividade" required onchange="checkActivityDocsStatus()" disabled>
-                            <option value="" disabled selected>Selecione a Unidade e o Tipo primeiro...</option>
-                        </select>
-                    </div>
-
-                    <div id="activityDocsStatus" class="status-box" style="display: none;"></div>
-
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label for="fileInscricao">📄 Registro de Inscrição (Apenas 1 arquivo PDF)</label>
-                        <input type="file" id="fileInscricao" accept="application/pdf,.pdf">
-                    </div>
-
-                    <div class="form-group" style="margin-top: 10px;">
-                        <label for="filePresenca">📋 Lista de Presença (Apenas 1 arquivo PDF)</label>
-                        <input type="file" id="filePresenca" accept="application/pdf,.pdf">
-                    </div>
-
-                    <div class="modal-footer" style="margin-top: 20px; text-align: right;">
-                        <button type="submit" id="submitDocsBtn" class="btn-primary" disabled>Enviar Documentos Complementares</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
 </body>
 

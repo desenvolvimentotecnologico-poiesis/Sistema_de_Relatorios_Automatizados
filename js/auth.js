@@ -4,7 +4,7 @@
  * documentos complementares (Inscrição e Presença - apenas 1 PDF cada) por atividade.
  */
 
-// Configuração do Firebase Project (Pode ser atualizada com as chaves reais do Console)
+// Configuração do Firebase Project
 const firebaseConfig = {
   apiKey: "AIzaSyDl7OvmyJX6Z4Kv1blveUHTUz30gQiMLNY",
   authDomain: "sra-acessos.firebaseapp.com",
@@ -20,13 +20,17 @@ let currentUserProfile = null;
 let restrictedHierarchy = {};
 
 /**
- * Inicializa os serviços do Firebase
+ * Inicializa os serviços do Firebase com persistência SESSION (desconecta ao fechar a guia)
  */
 function initFirebase() {
   if (typeof firebase !== "undefined" && !firebase.apps.length) {
     try {
       firebaseApp = firebase.initializeApp(firebaseConfig);
       firebaseAuth = firebase.auth();
+
+      // Define a persistência para SESSION (mantém enquanto a aba estiver aberta e desconecta ao fechar)
+      firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+        .catch(err => console.warn("Aviso ao definir persistência do Firebase:", err));
 
       firebaseAuth.onAuthStateChanged((user) => {
         if (user) {
@@ -46,9 +50,11 @@ function initFirebase() {
  */
 function loginWithGoogle() {
   if (!firebaseAuth) {
-    alert("Firebase Auth ainda não foi configurado. Por favor, insira as chaves do Firebase Console no arquivo js/auth.js.");
+    alert("Firebase Auth ainda não foi configurado.");
     return;
   }
+  showAuthLoading(true, "Abrindo janela de login do Google...");
+
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
 
@@ -57,10 +63,11 @@ function loginWithGoogle() {
       handleUserLoggedIn(result.user);
     })
     .catch((error) => {
+      showAuthLoading(false);
       console.error("Erro na autenticação do Firebase:", error);
       if (error.code === "auth/unauthorized-domain") {
-        alert("Domínio não autorizado no Firebase Console. Adicione a URL do seu site no painel do Firebase Authentication (Configurações > Domínios Autorizados).");
-      } else {
+        alert("Domínio não autorizado no Firebase Console. Adicione a URL do seu site nas configurações de Autenticação.");
+      } else if (error.code !== "auth/popup-closed-by-user") {
         alert("Falha ao realizar login com o Google: " + error.message);
       }
     });
@@ -84,18 +91,17 @@ function logoutUser() {
  */
 function handleUserLoggedIn(user) {
   const email = user ? (user.email || "") : "";
-  showAuthLoading(true, "Verificando permissões do e-mail " + email + "...");
+  showAuthLoading(true, "Carregando permissões da unidade para " + email + "...");
 
   callBackendAPI("verifyUserAccess", { email: email }, (response) => {
-    showAuthLoading(false);
     const isAuthorized = response && response.success && (response.authorized === true || (response.data && response.data.authorized === true));
     const userProfile = response ? (response.user || (response.data && response.data.user)) : null;
 
     if (isAuthorized && userProfile) {
       currentUserProfile = userProfile;
-      showRestrictedAreaModal(currentUserProfile);
+      displayAuthenticatedView(currentUserProfile);
     } else {
-      const msg = response && response.message ? response.message : "";
+      showAuthLoading(false);
       alert(
         "🚫 Acesso Não Autorizado\n\n" +
         "O e-mail (" + email + ") não está cadastrado na planilha de responsáveis autorizados.\n\n" +
@@ -108,60 +114,79 @@ function handleUserLoggedIn(user) {
     alert(
       "⚠️ Falha na Comunicação com o Servidor\n\n" +
       "Não foi possível consultar a permissão do e-mail (" + email + ").\n\n" +
-      "Motivo provável: A nova versão da API do Google Apps Script precisa ser implantada em Produção/Homologação.\n\n" +
-      "Siga a instrução no Apps Script: Clique em 'Implantar' ➔ 'Gerenciar implantações' ➔ 'Editar' ➔ Escolha 'Nova versão' ➔ 'Implantar'."
+      "Verifique se a nova versão da API do Google Apps Script foi implantada."
     );
     logoutUser();
   });
 }
 
 /**
- * Atualiza o estado da interface ao deslogar
+ * Atualiza a interface quando deslogado
  */
 function handleUserLoggedOut() {
   currentUserProfile = null;
-  const modal = document.getElementById("restrictedAreaModal");
-  if (modal) modal.style.display = "none";
+  showAuthLoading(false);
+
+  const loginSec = document.getElementById("loginSection");
+  const authSec = document.getElementById("authenticatedSection");
+
+  if (loginSec) loginSec.style.display = "block";
+  if (authSec) authSec.style.display = "none";
 }
 
 /**
- * Exibe/oculta o indicador de carregamento
+ * Exibe/oculta a tela de carregamento (Overlay)
  */
 function showAuthLoading(show, message) {
-  const statusElem = document.getElementById("authStatusMessage");
-  if (statusElem) {
-    statusElem.textContent = message || "";
-    statusElem.style.display = show ? "block" : "none";
+  const overlay = document.getElementById("loadingOverlay");
+  const msgEl = document.getElementById("overlayMessage");
+  const titleEl = document.getElementById("overlayStepTitle");
+
+  if (show) {
+    if (titleEl) titleEl.textContent = "Verificando Permissões...";
+    if (msgEl) msgEl.textContent = message || "Carregando permissões e atividades pedagógicas da unidade...";
+    if (overlay) overlay.classList.remove("hidden");
+  } else {
+    if (overlay) overlay.classList.add("hidden");
   }
 }
 
 /**
- * Abre o Modal da Área Restrita e carrega os dropdowns de Unidade e Atividade
+ * Exibe a visão autenticada e carrega os dropdowns institucionais
  */
-function showRestrictedAreaModal(profile) {
-  const modal = document.getElementById("restrictedAreaModal");
-  if (!modal) return;
-  modal.style.display = "flex";
+function displayAuthenticatedView(profile) {
+  const loginSec = document.getElementById("loginSection");
+  const authSec = document.getElementById("authenticatedSection");
+
+  if (loginSec) loginSec.style.display = "none";
+  if (authSec) authSec.style.display = "block";
 
   const userDisplay = document.getElementById("userInfoDisplay");
   if (userDisplay) {
     userDisplay.textContent = profile.nome + " (" + profile.email + ")";
   }
 
-  // Carrega as listas institucionais de Pedagógico para popular os selects
+  showAuthLoading(true, "Carregando atividades pedagógicas da unidade (" + profile.unidade + ")...");
+
   if (typeof callBackendAPI === "function") {
     callBackendAPI("getDropdownData", {}, (response) => {
+      showAuthLoading(false);
       const hierarchy = response && response.hierarchy ? response.hierarchy : (response || {});
       restrictedHierarchy = hierarchy;
       populateRestrictedUnidades(profile);
+    }, (err) => {
+      showAuthLoading(false);
+      alert("Aviso: Falha ao obter lista de atividades pedagógicas do servidor: " + err);
     });
+  } else {
+    showAuthLoading(false);
   }
 
   resetRestrictedDocsForm();
 }
 
 /**
- * Popula a lista de unidades no modal restrito
+ * Popula a lista de unidades na tela restrita
  */
 function populateRestrictedUnidades(profile) {
   const unidadeSelect = document.getElementById("restritoUnidade");
@@ -300,6 +325,7 @@ function checkActivityDocsStatus() {
   const ano = document.getElementById("restritoAno").value;
   const mes = document.getElementById("restritoMes").value;
   const unidade = document.getElementById("restritoUnidade").value;
+  const tipoPedagogico = document.getElementById("restritoTipoPedagogico") ? document.getElementById("restritoTipoPedagogico").value : "";
   const atividade = document.getElementById("restritoAtividade").value;
 
   const statusBox = document.getElementById("activityDocsStatus");
@@ -322,6 +348,7 @@ function checkActivityDocsStatus() {
     anoReferencia: ano,
     mesReferencia: mes,
     unidade: unidade,
+    tipoPedagogico: tipoPedagogico,
     atividade: atividade
   }, (response) => {
     const data = response ? (response.data || response) : {};
@@ -367,6 +394,7 @@ function submitComplementaryDocs(event) {
   const ano = document.getElementById("restritoAno").value;
   const mes = document.getElementById("restritoMes").value;
   const unidade = document.getElementById("restritoUnidade").value;
+  const tipoPedagogico = document.getElementById("restritoTipoPedagogico") ? document.getElementById("restritoTipoPedagogico").value : "";
   const atividade = document.getElementById("restritoAtividade").value;
 
   const fileInscricaoElem = document.getElementById("fileInscricao");
@@ -380,7 +408,6 @@ function submitComplementaryDocs(event) {
     return;
   }
 
-  // Validação estrita: apenas 1 arquivo em formato PDF por campo
   if (fileInsc && !isPdfFile(fileInsc)) {
     alert("O arquivo de Registro de Inscrição deve ser obrigatoriamente um documento em formato PDF.");
     return;
@@ -396,6 +423,8 @@ function submitComplementaryDocs(event) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Enviando PDF...";
   }
+
+  showAuthLoading(true, "Salvando arquivos PDF no Google Drive e atualizando a planilha de relatórios...");
 
   const promises = [];
 
@@ -414,23 +443,24 @@ function submitComplementaryDocs(event) {
       anoReferencia: ano,
       mesReferencia: mes,
       unidade: unidade,
+      tipoPedagogico: tipoPedagogico,
       atividade: atividade,
       files: filesData
     };
 
     callBackendAPI("uploadComplementaryDocs", payload, (response) => {
+      showAuthLoading(false);
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = "Enviar Documentos Complementares";
       }
       if (response && response.success) {
-        alert("Documentos PDF anexados e planilha atualizada com sucesso!");
-        resetRestrictedDocsForm();
-        checkActivityDocsStatus();
+        showSuccessModal(unidade, atividade);
       } else {
         alert("Erro ao enviar documentos: " + (response ? response.message : "Resposta em branco do servidor."));
       }
     }, (err) => {
+      showAuthLoading(false);
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = "Enviar Documentos Complementares";
@@ -438,12 +468,38 @@ function submitComplementaryDocs(event) {
       alert("Erro de comunicação ao enviar documentos: " + err);
     });
   }).catch((err) => {
+    showAuthLoading(false);
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Enviar Documentos Complementares";
     }
     alert("Erro na leitura local dos arquivos PDF: " + err);
   });
+}
+
+function showSuccessModal(unidade, atividade) {
+  const modal = document.getElementById("successModal");
+  const textEl = document.getElementById("successSummaryText");
+
+  if (textEl) {
+    textEl.textContent = `Os documentos da atividade "${atividade}" (${unidade}) foram gravados com sucesso nas subpastas do Google Drive e registrados na planilha do Pedagógico.`;
+  }
+
+  if (modal) {
+    modal.style.display = "flex";
+  }
+}
+
+function resetFormForNewSubmission() {
+  const modal = document.getElementById("successModal");
+  if (modal) modal.style.display = "none";
+
+  resetRestrictedDocsForm();
+  
+  const atividadeSelect = document.getElementById("restritoAtividade");
+  if (atividadeSelect) atividadeSelect.value = "";
+  
+  checkActivityDocsStatus();
 }
 
 function isPdfFile(file) {

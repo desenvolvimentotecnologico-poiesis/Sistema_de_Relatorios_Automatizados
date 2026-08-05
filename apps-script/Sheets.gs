@@ -409,7 +409,9 @@ function saveComplementaryDocsAndRow(payload) {
     payload.mesReferencia + "/" + payload.anoReferencia,
     payload.unidade,
     payload.atividade,
-    "", "", payload.userName,
+    payload.tipoPedagogico || "",
+    "",
+    payload.userName,
     payload.mesReferencia,
     payload.anoReferencia
   );

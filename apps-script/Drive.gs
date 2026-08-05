@@ -29,7 +29,25 @@ function getOrCreateSubFolder(parentFolder, folderName) {
   }
   
   const folders = parentFolder.getFoldersByName(folderName);
-  let targetFolder = folders.hasNext() ? folders.next() : parentFolder.createFolder(folderName);
+  let targetFolder = folders.hasNext() ? folders.next() : null;
+  
+  // Busca insensível a maiúsculas/minúsculas e alfanumérica se o nome exato não for achado
+  if (!targetFolder) {
+    const cleanSearch = folderName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const subFolders = parentFolder.getFolders();
+    while (subFolders.hasNext()) {
+      const sf = subFolders.next();
+      const cleanSubName = sf.getName().toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (cleanSubName === cleanSearch) {
+        targetFolder = sf;
+        break;
+      }
+    }
+  }
+
+  if (!targetFolder) {
+    targetFolder = parentFolder.createFolder(folderName);
+  }
   
   cache.put(cacheKey, targetFolder.getId(), 21600); // Cache por 6 horas
   return targetFolder;
