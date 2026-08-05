@@ -948,18 +948,31 @@ select:disabled {
 
 .btn-primary {
     background: linear-gradient(135deg, #5E17EB 0%, #4300A8 100%);
-    color: #FFFFFF;
+    color: #FFFFFF !important;
+    border: none !important;
+    outline: none !important;
     box-shadow: 0 4px 14px rgba(94, 23, 235, 0.3);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background: linear-gradient(135deg, #6E27FF 0%, #4D00BF 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 22px rgba(94, 23, 235, 0.4);
 }
 
-.btn-primary:active {
+.btn-primary:active:not(:disabled) {
     transform: translateY(1px) scale(0.98);
+}
+
+.btn-primary:disabled {
+    background: #CBD5E1 !important;
+    color: #94A3B8 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    opacity: 0.8;
 }
 
 .btn-block {

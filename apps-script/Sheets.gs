@@ -369,6 +369,28 @@ function checkEmailInWhitelist(email) {
 /**
  * Localiza a atividade na planilha de respostas e verifica presença de documentos
  */
+function normalizeMonthCode(mes) {
+  if (!mes) return "";
+  const str = mes.toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (str.includes("JANEIRO") || str === "01" || str === "1") return "01";
+  if (str.includes("FEVEREIRO") || str === "02" || str === "2") return "02";
+  if (str.includes("MARCO") || str === "03" || str === "3") return "03";
+  if (str.includes("ABRIL") || str === "04" || str === "4") return "04";
+  if (str.includes("MAIO") || str === "05" || str === "5") return "05";
+  if (str.includes("JUNHO") || str === "06" || str === "6") return "06";
+  if (str.includes("JULHO") || str === "07" || str === "7") return "07";
+  if (str.includes("AGOSTO") || str === "08" || str === "8") return "08";
+  if (str.includes("SETEMBRO") || str === "09" || str === "9") return "09";
+  if (str.includes("OUTUBRO") || str === "10") return "10";
+  if (str.includes("NOVEMBRO") || str === "11") return "11";
+  if (str.includes("DEZEMBRO") || str === "12") return "12";
+  return str.replace(/[^0-9]/g, "");
+}
+
+/**
+ * Localiza a atividade na planilha de respostas e verifica presença de documentos
+ * Filtra rigorosamente por Unidade, Atividade, Ano de Referência e Mês de Referência
+ */
 function findActivityRowAndDocs(params) {
   const ss = getResponsesSpreadsheetConnection(params.setor);
   const config = getSheetConfigForArea(params.setor);
@@ -377,23 +399,56 @@ function findActivityRowAndDocs(params) {
   if (!sheet) return { exists: false };
 
   const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
   if (lastRow < 2) return { exists: false };
 
-  const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
-  const searchAtividade = params.atividade ? params.atividade.trim().toUpperCase() : "";
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h ? h.toString().trim().toUpperCase() : "");
+  
+  // Localização dinâmica das colunas pelos cabeçalhos da planilha
+  const idxUnidade = headers.indexOf("UNIDADE");
+  let idxAtividade = headers.indexOf("ATIVIDADE");
+  if (idxAtividade === -1) idxAtividade = headers.indexOf("NOME DA ATIVIDADE");
+  if (idxAtividade === -1) idxAtividade = 4;
+  
+  let idxAno = headers.indexOf("ANO DE REFERÊNCIA");
+  if (idxAno === -1) idxAno = headers.indexOf("ANO");
+  if (idxAno === -1) idxAno = 5;
+  
+  let idxMes = headers.indexOf("MÊS DE REFERÊNCIA");
+  if (idxMes === -1) idxMes = headers.indexOf("MÊS");
+  if (idxMes === -1) idxMes = 6;
+
+  const idxInscricao = headers.indexOf("INSCRIÇÃO ENVIADA");
+  const idxPresenca = headers.indexOf("PRESENÇA ENVIADA");
+
   const searchUnidade = params.unidade ? params.unidade.trim().toUpperCase() : "";
+  const searchAtividade = params.atividade ? params.atividade.trim().toUpperCase() : "";
+  const searchAno = params.anoReferencia ? params.anoReferencia.toString().trim() : "";
+  const searchMesNorm = normalizeMonthCode(params.mesReferencia);
+
+  const values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
   for (let i = 0; i < values.length; i++) {
-    const rowUnidade = values[i][1] ? values[i][1].toString().trim().toUpperCase() : "";
-    const rowAtividade = values[i][5] ? values[i][5].toString().trim().toUpperCase() : "";
+    const row = values[i];
+    const rowUnidade = idxUnidade !== -1 && row[idxUnidade] ? row[idxUnidade].toString().trim().toUpperCase() : "";
+    const rowAtividade = idxAtividade !== -1 && row[idxAtividade] ? row[idxAtividade].toString().trim().toUpperCase() : "";
+    const rowAno = idxAno !== -1 && row[idxAno] ? row[idxAno].toString().trim() : "";
+    const rowMesNorm = idxMes !== -1 && row[idxMes] ? normalizeMonthCode(row[idxMes]) : "";
 
-    if (rowUnidade === searchUnidade && rowAtividade === searchAtividade) {
-      const lastCol = sheet.getLastColumn();
+    const matchUnidade = !searchUnidade || rowUnidade === searchUnidade;
+    const matchAtividade = rowAtividade === searchAtividade;
+    const matchAno = !searchAno || rowAno === searchAno;
+    const matchMes = !searchMesNorm || rowMesNorm === searchMesNorm;
+
+    if (matchUnidade && matchAtividade && matchAno && matchMes) {
+      const hasInsc = idxInscricao !== -1 ? row[idxInscricao] === "Sim" : (lastCol >= 4 && row[lastCol - 4] === "Sim");
+      const hasPres = idxPresenca !== -1 ? row[idxPresenca] === "Sim" : (lastCol >= 3 && row[lastCol - 3] === "Sim");
+
       return {
         exists: true,
         rowNumber: i + 2,
-        hasInscricao: values[i][lastCol - 4] === "Sim",
-        hasPresenca: values[i][lastCol - 3] === "Sim"
+        hasInscricao: hasInsc,
+        hasPresenca: hasPres
       };
     }
   }
