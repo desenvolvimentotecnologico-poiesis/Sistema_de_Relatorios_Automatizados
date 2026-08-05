@@ -405,20 +405,73 @@ function getMonthFolderName(mesNum) {
   return months[mesNum] || mesNum;
 }
 
+async function getOrCreateFullFolderStructure(drive, data) {
+  const rootFolderId = CONFIG.DRIVE_ROOT_FOLDER_ID;
+  if (!rootFolderId) {
+    throw new Error("ID da pasta raiz do Drive (DRIVE_ROOT_FOLDER_ID) não configurado na Vercel.");
+  }
+
+  const fabricasFolderId = await getOrCreateSubFolder(drive, rootFolderId, "Fábricas de Cultura");
+  const setorFolderId = await getOrCreateSubFolder(drive, fabricasFolderId, data.setor || data.area || "Pedagógico");
+  const anoFolderId = await getOrCreateSubFolder(drive, setorFolderId, data.anoReferencia || "2026");
+
+  const unidadeName = data.unidade || data.divisaoRegional || "Geral";
+  const unidadeFolderId = await getOrCreateSubFolder(drive, anoFolderId, unidadeName);
+
+  const mesName = getMonthFolderName(data.mesReferencia || "01");
+  const mesFolderId = await getOrCreateSubFolder(drive, unidadeFolderId, mesName);
+
+  let parentFolderId = mesFolderId;
+  if (data.tipoPedagogico) {
+    parentFolderId = await getOrCreateSubFolder(drive, mesFolderId, data.tipoPedagogico);
+  }
+
+  const atividadeFolderId = await getOrCreateSubFolder(drive, parentFolderId, data.atividade || "Atividade");
+  const relatorioFolderId = await getOrCreateSubFolder(drive, atividadeFolderId, "Relatório");
+  const registroFolderId = await getOrCreateSubFolder(drive, atividadeFolderId, "Registro Fotográfico");
+
+  return { relatorioFolderId, registroFolderId };
+}
+
 /**
  * Salva a resposta do formulário principal na aba e planilha do setor correspondente
  */
 async function handleSubmitForm(payload) {
   const data = payload.formData || payload;
-  const setorUpper = (data.area || "PEDAGÓGICO").trim().toUpperCase();
+  const setorUpper = (data.area || data.setor || "PEDAGÓGICO").trim().toUpperCase();
   const spreadsheetId = RESPONSES_SHEETS[setorUpper] || CONFIG.SPREADSHEET_RESPONSES_ID;
 
   if (!spreadsheetId) {
     return { success: false, message: `ID de planilha de respostas para '${setorUpper}' não configurado nas Variáveis da Vercel.` };
   }
 
+  const drive = getDriveService();
   const sheets = getSheetsService();
   const timestamp = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
+  // 1. Cria estrutura de pastas no Drive
+  const { relatorioFolderId, registroFolderId } = await getOrCreateFullFolderStructure(drive, data);
+
+  // 2. Salva anexos de fotos no Drive se enviados
+  if (data.files && data.files.length > 0) {
+    for (const f of data.files) {
+      if (f.base64Data) {
+        const base64Data = f.base64Data.split(",")[1] || f.base64Data;
+        const buffer = Buffer.from(base64Data, "base64");
+        await drive.files.create({
+          requestBody: {
+            name: f.name || `foto_${Date.now()}.jpg`,
+            parents: [registroFolderId],
+            mimeType: f.type || "image/jpeg"
+          },
+          media: {
+            mimeType: f.type || "image/jpeg",
+            body: require("stream").Readable.from(buffer)
+          }
+        });
+      }
+    }
+  }
 
   const contratoVal = data.contrato || data.numeroContrato || "";
   const impactoVal = data.impactoCultural || data.impactoTerritorial || "";
@@ -556,16 +609,83 @@ async function handleSubmitForm(payload) {
     data: {
       sheetName: sheetName,
       rowNumber: rowNumber,
-      relatorioFolderId: "",
-      registroFolderId: ""
+      relatorioFolderId: relatorioFolderId,
+      registroFolderId: registroFolderId,
+      area: setorUpper
     }
   };
 }
 
+/**
+ * Compila o relatório em PDF usando Google Docs Template e Google Drive
+ */
 async function handleGeneratePdfReportAsync(payload) {
+  const data = payload.formData || payload;
+  const setorUpper = (data.area || data.setor || "PEDAGÓGICO").trim().toUpperCase();
+
+  let templateId = "";
+  if (setorUpper === "PEDAGÓGICO") templateId = CONFIG.DOC_TEMPLATE_PEDAGOGICO_ID;
+  else if (setorUpper === "ARTICULAÇÃO E DIFUSÃO") templateId = CONFIG.DOC_TEMPLATE_ARTICULACAO_ID;
+  else if (setorUpper === "FUNDAÇÃO CASA") templateId = CONFIG.DOC_TEMPLATE_FUNDACAO_CASA_ID;
+  else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") templateId = CONFIG.DOC_TEMPLATE_BIBLIOTECA_ID;
+
+  const drive = getDriveService();
+  const relatorioFolderId = payload.relatorioFolderId || CONFIG.DRIVE_ROOT_FOLDER_ID;
+
+  if (!templateId) {
+    // Se o template ainda não tiver sido configurado, retorna link para a pasta no Drive
+    const folderRes = await drive.files.get({ fileId: relatorioFolderId, fields: "webViewLink" });
+    return {
+      success: true,
+      message: "Relatório registrado com sucesso!",
+      pdfUrl: folderRes.data.webViewLink || "https://drive.google.com",
+      docUrl: folderRes.data.webViewLink || "https://drive.google.com"
+    };
+  }
+
+  const docName = `Relatorio_${(data.unidade || "Unidade").replace(/\s+/g, "_")}_${(data.atividade || "Atividade").replace(/\s+/g, "_")}`;
+
+  // Clona o template do Google Docs
+  const copyRes = await drive.files.copy({
+    fileId: templateId,
+    requestBody: {
+      name: docName,
+      parents: [relatorioFolderId]
+    }
+  });
+
+  const copiedDocId = copyRes.data.id;
+  const docs = getDocsService();
+
+  // Preenche placeholders no Google Docs
+  const replaceRequests = [
+    { replaceAllText: { containsText: "{{UNIDADE}}", replaceText: String(data.unidade || "").toUpperCase() } },
+    { replaceAllText: { containsText: "{{ATIVIDADE}}", replaceText: String(data.atividade || "").toUpperCase() } },
+    { replaceAllText: { containsText: "{{RESPONSAVEIS}}", replaceText: String(data.responsavel || "") } },
+    { replaceAllText: { containsText: "{{RESPONSAVEL}}", replaceText: String(data.responsavel || "") } },
+    { replaceAllText: { containsText: "{{ANO_REFERENCIA}}", replaceText: String(data.anoReferencia || "") } },
+    { replaceAllText: { containsText: "{{MES_REFERENCIA}}", replaceText: String(data.mesReferencia || "") } },
+    { replaceAllText: { containsText: "{{DESCRICAO_METODOLOGIA}}", replaceText: String(data.descricaoMetodologia || "") } },
+    { replaceAllText: { containsText: "{{PONTOS_FORTES}}", replaceText: String(data.pontosFortes || "") } },
+    { replaceAllText: { containsText: "{{PONTOS_FRACOS}}", replaceText: String(data.pontosFracos || "") } }
+  ];
+
+  try {
+    await docs.documents.batchUpdate({
+      documentId: copiedDocId,
+      requestBody: { requests: replaceRequests }
+    });
+  } catch (e) {
+    console.warn("Erro ao preencher texto no Docs:", e.message);
+  }
+
+  // Obter link do documento e da pasta no Drive
+  const docFile = await drive.files.get({ fileId: copiedDocId, fields: "id, webViewLink" });
+
   return {
     success: true,
-    message: "Relatório registrado com sucesso!",
-    pdfUrl: ""
+    message: "Relatório gerado com sucesso no Google Drive!",
+    pdfUrl: docFile.data.webViewLink,
+    docUrl: docFile.data.webViewLink
   };
 }
