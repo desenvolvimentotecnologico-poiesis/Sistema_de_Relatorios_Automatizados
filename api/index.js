@@ -1,15 +1,15 @@
 const { getSheetsService, getDriveService } = require("./_googleAuth");
+const CONFIG = require("./_config");
 
-// IDs padrão configurados via variáveis de ambiente na Vercel
-const SPREADSHEET_LISTS_ID = process.env.SPREADSHEET_LISTS_ID || "1zP2S0l521m-C61sPqW2h1H90tC57Jq1K0l30q420";
-const SPREADSHEET_USERS_ID = process.env.SPREADSHEET_USERS_ID || SPREADSHEET_LISTS_ID;
+const SPREADSHEET_LISTS_ID = CONFIG.SPREADSHEET_LISTS_ID;
+const SPREADSHEET_USERS_ID = CONFIG.SPREADSHEET_USERS_ID;
 
 const RESPONSES_SHEETS = {
-  "PEDAGÓGICO": process.env.SPREADSHEET_RESPONSES_PEDAGOGICO_ID,
-  "ARTICULAÇÃO E DIFUSÃO": process.env.SPREADSHEET_RESPONSES_ARTICULACAO_ID,
-  "BIBLIOTECA": process.env.SPREADSHEET_RESPONSES_BIBLIOTECA_ID,
-  "BIBLIOTECAS": process.env.SPREADSHEET_RESPONSES_BIBLIOTECA_ID,
-  "FUNDAÇÃO CASA": process.env.SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID
+  "PEDAGÓGICO": CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID,
+  "ARTICULAÇÃO E DIFUSÃO": CONFIG.SPREADSHEET_RESPONSES_ARTICULACAO_ID,
+  "BIBLIOTECA": CONFIG.SPREADSHEET_RESPONSES_BIBLIOTECA_ID,
+  "BIBLIOTECAS": CONFIG.SPREADSHEET_RESPONSES_BIBLIOTECA_ID,
+  "FUNDAÇÃO CASA": CONFIG.SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID
 };
 
 function normalizeMonth(mes) {
@@ -231,9 +231,9 @@ async function handleUploadComplementaryDocs(payload) {
   const drive = getDriveService();
   const sheets = getSheetsService();
 
-  const rootFolderId = process.env.DRIVE_FABRICAS_FOLDER_ID;
+  const rootFolderId = CONFIG.DRIVE_ROOT_FOLDER_ID;
   if (!rootFolderId) {
-    return { success: false, message: "ID da pasta raiz do Drive (DRIVE_FABRICAS_FOLDER_ID) não configurado na Vercel." };
+    return { success: false, message: "ID da pasta raiz do Drive (DRIVE_ROOT_FOLDER_ID) não configurado na Vercel." };
   }
 
   // Localiza/Cria subpastas: Setor -> Ano -> Unidade -> Mês -> Tipo -> Atividade
