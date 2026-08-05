@@ -1162,28 +1162,44 @@ async function insertImageGridIntoDocs(drive, docs, documentId, registroFolderId
     if (imageRequests.length > 0) {
       imageRequests.sort((a, b) => b.insertInlineImage.location.index - a.insertInlineImage.location.index);
 
-      // Remove as bordas pretas da tabela
-      imageRequests.push({
-        updateTableCellStyle: {
-          tableCellStyle: {
-            borderTop: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
-            borderBottom: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
-            borderLeft: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
-            borderRight: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } }
-          },
-          fields: "borderTop,borderBottom,borderLeft,borderRight",
-          tableRange: {
-            location: { index: createdTable.startIndex },
-            rowSpan: createdTable.tableRows.length,
-            columnSpan: 2
-          }
-        }
-      });
-
+      // 1. Inserção das imagens nas células
       await docs.documents.batchUpdate({
         documentId,
         requestBody: { requests: imageRequests }
       });
+
+      // 2. Remoção das bordas da tabela em requisição isolada
+      try {
+        await docs.documents.batchUpdate({
+          documentId,
+          requestBody: {
+            requests: [
+              {
+                updateTableCellStyle: {
+                  tableCellStyle: {
+                    borderTop: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
+                    borderBottom: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
+                    borderLeft: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } },
+                    borderRight: { width: { magnitude: 0, unit: "PT" }, color: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } } }
+                  },
+                  fields: "borderTop,borderBottom,borderLeft,borderRight",
+                  tableRange: {
+                    tableCellLocation: {
+                      tableStartLocation: { index: createdTable.startIndex },
+                      rowIndex: 0,
+                      columnIndex: 0
+                    },
+                    rowSpan: createdTable.tableRows.length,
+                    columnSpan: 2
+                  }
+                }
+              }
+            ]
+          }
+        });
+      } catch (styleErr) {
+        console.warn("Aviso ao remover bordas da tabela:", styleErr.message);
+      }
     }
 
     if (hasVideo) {
