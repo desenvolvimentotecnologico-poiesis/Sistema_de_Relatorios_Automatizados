@@ -27,22 +27,25 @@ function getActiveBackendUrl() {
 const GAS_API_URL = getActiveBackendUrl();
 
 /**
- * Envia requisições assíncronas para o Apps Script
- * @param {string} action Nome da ação ('getDropdownData', 'submitForm', 'generatePdfReportAsync')
+ * Envia requisições assíncronas para o Apps Script com re-tentativa automática
+ * @param {string} action Nome da ação ('getDropdownData', 'verifyUserAccess', 'checkActivityStatus', 'uploadComplementaryDocs')
  * @param {Object} payload Dados adicionais
  * @param {Function} onSuccess Callback de sucesso
  * @param {Function} onError Callback de erro
+ * @param {number} [retryCount=0] Contador interno de tentativas
  */
-function callBackendAPI(action, payload, onSuccess, onError) {
+function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
   if (!GAS_API_URL || GAS_API_URL.includes("INSIRA_AQUI")) {
     if (onError) onError("URL da API do Google Apps Script ainda não configurada em js/api.js.");
     return;
   }
 
+  const maxRetries = 2; // Até 3 tentativas no total (tentativa inicial + 2 retentativas)
   const controller = new AbortController();
+  const timeoutMs = 35000; // 35 segundos por tentativa
   const timeoutId = setTimeout(() => {
     controller.abort();
-  }, 50000); // Timeout de segurança de 50 segundos
+  }, timeoutMs);
 
   fetch(GAS_API_URL, {
     method: "POST",
@@ -59,17 +62,31 @@ function callBackendAPI(action, payload, onSuccess, onError) {
         const data = JSON.parse(text);
         if (onSuccess) onSuccess(data);
       } catch (e) {
-        console.error("Erro ao interpretar JSON:", text);
-        if (onError) onError("Resposta inválida do servidor. Verifique a implantação do Apps Script.");
+        console.error("Erro ao interpretar JSON (Tentativa " + (retryCount + 1) + "):", text);
+        if (retryCount < maxRetries) {
+          console.warn("Re-tentando conexão com o servidor em 1.5s...");
+          setTimeout(() => {
+            callBackendAPI(action, payload, onSuccess, onError, retryCount + 1);
+          }, 1500);
+        } else {
+          if (onError) onError("Resposta inválida do servidor. Verifique a implantação do Apps Script.");
+        }
       }
     })
     .catch(err => {
       clearTimeout(timeoutId);
-      console.error("Erro de rede/API:", err);
-      if (err.name === "AbortError") {
-        if (onError) onError("Tempo limite excedido (50s). O servidor demorou muito para responder. Verifique sua conexão e tente novamente.");
+      console.warn("Oscilação de rede ou inicialização a frio (Tentativa " + (retryCount + 1) + "):", err);
+      if (retryCount < maxRetries) {
+        console.warn("Re-tentando conexão em 1.5s...");
+        setTimeout(() => {
+          callBackendAPI(action, payload, onSuccess, onError, retryCount + 1);
+        }, 1500);
       } else {
-        if (onError) onError("Erro de conexão ao comunicar com o servidor. Verifique sua conexão à internet.");
+        if (err.name === "AbortError") {
+          if (onError) onError("O servidor demorou para responder. Por favor, tente novamente.");
+        } else {
+          if (onError) onError("Falha de conexão ao comunicar com o servidor. Verifique sua conexão com a internet.");
+        }
       }
     });
 }

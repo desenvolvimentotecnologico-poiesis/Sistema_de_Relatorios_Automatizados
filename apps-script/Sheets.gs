@@ -341,26 +341,56 @@ function getUsersSpreadsheetConnection() {
 }
 
 function checkEmailInWhitelist(email) {
-  const ss = getUsersSpreadsheetConnection();
-  let sheet = ss.getSheetByName("Responsaveis_Autorizados") || ss.getSheetByName("Usuários") || ss.getSheets()[0];
-  
-  if (!sheet) {
-    return null;
+  if (!email) return null;
+  const cleanEmail = email.trim().toLowerCase();
+
+  const cacheKey = "whitelist_users_all";
+  const cache = CacheService.getScriptCache();
+  let usersJson = cache.get(cacheKey);
+  let usersList = null;
+
+  if (usersJson) {
+    try {
+      usersList = JSON.parse(usersJson);
+    } catch (e) {
+      usersList = null;
+    }
   }
 
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return null;
+  if (!usersList) {
+    const ss = getUsersSpreadsheetConnection();
+    let sheet = ss.getSheetByName("Responsaveis_Autorizados") || ss.getSheetByName("Usuários") || ss.getSheets()[0];
+    
+    if (!sheet) return null;
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-  for (let i = 0; i < values.length; i++) {
-    const rowEmail = values[i][0] ? values[i][0].toString().trim().toLowerCase() : "";
-    if (rowEmail === email) {
-      return {
-        email: rowEmail,
-        nome: values[i][1] ? values[i][1].toString().trim() : "Responsável",
-        unidade: values[i][2] ? values[i][2].toString().trim() : "Todas",
-        setor: values[i][3] ? values[i][3].toString().trim() : "Pedagógico"
-      };
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return null;
+
+    const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    usersList = [];
+
+    for (let i = 0; i < values.length; i++) {
+      const rowEmail = values[i][0] ? values[i][0].toString().trim().toLowerCase() : "";
+      if (rowEmail) {
+        usersList.push({
+          email: rowEmail,
+          nome: values[i][1] ? values[i][1].toString().trim() : "Responsável",
+          unidade: values[i][2] ? values[i][2].toString().trim() : "Todas",
+          setor: values[i][3] ? values[i][3].toString().trim() : "Pedagógico"
+        });
+      }
+    }
+
+    try {
+      cache.put(cacheKey, JSON.stringify(usersList), 600); // Guarda em cache por 10 minutos
+    } catch (e) {
+      Logger.log("Erro ao salvar lista branca no CacheService: " + e.message);
+    }
+  }
+
+  for (let i = 0; i < usersList.length; i++) {
+    if (usersList[i].email === cleanEmail) {
+      return usersList[i];
     }
   }
   return null;
