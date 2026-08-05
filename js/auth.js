@@ -83,8 +83,8 @@ function logoutUser() {
  * Valida o usuário logado contra a Lista Branca na Planilha de Usuários
  */
 function handleUserLoggedIn(user) {
-  const email = user.email;
-  showAuthLoading(true, "Verificando permissões na Planilha de Usuários...");
+  const email = user ? (user.email || "") : "";
+  showAuthLoading(true, "Verificando permissões do e-mail " + email + "...");
 
   callBackendAPI("verifyUserAccess", { email: email }, (response) => {
     showAuthLoading(false);
@@ -92,12 +92,23 @@ function handleUserLoggedIn(user) {
       currentUserProfile = response.data.user;
       showRestrictedAreaModal(currentUserProfile);
     } else {
-      alert("Acesso Negado: O e-mail (" + email + ") não possui permissão de Responsável na Planilha de Usuários.");
+      const msg = response && response.message ? response.message : "";
+      alert(
+        "🚫 Acesso Não Autorizado\n\n" +
+        "O e-mail (" + email + ") não está cadastrado na planilha de responsáveis autorizados.\n\n" +
+        "Caso você seja um responsável de fábrica e precise de acesso, entre em contato com a equipe de Sistemas para liberar a permissão.\n\n" +
+        (msg ? "Detalhe técnico: " + msg : "")
+      );
       logoutUser();
     }
   }, (err) => {
     showAuthLoading(false);
-    alert("Erro ao validar permissões no servidor: " + err);
+    alert(
+      "⚠️ Falha na Comunicação com o Servidor\n\n" +
+      "Não foi possível consultar a permissão do e-mail (" + email + ").\n\n" +
+      "Motivo provável: A nova versão da API do Google Apps Script precisa ser implantada em Produção/Homologação.\n\n" +
+      "Siga a instrução no Apps Script: Clique em 'Implantar' ➔ 'Gerenciar implantações' ➔ 'Editar' ➔ Escolha 'Nova versão' ➔ 'Implantar'."
+    );
     logoutUser();
   });
 }
