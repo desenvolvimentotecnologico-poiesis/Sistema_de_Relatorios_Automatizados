@@ -825,6 +825,35 @@ async function handleGeneratePdfReportAsync(payload) {
     };
   };
 
+  let hasImages = false;
+  let hasVideo = false;
+
+  if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+    data.files.forEach(f => {
+      if (f.mimeType && f.mimeType.startsWith("video/")) {
+        hasVideo = true;
+      } else if (!f.mimeType || f.mimeType.startsWith("image/")) {
+        hasImages = true;
+      }
+    });
+  }
+
+  let anexosTexto = "";
+  if (hasImages) {
+    anexosTexto = "Evidências fotográficas salvas na pasta 'Registro Fotográfico' no Google Drive.";
+  } else {
+    anexosTexto = "Nenhuma imagem/evidência fotográfica enviada.";
+  }
+
+  if (hasVideo) {
+    anexosTexto += "\n\n🎬 NOTA DE EVIDÊNCIA EM VÍDEO: Esta atividade possui registro(s) audiovisual(is) em vídeo salvo(s) diretamente na pasta de evidências da atividade no Google Drive.";
+  }
+
+  let planoTexto = "Plano de Atividades do Período:";
+  if (data.planoTabela && Array.isArray(data.planoTabela) && data.planoTabela.length > 0) {
+    planoTexto += "\n" + data.planoTabela.map(item => `${item.data || "---"} | ${item.unidade || "UNIDADE"} | ${item.horario || "---"} | ${item.descricao || "---"}`).join("\n");
+  }
+
   const replaceRequests = [
     createReplaceReq("{{AREA}}", formatField(data.area)),
     createReplaceReq("{{DIVISAO_REGIONAL}}", formatField(data.divisaoRegional).toUpperCase()),
@@ -867,6 +896,11 @@ async function handleGeneratePdfReportAsync(payload) {
     createReplaceReq("{{ENGAJAMENTO_PARTICIPACAO}}", formatField(data.engajamentoParticipacao)),
     createReplaceReq("{{PONTOS_FORTES}}", formatField(data.pontosFortes)),
     createReplaceReq("{{PONTOS_FRACOS}}", formatField(data.pontosFracos)),
+    createReplaceReq("{{ANEXOS}}", anexosTexto),
+    createReplaceReq("{{PLANO_DE_ATIVIDADES}}", planoTexto),
+    createReplaceReq("{{PLANO}}", planoTexto),
+    createReplaceReq("{{TABELA}}", planoTexto),
+    createReplaceReq("{{ENCONTROS}}", planoTexto),
     createReplaceReq("{{DECLARACAO_RESPONSABILIDADE}}", declaracaoTexto),
     createReplaceReq("{{DECLARACAO}}", declaracaoTexto),
     createReplaceReq("{{TERMOS}}", declaracaoTexto)
