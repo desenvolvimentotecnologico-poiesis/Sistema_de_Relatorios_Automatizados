@@ -486,6 +486,21 @@ function findActivityRowAndDocs(params) {
  * Grava documentos no Drive e atualiza colunas de controle na planilha
  */
 function saveComplementaryDocsAndRow(payload) {
+  const activityInfo = findActivityRowAndDocs(payload);
+  if (!activityInfo.exists) {
+    throw new Error("Atividade não localizada nos registros pedagógicos deste mês/ano.");
+  }
+  if (activityInfo.hasInscricao || activityInfo.hasPresenca) {
+    throw new Error("Os documentos desta atividade já foram enviados anteriormente neste mês/ano. Não é permitido o reenvio.");
+  }
+
+  const hasInscFile = payload.files && payload.files.some(function(f) { return f.docType === "fileInscricao"; });
+  const hasPresFile = payload.files && payload.files.some(function(f) { return f.docType === "filePresenca"; });
+
+  if (!hasInscFile || !hasPresFile) {
+    throw new Error("É obrigatório enviar ambos os arquivos PDF (Registro de Inscrição e Lista de Presença) simultaneamente.");
+  }
+
   const folders = getOrCreateFolderStructure(
     payload.setor,
     payload.mesReferencia + "/" + payload.anoReferencia,

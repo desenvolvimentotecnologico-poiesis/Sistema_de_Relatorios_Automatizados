@@ -359,13 +359,16 @@ function checkActivityDocsStatus() {
           statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Atividade não localizada nos registros de relatórios pedagógicos deste mês/ano. O relatório inicial do educador precisa ser enviado primeiro.';
         }
         if (submitBtn) submitBtn.disabled = true;
+      } else if (data.hasInscricao || data.hasPresenca) {
+        if (statusBox) {
+          statusBox.className = "status-box warning";
+          statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Os documentos (Inscrição e Presença) para esta atividade já foram enviados neste mês/ano. Não é permitido reenviar ou enviar duas vezes para a mesma atividade.';
+        }
+        if (submitBtn) submitBtn.disabled = true;
       } else {
         if (statusBox) {
           statusBox.className = "status-box success";
-          let html = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>Atividade localizada! Documentos no sistema:';
-          html += data.hasInscricao ? " [Inscrição: ENVIADO]" : " [Inscrição: PENDENTE]";
-          html += data.hasPresenca ? " [Presença: ENVIADO]" : " [Presença: PENDENTE]";
-          statusBox.innerHTML = html;
+          statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>Atividade localizada! Por favor, anexe obrigatoriamente a Inscrição e a Presença para concluir o envio.';
         }
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -380,7 +383,7 @@ function checkActivityDocsStatus() {
 }
 
 /**
- * Envia os arquivos PDF de Inscrição e/ou Presença para o backend
+ * Envia os arquivos PDF de Inscrição e Presença para o backend
  */
 function submitComplementaryDocs(event) {
   event.preventDefault();
@@ -403,8 +406,8 @@ function submitComplementaryDocs(event) {
   const fileInsc = fileInscricaoElem.files[0];
   const filePres = filePresencaElem.files[0];
 
-  if (!fileInsc && !filePres) {
-    alert("Selecione ao menos um arquivo em formato PDF (Inscrição ou Presença) para enviar.");
+  if (!fileInsc || !filePres) {
+    alert("É obrigatório anexar AMBOS os arquivos PDF (Registro de Inscrição e Lista de Presença) antes de enviar.");
     return;
   }
 
@@ -530,8 +533,31 @@ function resetRestrictedDocsForm() {
   const filePres = document.getElementById("filePresenca");
   if (fileInsc) fileInsc.value = "";
   if (filePres) filePres.value = "";
+
+  const anoSelect = document.getElementById("restritoAno");
+  if (anoSelect) anoSelect.value = "";
+
+  const mesSelect = document.getElementById("restritoMes");
+  if (mesSelect) mesSelect.value = "";
+
+  const tipoSelect = document.getElementById("restritoTipoPedagogico");
+  if (tipoSelect) tipoSelect.value = "";
+
+  const atividadeSelect = document.getElementById("restritoAtividade");
+  if (atividadeSelect) {
+    atividadeSelect.value = "";
+    atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade e o Tipo primeiro...</option>';
+    atividadeSelect.disabled = true;
+  }
+
   const statusBox = document.getElementById("activityDocsStatus");
   if (statusBox) statusBox.style.display = "none";
+
+  const submitBtn = document.getElementById("submitDocsBtn");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Enviar Documentos Complementares";
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
