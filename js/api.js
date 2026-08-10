@@ -27,6 +27,21 @@ function getActiveBackendUrl() {
 const GAS_API_URL = getActiveBackendUrl();
 
 /**
+ * Utilitário global para sanitizar strings e prevenir injeções de HTML/XSS no DOM
+ * @param {string} str String a ser sanitizada
+ * @returns {string} String com entidades HTML codificadas com segurança
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
  * Envia requisições assíncronas para o Apps Script com re-tentativa automática
  * @param {string} action Nome da ação ('getDropdownData', 'verifyUserAccess', 'checkActivityStatus', 'uploadComplementaryDocs')
  * @param {Object} payload Dados adicionais
@@ -58,6 +73,9 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
   })
     .then(response => {
       clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+      }
       return response.text();
     })
     .then(text => {
@@ -88,7 +106,7 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
         if (err.name === "AbortError") {
           if (onError) onError("O servidor demorou para responder. Por favor, verifique se a operação foi concluída.");
         } else {
-          if (onError) onError("Falha de conexão ao comunicar com o servidor. Verifique sua conexão com a internet.");
+          if (onError) onError("Falha de conexão ao comunicar com o servidor: " + (err.message || "Verifique sua conexão com a internet."));
         }
       }
     });

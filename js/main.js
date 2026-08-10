@@ -210,7 +210,8 @@ function updateAtividadeDropdown() {
   }
 
   if (filteredItems.length === 0) {
-    atividadeSelect.innerHTML = `<option value="" disabled selected>Nenhuma atividade de "${tipo}" encontrada para esta unidade...</option>`;
+    const cleanTipo = escapeHtml(tipo);
+    atividadeSelect.innerHTML = `<option value="" disabled selected>Nenhuma atividade de "${cleanTipo}" encontrada para esta unidade...</option>`;
     atividadeSelect.disabled = true;
     return;
   }
@@ -444,11 +445,12 @@ function renderPreviewGrid() {
       pdfItem.className = "pdf-preview-item";
 
       const sizeMb = fileObj.size ? (fileObj.size / (1024 * 1024)).toFixed(2) : "PDF";
+      const cleanName = escapeHtml(fileObj.name || "Plano_de_Atividades.pdf");
 
       pdfItem.innerHTML = `
         <div class="pdf-preview-icon">📄</div>
         <div class="pdf-preview-details">
-          <span class="pdf-preview-name">${fileObj.name || "Plano_de_Atividades.pdf"}</span>
+          <span class="pdf-preview-name">${cleanName}</span>
           <span class="pdf-preview-size">${sizeMb} MB • Documento PDF</span>
         </div>
       `;
@@ -470,11 +472,12 @@ function renderPreviewGrid() {
       videoItem.className = "pdf-preview-item video-preview-item";
 
       const sizeMb = fileObj.size ? (fileObj.size / (1024 * 1024)).toFixed(2) : "Vídeo";
+      const cleanVideoName = escapeHtml(fileObj.name || "Video.mp4");
 
       videoItem.innerHTML = `
         <div class="pdf-preview-icon">🎬</div>
         <div class="pdf-preview-details">
-          <span class="pdf-preview-name">${fileObj.name || "Video.mp4"}</span>
+          <span class="pdf-preview-name">${cleanVideoName}</span>
           <span class="pdf-preview-size">${sizeMb} MB • Arquivo de Vídeo</span>
         </div>
       `;

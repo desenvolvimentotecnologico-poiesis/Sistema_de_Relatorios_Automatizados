@@ -199,26 +199,27 @@ Acesse o aplicativo em `http://localhost:3000`.
 
 ```
 relatorio-poiesis/
+├── .gitignore                       # Regras de ignorar dependências locais e temporários
 ├── apps-script/                    # Código-fonte Backend (Google Apps Script REST API)
 │   ├── Code.gs                     # API Router HTTP (doPost e doGet)
 │   ├── Config.gs                   # Definição de IDs, constantes e tabelas
-│   ├── Drive.gs                    # Gestão da árvore de pastas no Drive e gravações
+│   ├── Drive.gs                    # Gestão da árvore de pastas no Drive (suporte a Curso de Férias)
 │   ├── Report.gs                   # Leitura do Docs, interpolação de dados e conversão PDF
 │   ├── Sheets.gs                   # Leitura de dropdowns institucionais e inserção no Sheets
-│   └── Utils.gs                    # Helpers globais (Safe replace, normalização de área, sanitização)
+│   └── Utils.gs                    # Helpers globais (Siglas como IGC/IGP, safe replace, normalização)
 ├── css/
 │   └── styles.css                  # Design System corporativo, grid e regras de responsividade
 ├── forms/                          # Formulários Modulares por Área Operacional
 │   ├── articulacao.html            # Módulo Articulação e Difusão
 │   ├── biblioteca.html             # Módulo Bibliotecas
 │   ├── fundacao-casa.html          # Módulo Fundação CASA (Cards de Encontros da Seção 03)
-│   ├── pedagogico.html             # Módulo Pedagógico
-│   └── secretaria.html             # Módulo de Acesso Restrito / Secretaria (Firebase Auth)
+│   ├── pedagogico.html             # Módulo Pedagógico (Meta 'Cursos de Férias' e Tipo 'Curso de Férias')
+│   └── secretaria.html             # Módulo de Acesso Restrito / Secretaria (Firebase Auth + Cursos de Férias)
 ├── js/
-│   ├── api.js                      # HTTP Client (Fetch API Wrapper com tratamento de erro e retentativas)
+│   ├── api.js                      # HTTP Client (Fetch API Wrapper com tratamento de erros, escapeHtml e retentativas)
 │   ├── auth.js                     # Gerenciador de Autenticação Firebase e Lista Branca
 │   ├── image-compressor.js         # Compressor client-side de imagem via Canvas API
-│   └── main.js                     # Controlador de DOM, dinâmicas de formulário e preview de mídias
+│   └── main.js                     # Controlador de DOM, dinâmicas de formulário e preview de mídias sanitizadas
 ├── apresentacao.html               # Deck interativo de apresentação e treinamento institucional
 ├── index.html                      # Landing page e seletor de módulo operacional
 ├── logo-fabricas.png               # Asset institucional de marca
