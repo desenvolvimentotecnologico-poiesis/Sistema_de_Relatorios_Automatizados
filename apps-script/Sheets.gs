@@ -307,6 +307,31 @@ function saveResponseRow(data) {
       ];
     }
     
+    // Deduplicação preventiva: se a submissão foi enviada recentemente para a mesma Unidade e Atividade, reutiliza a linha
+    const currentLastRow = sheet.getLastRow();
+    if (currentLastRow >= 2) {
+      const checkCount = Math.min(currentLastRow - 1, 5);
+      const recentRows = sheet.getRange(currentLastRow - checkCount + 1, 1, checkCount, sheet.getLastColumn()).getValues();
+
+      const searchUnidade = String(data.unidade || "").trim().toUpperCase();
+      const searchAtividade = String(data.atividade || "").trim().toUpperCase();
+
+      for (let r = recentRows.length - 1; r >= 0; r--) {
+        const rowData = recentRows[r];
+        const rUnidade = String(rowData[1] || "").trim().toUpperCase();
+        const rAtividade = String(rowData[4] || rowData[5] || rowData[3] || "").trim().toUpperCase();
+
+        if (searchUnidade && rUnidade === searchUnidade && searchAtividade && (rAtividade === searchAtividade || rAtividade.includes(searchAtividade))) {
+          const matchRowNumber = currentLastRow - checkCount + 1 + r;
+          Logger.log("Reutilizando linha existente para evitar duplicação no Sheets: linha " + matchRowNumber);
+          return {
+            sheetName: config.sheetName,
+            rowNumber: matchRowNumber
+          };
+        }
+      }
+    }
+
     sheet.appendRow(newRow);
     
     return {

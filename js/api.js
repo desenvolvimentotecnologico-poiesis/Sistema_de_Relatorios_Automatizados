@@ -40,9 +40,12 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
     return;
   }
 
-  const maxRetries = 2; // Até 3 tentativas no total (tentativa inicial + 2 retentativas)
+  // Ações de gravação/compilação não devem re-tentar automaticamente para impedir duplicação de dados no servidor
+  const isWriteAction = action === "submitForm" || action === "uploadComplementaryDocs" || action === "generatePdfReportAsync";
+  const maxRetries = isWriteAction ? 0 : 2; 
+  const timeoutMs = isWriteAction ? 90000 : 35000; // 90s para gravação/PDF, 35s para consultas leves
+
   const controller = new AbortController();
-  const timeoutMs = 35000; // 35 segundos por tentativa
   const timeoutId = setTimeout(() => {
     controller.abort();
   }, timeoutMs);
@@ -83,7 +86,7 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
         }, 1500);
       } else {
         if (err.name === "AbortError") {
-          if (onError) onError("O servidor demorou para responder. Por favor, tente novamente.");
+          if (onError) onError("O servidor demorou para responder. Por favor, verifique se a operação foi concluída.");
         } else {
           if (onError) onError("Falha de conexão ao comunicar com o servidor. Verifique sua conexão com a internet.");
         }
