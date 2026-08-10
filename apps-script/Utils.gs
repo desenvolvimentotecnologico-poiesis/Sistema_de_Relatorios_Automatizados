@@ -44,6 +44,7 @@ var Utils = {
     if (norm.includes("CAPAO REDONDO")) return "CPR";
     if (norm.includes("DIADEMA")) return "DDM";
     if (norm.includes("HELIOPOLIS")) return "HLP";
+    if (norm.includes("CORREIOS") || norm.includes("IGUAPE CORREIOS")) return "IGC";
     if (norm.includes("IGUAPE")) return "IGP";
     if (norm.includes("JACANA")) return "JCN";
     if (norm.includes("BRASILANDIA")) return "BRL";

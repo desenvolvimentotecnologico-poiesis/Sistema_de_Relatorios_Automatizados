@@ -114,8 +114,8 @@ function updateTipoPedagogicoOptions() {
   const label = document.querySelector('label[for="tipoPedagogicoSelect"]');
   if (label) {
     label.innerHTML = isJSL
-      ? 'Trilha, Ateliê ou Núcleo de Moda? <span class="required">*</span>'
-      : 'Trilha ou Ateliê? <span class="required">*</span>';
+      ? 'Trilha, Ateliê, Núcleo de Moda ou Curso de Férias? <span class="required">*</span>'
+      : 'Trilha, Ateliê ou Curso de Férias? <span class="required">*</span>';
   }
 
   let nucleoOpt = Array.from(tipoPedagogicoSelect.options).find(opt => opt.value === "Núcleo de Moda");
@@ -148,16 +148,20 @@ function matchActivityType(itemType, selectedTipo) {
   const typeNorm = itemType.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const selectedNorm = selectedTipo.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+  if (selectedNorm.includes("ferias")) {
+    return typeNorm.includes("ferias");
+  }
+
   if (selectedNorm.includes("moda")) {
-    return typeNorm.includes("moda") || (typeNorm.includes("nucleo") && !typeNorm.includes("trilha") && !typeNorm.includes("atelie"));
+    return typeNorm.includes("moda") || (typeNorm.includes("nucleo") && !typeNorm.includes("trilha") && !typeNorm.includes("atelie") && !typeNorm.includes("ferias"));
   }
 
   if (selectedNorm.includes("trilha")) {
-    return typeNorm.includes("trilha") && !typeNorm.includes("moda");
+    return typeNorm.includes("trilha") && !typeNorm.includes("moda") && !typeNorm.includes("ferias");
   }
 
   if (selectedNorm.includes("atelie")) {
-    return typeNorm.includes("atelie") && !typeNorm.includes("moda");
+    return typeNorm.includes("atelie") && !typeNorm.includes("moda") && !typeNorm.includes("ferias");
   }
 
   return typeNorm.includes(selectedNorm) || selectedNorm.includes(typeNorm);
