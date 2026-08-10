@@ -99,8 +99,8 @@ function onDropdownDataReceived(response) {
 
 function isJardimSaoLuis(unidadeName) {
   if (!unidadeName) return false;
-  const norm = unidadeName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-  return norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ");
+  const norm = unidadeName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  return norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ") || norm.includes("SAO LUIS") || norm.includes("SAO LUIZ") || norm.includes("JSL");
 }
 
 function updateTipoPedagogicoOptions() {
@@ -460,8 +460,34 @@ function renderPreviewGrid() {
 
       pdfItem.appendChild(btn);
       grid.appendChild(pdfItem);
+    } else if (fileObj.mimeType && fileObj.mimeType.startsWith("video/")) {
+      // Exibição em formato card para Vídeo
+      const videoItem = document.createElement("div");
+      videoItem.className = "pdf-preview-item video-preview-item";
+
+      const sizeMb = fileObj.size ? (fileObj.size / (1024 * 1024)).toFixed(2) : "Vídeo";
+
+      videoItem.innerHTML = `
+        <div class="pdf-preview-icon">🎬</div>
+        <div class="pdf-preview-details">
+          <span class="pdf-preview-name">${fileObj.name || "Video.mp4"}</span>
+          <span class="pdf-preview-size">${sizeMb} MB • Arquivo de Vídeo</span>
+        </div>
+      `;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "preview-remove";
+      btn.textContent = "×";
+      btn.onclick = () => {
+        uploadedFiles.splice(idx, 1);
+        renderPreviewGrid();
+      };
+
+      videoItem.appendChild(btn);
+      grid.appendChild(videoItem);
     } else {
-      // Exibição em grade de miniaturas para imagens e vídeos
+      // Exibição em grade de miniaturas para imagens
       const item = document.createElement("div");
       item.className = "preview-item";
 

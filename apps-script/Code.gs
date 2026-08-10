@@ -100,7 +100,8 @@ function submitForm(formData) {
       return Utils.createResponse(false, "Dados do formulário não informados.");
     }
     
-    formData.area = formData.setor || formData.area;
+    formData.area = Utils.normalizeAreaName(formData.setor || formData.area);
+    formData.setor = formData.area;
     
     formData.dataRelatorio = formData.dataRelatorio || (formData.mesReferencia && formData.anoReferencia ? (formData.mesReferencia + " / " + formData.anoReferencia) : formData.dataReposicao);
     
@@ -109,7 +110,7 @@ function submitForm(formData) {
       return Utils.createResponse(false, "Campos obrigatórios faltando. Certifique-se de preencher Unidade, Atividade, Setor, Responsável e Mês/Ano.");
     }
     
-    if (formData.setor.trim().toUpperCase() !== "PEDAGÓGICO") {
+    if (formData.area !== "PEDAGÓGICO") {
       formData.atividade = formData.atividade.toString().toUpperCase().trim();
     }
     
@@ -127,7 +128,7 @@ function submitForm(formData) {
     );
     
     // 2. Upload rápido de arquivos anexados em Base64
-    const targetUploadFolder = folders.registroFolder || folders.relatorioFolder;
+    const targetUploadFolder = folders.registroFolder || folders.relatorioFolder || folders.activityFolder;
     if (formData.files && formData.files.length > 0 && targetUploadFolder) {
       uploadFilesToFolder(formData.files, targetUploadFolder, {
         unidade: formData.unidade,
@@ -141,12 +142,16 @@ function submitForm(formData) {
     // 3. Salva os dados textuais no Google Sheets da área
     const saveResult = saveResponseRow(formData);
     
+    const relatorioFolderObj = folders.relatorioFolder || folders.activityFolder;
+    const relatorioFolderId = relatorioFolderObj ? relatorioFolderObj.getId() : null;
+    const registroFolderId = folders.registroFolder ? folders.registroFolder.getId() : null;
+
     // 4. Retorna confirmação e IDs para a compilação assíncrona do PDF
     return Utils.createResponse(true, "Dados salvos com sucesso no Google Sheets e Drive!", {
       sheetName: saveResult.sheetName,
       rowNumber: saveResult.rowNumber,
-      relatorioFolderId: folders.relatorioFolder.getId(),
-      registroFolderId: folders.registroFolder ? folders.registroFolder.getId() : null,
+      relatorioFolderId: relatorioFolderId,
+      registroFolderId: registroFolderId,
       area: formData.area
     });
     
@@ -171,8 +176,13 @@ function submitForm(formData) {
 function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registroFolderId, area, formData) {
   try {
     if (!formData) formData = {};
-    formData.area = formData.area || area || formData.setor || "Pedagógico";
-    formData.setor = formData.setor || formData.area;
+    formData.area = Utils.normalizeAreaName(formData.area || area || formData.setor || "Pedagógico");
+    formData.setor = formData.area;
+    
+    if (!relatorioFolderId) {
+      throw new Error("ID da pasta de destino do relatório (relatorioFolderId) não foi fornecido.");
+    }
+    
     const relatorioFolder = DriveApp.getFolderById(relatorioFolderId);
     
     // Constrói o Google Docs, substitui placeholders, insere imagens e exporta em PDF

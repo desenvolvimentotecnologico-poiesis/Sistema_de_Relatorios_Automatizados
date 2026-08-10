@@ -16,7 +16,8 @@ function getRootFolderConnection() {
 }
 
 function getOrCreateSubFolder(parentFolder, folderName) {
-  const cacheKey = "folder_id_" + parentFolder.getId() + "_" + folderName.replace(/\s+/g, "_");
+  const rawKey = "folder_id_" + parentFolder.getId() + "_" + folderName;
+  const cacheKey = Utils.sanitizeCacheKey(rawKey);
   const cache = CacheService.getScriptCache();
   const cachedId = cache.get(cacheKey);
   
@@ -49,7 +50,12 @@ function getOrCreateSubFolder(parentFolder, folderName) {
     targetFolder = parentFolder.createFolder(folderName);
   }
   
-  cache.put(cacheKey, targetFolder.getId(), 21600); // Cache por 6 horas
+  try {
+    cache.put(cacheKey, targetFolder.getId(), 21600); // Cache por 6 horas
+  } catch (cErr) {
+    Logger.log("Aviso ao gravar no CacheService: " + cErr.message);
+  }
+
   return targetFolder;
 }
 
@@ -93,15 +99,15 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
 
     let mesStr = getFormattedMonthName(mesNum);
 
-    const setorUpper = setor ? setor.trim().toUpperCase() : "PEDAGÓGICO";
-    const cleanAtividadeName = Utils.sanitizeFileName(atividade ? atividade.trim() : "").toUpperCase().replace(/\s+/g, "_");
+    const setorNorm = Utils.normalizeAreaName(setor);
+    const cleanAtividadeName = Utils.sanitizeFileName(atividade ? atividade.trim() : "ATIVIDADE").toUpperCase().replace(/\s+/g, "_");
     
-    const setorFolder = getOrCreateSubFolder(fabricasFolder, setor.trim());
+    const setorFolder = getOrCreateSubFolder(fabricasFolder, setor ? setor.trim() : "PEDAGÓGICO");
     const anoFolder = getOrCreateSubFolder(setorFolder, anoStr);
     
     let parentFolder;
     
-    if (setorUpper === "FUNDAÇÃO CASA") {
+    if (setorNorm === "FUNDAÇÃO CASA") {
       const drFolder = getOrCreateSubFolder(anoFolder, divisaoRegional ? divisaoRegional.trim() : "DR INDEFINIDA");
       const drUnidadeFolder = getOrCreateSubFolder(drFolder, unidade ? unidade.trim() : "UNIDADE");
       parentFolder = getOrCreateSubFolder(drUnidadeFolder, mesStr);
@@ -110,7 +116,7 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
       const mesFolder = getOrCreateSubFolder(unidadeFolder, mesStr);
       
       parentFolder = mesFolder;
-      if (setorUpper === "PEDAGÓGICO" && tipoPedagogico) {
+      if (setorNorm === "PEDAGÓGICO" && tipoPedagogico) {
         parentFolder = getOrCreateSubFolder(mesFolder, tipoPedagogico.trim());
       }
     }
@@ -122,13 +128,13 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     let registroFolder = null;
     let relatorioFolder = null;
 
-    if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
+    if (setorNorm === "FUNDAÇÃO CASA") {
       relatorioFolder = activityFolder;
       registroFolder = null;
     } else {
       registroFolder = getOrCreateSubFolder(activityFolder, "Registro Fotográfico");
       relatorioFolder = getOrCreateSubFolder(activityFolder, "Relatório");
-      if (setorUpper === "PEDAGÓGICO") {
+      if (setorNorm === "PEDAGÓGICO") {
         listaPresencaFolder = getOrCreateSubFolder(activityFolder, "Lista de Presença");
         relacaoInscritosFolder = getOrCreateSubFolder(activityFolder, "Relação de Inscritos");
       }

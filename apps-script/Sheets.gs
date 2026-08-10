@@ -21,17 +21,17 @@ function getResponsesSpreadsheetConnection(area) {
   let varName = "SPREADSHEET_RESPONSES_ID";
   
   if (area) {
-    const areaUpper = area.trim().toUpperCase();
-    if (areaUpper === "PEDAGÓGICO" && CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID && !CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID.startsWith("INSIRA_O_ID")) {
+    const areaNorm = Utils.normalizeAreaName(area);
+    if (areaNorm === "PEDAGÓGICO" && CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID && !CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID.startsWith("INSIRA_O_ID")) {
       spreadsheetId = CONFIG.SPREADSHEET_RESPONSES_PEDAGOGICO_ID;
       varName = "SPREADSHEET_RESPONSES_PEDAGOGICO_ID";
-    } else if (areaUpper === "ARTICULAÇÃO E DIFUSÃO" && CONFIG.SPREADSHEET_RESPONSES_ARTICULACAO_ID && !CONFIG.SPREADSHEET_RESPONSES_ARTICULACAO_ID.startsWith("INSIRA_O_ID")) {
+    } else if (areaNorm === "ARTICULAÇÃO E DIFUSÃO" && CONFIG.SPREADSHEET_RESPONSES_ARTICULACAO_ID && !CONFIG.SPREADSHEET_RESPONSES_ARTICULACAO_ID.startsWith("INSIRA_O_ID")) {
       spreadsheetId = CONFIG.SPREADSHEET_RESPONSES_ARTICULACAO_ID;
       varName = "SPREADSHEET_RESPONSES_ARTICULACAO_ID";
-    } else if (areaUpper === "FUNDAÇÃO CASA" && CONFIG.SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID && !CONFIG.SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID.startsWith("INSIRA_O_ID")) {
+    } else if (areaNorm === "FUNDAÇÃO CASA" && CONFIG.SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID && !CONFIG.SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID.startsWith("INSIRA_O_ID")) {
       spreadsheetId = CONFIG.SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID;
       varName = "SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID";
-    } else if ((areaUpper === "BIBLIOTECA" || areaUpper === "BIBLIOTECAS") && CONFIG.SPREADSHEET_RESPONSES_BIBLIOTECA_ID && !CONFIG.SPREADSHEET_RESPONSES_BIBLIOTECA_ID.startsWith("INSIRA_O_ID")) {
+    } else if (areaNorm === "BIBLIOTECA" && CONFIG.SPREADSHEET_RESPONSES_BIBLIOTECA_ID && !CONFIG.SPREADSHEET_RESPONSES_BIBLIOTECA_ID.startsWith("INSIRA_O_ID")) {
       spreadsheetId = CONFIG.SPREADSHEET_RESPONSES_BIBLIOTECA_ID;
       varName = "SPREADSHEET_RESPONSES_BIBLIOTECA_ID";
     }
@@ -115,9 +115,9 @@ function getDropdownData(forceRefresh) {
 }
 
 function getSheetConfigForArea(area) {
-  const areaUpper = area.trim().toUpperCase();
+  const areaNorm = Utils.normalizeAreaName(area);
   
-  if (areaUpper === "PEDAGÓGICO") {
+  if (areaNorm === "PEDAGÓGICO") {
     return {
       sheetName: CONFIG.SHEET_RESPONSES_PEDAGOGICO,
       headers: [
@@ -129,7 +129,7 @@ function getSheetConfigForArea(area) {
         "Descrição das Ações e Metodologia", "Engajamento e Participação", "Pontos Fortes", "Pontos Fracos e Desafios"
       ]
     };
-  } else if (areaUpper === "ARTICULAÇÃO E DIFUSÃO") {
+  } else if (areaNorm === "ARTICULAÇÃO E DIFUSÃO") {
     return {
       sheetName: CONFIG.SHEET_RESPONSES_ARTICULACAO,
       headers: [
@@ -142,7 +142,7 @@ function getSheetConfigForArea(area) {
         "Descrição das Ações e Metodologia", "Pontos Fortes", "Pontos Fracos e Desafios"
       ]
     };
-  } else if (areaUpper === "FUNDAÇÃO CASA") {
+  } else if (areaNorm === "FUNDAÇÃO CASA") {
     return {
       sheetName: CONFIG.SHEET_RESPONSES_FUNDACAO_CASA,
       headers: [
@@ -154,7 +154,7 @@ function getSheetConfigForArea(area) {
         "Pontos Fortes", "Pontos Fracos e Desafios"
       ]
     };
-  } else if (areaUpper === "BIBLIOTECA" || areaUpper === "BIBLIOTECAS") {
+  } else if (areaNorm === "BIBLIOTECA") {
     return {
       sheetName: CONFIG.SHEET_RESPONSES_BIBLIOTECA,
       headers: [
@@ -197,119 +197,113 @@ function saveResponseRow(data) {
     
     const timestamp = Utils.getFormattedTimestampBR(new Date());
     let newRow = [];
-    const areaUpper = data.area.trim().toUpperCase();
+    const areaNorm = Utils.normalizeAreaName(data.area);
     
     const contratoVal = data.contrato || data.numeroContrato || "";
     const impactoVal = data.impactoCultural || data.impactoTerritorial || "";
 
-    const formatField = function(val) {
-      if (val === null || val === undefined) return "";
-      if (Array.isArray(val)) return val.join("; ");
-      return String(val);
-    };
-
-    if (areaUpper === "PEDAGÓGICO") {
+    if (areaNorm === "PEDAGÓGICO") {
       newRow = [
         timestamp,
-        formatField(data.unidade),
-        formatField(contratoVal),
-        formatField(data.metaReferencia),
-        formatField(data.tipoPedagogico),
-        formatField(data.atividade),
-        formatField(data.anoReferencia),
-        formatField(data.mesReferencia),
-        formatField(data.responsavel),
-        formatField(data.encontrosPrevistos),
-        formatField(data.encontrosRealizados),
-        formatField(data.cargaHorariaPrevista),
-        formatField(data.cargaHorariaRealizada),
-        formatField(data.dataReposicao),
-        formatField(data.publicoTotal),
-        formatField(data.perfilPublico),
-        formatField(data.faixaEtaria),
-        formatField(data.destaqueAcao),
-        formatField(data.objetivos),
-        formatField(impactoVal),
-        formatField(data.descricaoMetodologia),
-        formatField(data.engajamentoParticipacao),
-        formatField(data.pontosFortes),
-        formatField(data.pontosFracos)
+        Utils.formatField(data.unidade),
+        Utils.formatField(contratoVal),
+        Utils.formatField(data.metaReferencia),
+        Utils.formatField(data.tipoPedagogico),
+        Utils.formatField(data.atividade),
+        Utils.formatField(data.anoReferencia),
+        Utils.formatField(data.mesReferencia),
+        Utils.formatField(data.responsavel),
+        Utils.formatField(data.encontrosPrevistos),
+        Utils.formatField(data.encontrosRealizados),
+        Utils.formatField(data.cargaHorariaPrevista),
+        Utils.formatField(data.cargaHorariaRealizada),
+        Utils.formatField(data.dataReposicao),
+        Utils.formatField(data.publicoTotal),
+        Utils.formatField(data.perfilPublico),
+        Utils.formatField(data.faixaEtaria),
+        Utils.formatField(data.destaqueAcao),
+        Utils.formatField(data.objetivos),
+        Utils.formatField(impactoVal),
+        Utils.formatField(data.descricaoMetodologia),
+        Utils.formatField(data.engajamentoParticipacao),
+        Utils.formatField(data.pontosFortes),
+        Utils.formatField(data.pontosFracos)
       ];
-    } else if (areaUpper === "ARTICULAÇÃO E DIFUSÃO") {
+    } else if (areaNorm === "ARTICULAÇÃO E DIFUSÃO") {
       newRow = [
         timestamp,
-        formatField(data.unidade),
-        formatField(contratoVal),
-        formatField(data.metaReferencia),
-        formatField(data.atividade),
-        formatField(data.anoReferencia),
-        formatField(data.mesReferencia),
-        formatField(data.diasAtividade),
-        formatField(data.responsavel),
-        formatField(data.horarioInicio),
-        formatField(data.horarioTermino),
-        formatField(data.cargaHorariaTotal),
-        formatField(data.numSessoes),
-        formatField(data.publicoTotal),
-        formatField(data.publicoSessao),
-        formatField(data.perfilPublico),
-        formatField(data.faixaEtaria),
-        formatField(data.destaqueAcao),
-        formatField(data.objetivos),
-        formatField(impactoVal),
-        formatField(data.linguagemArtistica),
-        formatField(data.inclusaoDiversidade),
-        formatField(data.efemeride),
-        formatField(data.relato),
-        formatField(data.descricaoMetodologia),
-        formatField(data.pontosFortes),
-        formatField(data.pontosFracos)
+        Utils.formatField(data.unidade),
+        Utils.formatField(contratoVal),
+        Utils.formatField(data.metaReferencia),
+        Utils.formatField(data.atividade),
+        Utils.formatField(data.anoReferencia),
+        Utils.formatField(data.mesReferencia),
+        Utils.formatField(data.diasAtividade),
+        Utils.formatField(data.responsavel),
+        Utils.formatField(data.horarioInicio),
+        Utils.formatField(data.horarioTermino),
+        Utils.formatField(data.cargaHorariaTotal),
+        Utils.formatField(data.numSessoes),
+        Utils.formatField(data.publicoTotal),
+        Utils.formatField(data.publicoSessao),
+        Utils.formatField(data.perfilPublico),
+        Utils.formatField(data.faixaEtaria),
+        Utils.formatField(data.destaqueAcao),
+        Utils.formatField(data.objetivos),
+        Utils.formatField(impactoVal),
+        Utils.formatField(data.linguagemArtistica),
+        Utils.formatField(data.inclusaoDiversidade),
+        Utils.formatField(data.efemeride),
+        Utils.formatField(data.relato),
+        Utils.formatField(data.descricaoMetodologia),
+        Utils.formatField(data.pontosFortes),
+        Utils.formatField(data.pontosFracos)
       ];
-    } else if (areaUpper === "FUNDAÇÃO CASA") {
+    } else if (areaNorm === "FUNDAÇÃO CASA") {
       newRow = [
         timestamp,
-        formatField(data.divisaoRegional),
-        formatField(data.unidade),
-        formatField(contratoVal),
-        formatField(data.metaReferencia),
-        formatField(data.atividade),
-        formatField(data.anoReferencia),
-        formatField(data.mesReferencia),
-        formatField(data.responsavel),
-        formatField(data.encontrosPrevistos),
-        formatField(data.encontrosRealizados),
-        formatField(data.cargaHorariaPrevista),
-        formatField(data.cargaHorariaRealizada),
-        formatField(data.dataReposicao),
-        formatField(data.destaqueAcao),
-        formatField(data.objetivos),
-        formatField(impactoVal),
-        formatField(data.descricaoMetodologia),
-        formatField(data.engajamentoParticipacao),
-        formatField(data.pontosFortes),
-        formatField(data.pontosFracos)
+        Utils.formatField(data.divisaoRegional),
+        Utils.formatField(data.unidade),
+        Utils.formatField(contratoVal),
+        Utils.formatField(data.metaReferencia),
+        Utils.formatField(data.atividade),
+        Utils.formatField(data.anoReferencia),
+        Utils.formatField(data.mesReferencia),
+        Utils.formatField(data.responsavel),
+        Utils.formatField(data.encontrosPrevistos),
+        Utils.formatField(data.encontrosRealizados),
+        Utils.formatField(data.cargaHorariaPrevista),
+        Utils.formatField(data.cargaHorariaRealizada),
+        Utils.formatField(data.dataReposicao),
+        Utils.formatField(data.destaqueAcao),
+        Utils.formatField(data.objetivos),
+        Utils.formatField(impactoVal),
+        Utils.formatField(data.descricaoMetodologia),
+        Utils.formatField(data.engajamentoParticipacao),
+        Utils.formatField(data.pontosFortes),
+        Utils.formatField(data.pontosFracos)
       ];
-    } else if (areaUpper === "BIBLIOTECA" || areaUpper === "BIBLIOTECAS") {
+    } else if (areaNorm === "BIBLIOTECA") {
       newRow = [
         timestamp,
-        formatField(data.unidade),
-        formatField(contratoVal),
-        formatField(data.metaReferencia),
-        formatField(data.atividade),
-        formatField(data.responsavel),
-        formatField(data.dataRelatorio),
-        formatField(data.horarioInicio),
-        formatField(data.horarioTermino),
-        formatField(data.publicoTotal),
-        formatField(data.perfilPublico),
-        formatField(data.faixaEtaria),
-        formatField(data.destaqueAcao),
-        formatField(data.objetivos),
-        formatField(impactoVal),
-        formatField(data.descricaoMetodologia),
-        formatField(data.engajamentoParticipacao),
-        formatField(data.pontosFortes),
-        formatField(data.pontosFracos)
+        Utils.formatField(data.unidade),
+        Utils.formatField(contratoVal),
+        Utils.formatField(data.metaReferencia),
+        Utils.formatField(data.atividade),
+        Utils.formatField(data.responsavel),
+        Utils.formatField(data.dataRelatorio),
+        Utils.formatField(data.horarioInicio),
+        Utils.formatField(data.horarioTermino),
+        Utils.formatField(data.publicoTotal),
+        Utils.formatField(data.perfilPublico),
+        Utils.formatField(data.faixaEtaria),
+        Utils.formatField(data.destaqueAcao),
+        Utils.formatField(data.objetivos),
+        Utils.formatField(impactoVal),
+        Utils.formatField(data.descricaoMetodologia),
+        Utils.formatField(data.engajamentoParticipacao),
+        Utils.formatField(data.pontosFortes),
+        Utils.formatField(data.pontosFracos)
       ];
     }
     
@@ -448,8 +442,8 @@ function findActivityRowAndDocs(params) {
   const idxInscricao = headers.findIndex(h => h.includes("INSCRICAO"));
   const idxPresenca = headers.findIndex(h => h.includes("PRESENCA"));
 
-  const searchUnidade = params.unidade ? params.unidade.trim().toUpperCase() : "";
-  const searchAtividade = params.atividade ? params.atividade.trim().toUpperCase() : "";
+  const searchUnidade = params.unidade ? params.unidade.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+  const searchAtividade = params.atividade ? params.atividade.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
   const searchAno = params.anoReferencia ? params.anoReferencia.toString().trim() : "";
   const searchMesNorm = normalizeMonthCode(params.mesReferencia);
 
@@ -457,8 +451,8 @@ function findActivityRowAndDocs(params) {
 
   for (let i = 0; i < values.length; i++) {
     const row = values[i];
-    const rowUnidade = idxUnidade !== -1 && row[idxUnidade] ? row[idxUnidade].toString().trim().toUpperCase() : "";
-    const rowAtividade = idxAtividade !== -1 && row[idxAtividade] ? row[idxAtividade].toString().trim().toUpperCase() : "";
+    const rowUnidade = idxUnidade !== -1 && row[idxUnidade] ? row[idxUnidade].toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+    const rowAtividade = idxAtividade !== -1 && row[idxAtividade] ? row[idxAtividade].toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
     const rowAno = idxAno !== -1 && row[idxAno] ? row[idxAno].toString().trim() : "";
     const rowMesNorm = idxMes !== -1 && row[idxMes] ? normalizeMonthCode(row[idxMes]) : "";
 

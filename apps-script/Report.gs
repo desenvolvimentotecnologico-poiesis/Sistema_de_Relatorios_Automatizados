@@ -7,19 +7,18 @@
 function getTemplateFileConnection(area) {
   let templateId = "";
   let varName = "";
-  const areaStr = (area || "Pedagógico").toString();
-  const areaUpper = areaStr.trim().toUpperCase();
+  const areaNorm = Utils.normalizeAreaName(area);
   
-  if (areaUpper === "PEDAGÓGICO") {
+  if (areaNorm === "PEDAGÓGICO") {
     templateId = CONFIG.DOC_TEMPLATE_PEDAGOGICO_ID;
     varName = "DOC_TEMPLATE_PEDAGOGICO_ID";
-  } else if (areaUpper === "ARTICULAÇÃO E DIFUSÃO") {
+  } else if (areaNorm === "ARTICULAÇÃO E DIFUSÃO") {
     templateId = CONFIG.DOC_TEMPLATE_ARTICULACAO_ID;
     varName = "DOC_TEMPLATE_ARTICULACAO_ID";
-  } else if (areaUpper === "FUNDAÇÃO CASA") {
+  } else if (areaNorm === "FUNDAÇÃO CASA") {
     templateId = CONFIG.DOC_TEMPLATE_FUNDACAO_CASA_ID;
     varName = "DOC_TEMPLATE_FUNDACAO_CASA_ID";
-  } else if (areaUpper === "BIBLIOTECA" || areaUpper === "BIBLIOTECAS") {
+  } else if (areaNorm === "BIBLIOTECA") {
     templateId = CONFIG.DOC_TEMPLATE_BIBLIOTECA_ID;
     varName = "DOC_TEMPLATE_BIBLIOTECA_ID";
   } else {
@@ -42,7 +41,7 @@ function getTemplateFileConnection(area) {
 function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
   try {
     if (!data) data = {};
-    const setorUpper = data.area ? data.area.trim().toUpperCase() : "PEDAGÓGICO";
+    const setorNorm = Utils.normalizeAreaName(data.area || data.setor);
     const unidadeSigla = Utils.getUnidadeSigla(data.unidade);
     const cleanCentro = Utils.sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
     const cleanResponsavel = Utils.sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
@@ -50,10 +49,10 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     
     let documentName = "";
     
-    if (setorUpper === "PEDAGÓGICO") {
+    if (setorNorm === "PEDAGÓGICO") {
       // Padrão Pedagógico: siglaUnidade_nomeResponsavel_nomeAtividade
       documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
-    } else if (setorUpper === "ARTICULAÇÃO E DIFUSÃO") {
+    } else if (setorNorm === "ARTICULAÇÃO E DIFUSÃO") {
       // Padrão Articulação: dataDoPrimeiroDiaDaAtividade_siglaUnidade_nomeDoEvento
       let diaStr = data.diasAtividade ? String(data.diasAtividade).split(",")[0].trim() : "01";
       if (diaStr.length === 1) diaStr = "0" + diaStr;
@@ -61,11 +60,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       const anoStr = data.anoReferencia || new Date().getFullYear().toString();
       const dataFormatada = diaStr + "-" + mesStr + "-" + anoStr;
       documentName = dataFormatada + "_" + unidadeSigla + "_" + cleanAtividade;
-    } else if (setorUpper === "BIBLIOTECA" || setorUpper === "BIBLIOTECAS") {
+    } else if (setorNorm === "BIBLIOTECA") {
       // Padrão Biblioteca: dataDaAtividade_siglaUnidade_nomeAtividade_nomeResponsavel
       let dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
       documentName = dataAtiv + "_" + unidadeSigla + "_" + cleanAtividade + "_" + cleanResponsavel;
-    } else if (setorUpper === "FUNDAÇÃO CASA") {
+    } else if (setorNorm === "FUNDAÇÃO CASA") {
       // Padrão Fundação CASA: mesPorExtenso_nomeCentroAtendimento_nomeAtividade_nomeResponsavel
       const mesExt = Utils.getMonthNameExtenso(data.mesReferencia);
       documentName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_" + cleanResponsavel;
@@ -78,45 +77,39 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     const doc = DocumentApp.openById(copiedFile.getId());
     const body = doc.getBody();
     
-    const formatField = function(val) {
-      if (val === null || val === undefined) return "";
-      if (Array.isArray(val)) return val.join("; ");
-      return String(val);
-    };
+    const contratoVal = Utils.formatField(data.contrato || data.numeroContrato || "");
+    const impactoVal = Utils.formatField(data.impactoCultural || data.impactoTerritorial || "");
 
-    const contratoVal = formatField(data.contrato || data.numeroContrato || "");
-    const impactoVal = formatField(data.impactoCultural || data.impactoTerritorial || "");
-
-    body.replaceText("\\{\\{AREA\\}\\}", formatField(data.area));
-    body.replaceText("\\{\\{DIVISAO_REGIONAL\\}\\}", formatField(data.divisaoRegional).toUpperCase());
-    body.replaceText("\\{\\{CENTRO_ATENDIMENTO\\}\\}", formatField(data.unidade).toUpperCase());
-    body.replaceText("\\{\\{UNIDADE\\}\\}", formatField(data.unidade).toUpperCase());
-    body.replaceText("\\{\\{CONTRATO\\}\\}", contratoVal);
-    body.replaceText("\\{\\{NUMERO_CONTRATO\\}\\}", contratoVal);
-    body.replaceText("\\{\\{META_REFERENCIA\\}\\}", formatField(data.metaReferencia));
-    body.replaceText("\\{\\{TIPO_PEDAGOGICO\\}\\}", formatField(data.tipoPedagogico));
-    body.replaceText("\\{\\{ATIVIDADE\\}\\}", formatField(data.atividade).toUpperCase());
-    body.replaceText("\\{\\{ANO_REFERENCIA\\}\\}", formatField(data.anoReferencia));
-    body.replaceText("\\{\\{MES_REFERENCIA\\}\\}", formatField(data.mesReferencia));
-    body.replaceText("\\{\\{DIAS_ATIVIDADE\\}\\}", formatField(data.diasAtividade));
-    body.replaceText("\\{\\{RESPONSAVEL\\}\\}", formatField(data.responsavel).toUpperCase());
-    body.replaceText("\\{\\{RAZAO_SOCIAL\\}\\}", formatField(data.responsavel).toUpperCase());
-    body.replaceText("\\{\\{HORARIO_INICIO\\}\\}", formatField(data.horarioInicio));
-    body.replaceText("\\{\\{HORARIO_TERMINO\\}\\}", formatField(data.horarioTermino));
-    body.replaceText("\\{\\{ENCONTROS_PREVISTOS\\}\\}", formatField(data.encontrosPrevistos));
-    body.replaceText("\\{\\{ENCONTROS_REALIZADOS\\}\\}", formatField(data.encontrosRealizados));
-    body.replaceText("\\{\\{CARGA_HORARIA_PREVISTA\\}\\}", formatField(data.cargaHorariaPrevista));
-    body.replaceText("\\{\\{CARGA_HORARIA_REALIZADA\\}\\}", formatField(data.cargaHorariaRealizada));
-    body.replaceText("\\{\\{CARGA_HORARIA_TOTAL\\}\\}", formatField(data.cargaHorariaTotal));
-    body.replaceText("\\{\\{NUMERO_SESSOES\\}\\}", formatField(data.numSessoes));
-    body.replaceText("\\{\\{NUM_SESSOES\\}\\}", formatField(data.numSessoes));
+    Utils.safeReplaceText(body, "\\{\\{AREA\\}\\}", data.area);
+    Utils.safeReplaceText(body, "\\{\\{DIVISAO_REGIONAL\\}\\}", String(data.divisaoRegional || "").toUpperCase());
+    Utils.safeReplaceText(body, "\\{\\{CENTRO_ATENDIMENTO\\}\\}", String(data.unidade || "").toUpperCase());
+    Utils.safeReplaceText(body, "\\{\\{UNIDADE\\}\\}", String(data.unidade || "").toUpperCase());
+    Utils.safeReplaceText(body, "\\{\\{CONTRATO\\}\\}", contratoVal);
+    Utils.safeReplaceText(body, "\\{\\{NUMERO_CONTRATO\\}\\}", contratoVal);
+    Utils.safeReplaceText(body, "\\{\\{META_REFERENCIA\\}\\}", data.metaReferencia);
+    Utils.safeReplaceText(body, "\\{\\{TIPO_PEDAGOGICO\\}\\}", data.tipoPedagogico);
+    Utils.safeReplaceText(body, "\\{\\{ATIVIDADE\\}\\}", String(data.atividade || "").toUpperCase());
+    Utils.safeReplaceText(body, "\\{\\{ANO_REFERENCIA\\}\\}", data.anoReferencia);
+    Utils.safeReplaceText(body, "\\{\\{MES_REFERENCIA\\}\\}", data.mesReferencia);
+    Utils.safeReplaceText(body, "\\{\\{DIAS_ATIVIDADE\\}\\}", data.diasAtividade);
+    Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL\\}\\}", String(data.responsavel || "").toUpperCase());
+    Utils.safeReplaceText(body, "\\{\\{RAZAO_SOCIAL\\}\\}", String(data.responsavel || "").toUpperCase());
+    Utils.safeReplaceText(body, "\\{\\{HORARIO_INICIO\\}\\}", data.horarioInicio);
+    Utils.safeReplaceText(body, "\\{\\{HORARIO_TERMINO\\}\\}", data.horarioTermino);
+    Utils.safeReplaceText(body, "\\{\\{ENCONTROS_PREVISTOS\\}\\}", data.encontrosPrevistos);
+    Utils.safeReplaceText(body, "\\{\\{ENCONTROS_REALIZADOS\\}\\}", data.encontrosRealizados);
+    Utils.safeReplaceText(body, "\\{\\{CARGA_HORARIA_PREVISTA\\}\\}", data.cargaHorariaPrevista);
+    Utils.safeReplaceText(body, "\\{\\{CARGA_HORARIA_REALIZADA\\}\\}", data.cargaHorariaRealizada);
+    Utils.safeReplaceText(body, "\\{\\{CARGA_HORARIA_TOTAL\\}\\}", data.cargaHorariaTotal);
+    Utils.safeReplaceText(body, "\\{\\{NUMERO_SESSOES\\}\\}", data.numSessoes);
+    Utils.safeReplaceText(body, "\\{\\{NUM_SESSOES\\}\\}", data.numSessoes);
     
     const dateRelatorioFormatted = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio) : "";
-    body.replaceText("\\{\\{DATA_RELATORIO\\}\\}", dateRelatorioFormatted);
+    Utils.safeReplaceText(body, "\\{\\{DATA_RELATORIO\\}\\}", dateRelatorioFormatted);
     
     let diaVal = "";
-    let mesVal = formatField(data.mesReferencia);
-    let anoVal = formatField(data.anoReferencia);
+    let mesVal = Utils.formatField(data.mesReferencia);
+    let anoVal = Utils.formatField(data.anoReferencia);
     
     if (data.dataRelatorio) {
       const dateParts = String(data.dataRelatorio).split("-");
@@ -133,39 +126,39 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       }
     }
     
-    body.replaceText("\\{\\{DIA\\}\\}", diaVal);
-    body.replaceText("\\{\\{DIA_RELATORIO\\}\\}", diaVal);
-    body.replaceText("\\{\\{MES\\}\\}", mesVal);
-    body.replaceText("\\{\\{MES_RELATORIO\\}\\}", mesVal);
-    body.replaceText("\\{\\{ANO\\}\\}", anoVal);
-    body.replaceText("\\{\\{ANO_RELATORIO\\}\\}", anoVal);
+    Utils.safeReplaceText(body, "\\{\\{DIA\\}\\}", diaVal);
+    Utils.safeReplaceText(body, "\\{\\{DIA_RELATORIO\\}\\}", diaVal);
+    Utils.safeReplaceText(body, "\\{\\{MES\\}\\}", mesVal);
+    Utils.safeReplaceText(body, "\\{\\{MES_RELATORIO\\}\\}", mesVal);
+    Utils.safeReplaceText(body, "\\{\\{ANO\\}\\}", anoVal);
+    Utils.safeReplaceText(body, "\\{\\{ANO_RELATORIO\\}\\}", anoVal);
 
     const dateFormatted = data.dataReposicao ? Utils.formatDateToBR(data.dataReposicao) : "";
-    body.replaceText("\\{\\{DATA_REPOSICAO\\}\\}", dateFormatted);
+    Utils.safeReplaceText(body, "\\{\\{DATA_REPOSICAO\\}\\}", dateFormatted);
     
-    body.replaceText("\\{\\{PUBLICO_TOTAL\\}\\}", formatField(data.publicoTotal));
-    body.replaceText("\\{\\{PUBLICO_SESSAO\\}\\}", formatField(data.publicoSessao));
-    body.replaceText("\\{\\{PERFIL_PUBLICO\\}\\}", formatField(data.perfilPublico));
-    body.replaceText("\\{\\{FAIXA_ETARIA\\}\\}", formatField(data.faixaEtaria));
-    body.replaceText("\\{\\{DESTAQUE_ACAO\\}\\}", formatField(data.destaqueAcao));
-    body.replaceText("\\{\\{OBJETIVOS\\}\\}", formatField(data.objetivos));
-    body.replaceText("\\{\\{IMPACTO_CULTURAL\\}\\}", impactoVal);
-    body.replaceText("\\{\\{IMPACTO_TERRITORIAL\\}\\}", impactoVal);
-    body.replaceText("\\{\\{LINGUAGEM_ARTISTICA\\}\\}", formatField(data.linguagemArtistica));
-    body.replaceText("\\{\\{INCLUSAO_DIVERSIDADE\\}\\}", formatField(data.inclusaoDiversidade));
-    body.replaceText("\\{\\{EFEMERIDE\\}\\}", formatField(data.efemeride));
-    body.replaceText("\\{\\{RELATO\\}\\}", formatField(data.relato));
-    body.replaceText("\\{\\{DESCRICAO_METODOLOGIA\\}\\}", formatField(data.descricaoMetodologia));
-    body.replaceText("\\{\\{ENGAJAMENTO_PARTICIPACAO\\}\\}", formatField(data.engajamentoParticipacao));
-    body.replaceText("\\{\\{PONTOS_FORTES\\}\\}", formatField(data.pontosFortes));
-    body.replaceText("\\{\\{PONTOS_FRACOS\\}\\}", formatField(data.pontosFracos));
+    Utils.safeReplaceText(body, "\\{\\{PUBLICO_TOTAL\\}\\}", data.publicoTotal);
+    Utils.safeReplaceText(body, "\\{\\{PUBLICO_SESSAO\\}\\}", data.publicoSessao);
+    Utils.safeReplaceText(body, "\\{\\{PERFIL_PUBLICO\\}\\}", data.perfilPublico);
+    Utils.safeReplaceText(body, "\\{\\{FAIXA_ETARIA\\}\\}", data.faixaEtaria);
+    Utils.safeReplaceText(body, "\\{\\{DESTAQUE_ACAO\\}\\}", data.destaqueAcao);
+    Utils.safeReplaceText(body, "\\{\\{OBJETIVOS\\}\\}", data.objetivos);
+    Utils.safeReplaceText(body, "\\{\\{IMPACTO_CULTURAL\\}\\}", impactoVal);
+    Utils.safeReplaceText(body, "\\{\\{IMPACTO_TERRITORIAL\\}\\}", impactoVal);
+    Utils.safeReplaceText(body, "\\{\\{LINGUAGEM_ARTISTICA\\}\\}", data.linguagemArtistica);
+    Utils.safeReplaceText(body, "\\{\\{INCLUSAO_DIVERSIDADE\\}\\}", data.inclusaoDiversidade);
+    Utils.safeReplaceText(body, "\\{\\{EFEMERIDE\\}\\}", data.efemeride);
+    Utils.safeReplaceText(body, "\\{\\{RELATO\\}\\}", data.relato);
+    Utils.safeReplaceText(body, "\\{\\{DESCRICAO_METODOLOGIA\\}\\}", data.descricaoMetodologia);
+    Utils.safeReplaceText(body, "\\{\\{ENGAJAMENTO_PARTICIPACAO\\}\\}", data.engajamentoParticipacao);
+    Utils.safeReplaceText(body, "\\{\\{PONTOS_FORTES\\}\\}", data.pontosFortes);
+    Utils.safeReplaceText(body, "\\{\\{PONTOS_FRACOS\\}\\}", data.pontosFracos);
     
     // Substituição dinâmica da Declaração de Responsabilidade com Carimbo de Aceite Eletrônico
     const timestampBR = Utils.getFormattedTimestampExtensoBR(new Date());
-    const responsavelNome = formatField(data.responsavel).toUpperCase();
+    const responsavelNome = Utils.formatField(data.responsavel).toUpperCase();
     
     let declaracaoTexto = "";
-    if (setorUpper === "FUNDAÇÃO CASA") {
+    if (setorNorm === "FUNDAÇÃO CASA") {
       declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +
         "1. Declaração de Conformidade com o ECA, Proteção de Imagem e Normas Internas:\n\n" +
         "Declaro que executei as atividades em conformidade com o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990), observando integralmente as normas de segurança, disciplina, acesso e funcionamento da unidade da Fundação CASA, bem como as orientações da CONTRATANTE, não tendo praticado qualquer conduta incompatível com as regras institucionais.\n\n" +
@@ -185,11 +178,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         "Data/Hora do Registro: " + timestampBR + " (Horário Oficial de Brasília)";
     }
     
-    body.replaceText("\\{\\{DECLARACAO_RESPONSABILIDADE\\}\\}", declaracaoTexto);
-    body.replaceText("\\{\\{DECLARACAO\\}\\}", declaracaoTexto);
-    body.replaceText("\\{\\{TERMOS\\}\\}", declaracaoTexto);
+    Utils.safeReplaceText(body, "\\{\\{DECLARACAO_RESPONSABILIDADE\\}\\}", declaracaoTexto);
+    Utils.safeReplaceText(body, "\\{\\{DECLARACAO\\}\\}", declaracaoTexto);
+    Utils.safeReplaceText(body, "\\{\\{TERMOS\\}\\}", declaracaoTexto);
 
-    // Aplica negrito exclusivamente nos títulos e rótulos (mantendo o corpo dos parágrafos em texto normal)
+    // Aplica negrito exclusivamente nos títulos e rótulos
     setBoldForRange(body, "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL");
     setBoldForRange(body, "1. Declaração de Conformidade com o ECA, Proteção de Imagem e Normas Internas:");
     setBoldForRange(body, "2. Declaração de Veracidade e Prestação de Contas:");
@@ -218,8 +211,8 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
         }
       }
       
-      if (setorUpper === "FUNDAÇÃO CASA" || setorUpper === "FUNDACAO CASA") {
-        // Monta a Tabela Dinâmica do Plano de Atividades no Google Docs (Idêntica ao modelo planoDeAtividade.png)
+      if (setorNorm === "FUNDAÇÃO CASA") {
+        // Monta a Tabela Dinâmica do Plano de Atividades no Google Docs
         parentParagraph.setText("Plano de Atividades do Período:");
         if (data.planoTabela && Array.isArray(data.planoTabela) && data.planoTabela.length > 0) {
           try {
@@ -228,7 +221,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
             table.setBorderWidth(1);
             table.setBorderColor("#C084FC");
 
-            // Cabeçalho da Tabela (DATA, UNIDADE, HORÁRIO, DESCRIÇÃO DAS ATIVIDADES)
+            // Cabeçalho da Tabela
             const headerRow = table.appendTableRow();
             headerRow.appendTableCell("DATA");
             headerRow.appendTableCell("UNIDADE");
@@ -252,7 +245,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
               text.setFontSize(10);
             }
 
-            // Define larguras proporcionais (DATA e HORÁRIO compactos, DESCRIÇÃO DAS ATIVIDADES ampla)
+            // Define larguras proporcionais
             try {
               table.setColumnWidth(0, 75);  // DATA
               table.setColumnWidth(1, 95);  // UNIDADE
@@ -356,10 +349,10 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
                   const origHeight = img.getHeight();
                   const targetWidth = 220;
                   
-                  if (origWidth > targetWidth) {
+                  if (origWidth > 0 && origHeight > 0 && origWidth > targetWidth) {
                     const ratio = targetWidth / origWidth;
                     img.setWidth(targetWidth);
-                    img.setHeight(origHeight * ratio);
+                    img.setHeight(Math.round(origHeight * ratio));
                   }
                   imgIdx++;
                 }
