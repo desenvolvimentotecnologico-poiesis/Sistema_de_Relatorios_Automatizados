@@ -561,10 +561,20 @@ function uploadSingleFile(fileObj, folder, payload) {
   let base64 = fileObj.base64Data || "";
   if (base64.includes(",")) base64 = base64.split(",")[1];
   const bytes = Utilities.base64Decode(base64);
-  const blob = Utilities.newBlob(bytes, fileObj.mimeType, fileObj.name);
-  const file = folder.createFile(blob);
-  const sigla = Utils.getUnidadeSigla(payload.unidade);
-  const cleanAtv = Utils.sanitizeFileName(payload.atividade).toUpperCase().replace(/\s+/g, "_");
-  file.setName(sigla + "_" + fileObj.docType + "_" + cleanAtv + "_" + fileObj.name);
+  const fileName = fileObj.name || "Documento.pdf";
+  
+  // Remove versão anterior com o mesmo nome para prevenir arquivos duplicados
+  const existingFiles = folder.getFilesByName(fileName);
+  while (existingFiles.hasNext()) {
+    const oldFile = existingFiles.next();
+    try {
+      oldFile.setTrashed(true);
+    } catch (e) {
+      Logger.log("Aviso ao remover duplicado no Drive: " + e.message);
+    }
+  }
+
+  const blob = Utilities.newBlob(bytes, fileObj.mimeType || "application/pdf", fileName);
+  folder.createFile(blob);
 }
 

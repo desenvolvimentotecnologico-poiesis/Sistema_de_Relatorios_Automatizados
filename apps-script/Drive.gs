@@ -100,9 +100,10 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     let mesStr = getFormattedMonthName(mesNum);
 
     const setorNorm = Utils.normalizeAreaName(setor);
+    const areaFolderName = Utils.getAreaFolderName(setor);
     const cleanAtividadeName = Utils.sanitizeFileName(atividade ? atividade.trim() : "ATIVIDADE").toUpperCase().replace(/\s+/g, "_");
     
-    const setorFolder = getOrCreateSubFolder(fabricasFolder, setor ? setor.trim() : "PEDAGÓGICO");
+    const setorFolder = getOrCreateSubFolder(fabricasFolder, areaFolderName);
     const anoFolder = getOrCreateSubFolder(setorFolder, anoStr);
     
     let parentFolder;
@@ -159,7 +160,7 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
       return 0;
     }
     
-    const setorUpper = metadata.setor ? metadata.setor.toString().trim().toUpperCase() : "";
+    const setorNorm = Utils.normalizeAreaName(metadata.setor);
     
     for (let i = 0; i < files.length; i++) {
       const fileData = files[i];
@@ -168,16 +169,13 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
         base64 = base64.split(",")[1];
       }
       const bytes = Utilities.base64Decode(base64);
-      const mime = fileData.mimeType || (setorUpper === "FUNDAÇÃO CASA" ? "application/pdf" : "image/jpeg");
-      const blob = Utilities.newBlob(bytes, mime, fileData.name || "arquivo");
-      
-      const createdFile = targetFolder.createFile(blob);
+      const mime = fileData.mimeType || (setorNorm === "FUNDAÇÃO CASA" ? "application/pdf" : "image/jpeg");
       
       const parts = (fileData.name || "arquivo.jpg").split(".");
       const ext = parts.length > 1 ? parts.pop().toLowerCase() : (mime === "application/pdf" ? "pdf" : "jpg");
       
       let cleanFileName = "";
-      if (setorUpper === "FUNDAÇÃO CASA") {
+      if (setorNorm === "FUNDAÇÃO CASA") {
         // Formato Fundação CASA: [MesPorExtenso]_[NomeCentroAtendimento]_[NomeAtividade]_PlanoDeAtividade.pdf
         const mesExt = Utils.getMonthNameExtenso(metadata.mesReferencia);
         const cleanCentro = Utils.sanitizeFileName(metadata.unidade || "").toUpperCase().replace(/\s+/g, "_");
@@ -192,7 +190,19 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
         cleanFileName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
       }
       
-      createdFile.setName(cleanFileName);
+      // Remove versão antiga com o mesmo nome para evitar duplicidade de arquivos
+      const existingFiles = targetFolder.getFilesByName(cleanFileName);
+      while (existingFiles.hasNext()) {
+        const oldFile = existingFiles.next();
+        try {
+          oldFile.setTrashed(true);
+        } catch (e) {
+          Logger.log("Aviso ao remover duplicado no Drive: " + e.message);
+        }
+      }
+
+      const blob = Utilities.newBlob(bytes, mime, cleanFileName);
+      targetFolder.createFile(blob);
     }
     
     return files.length;

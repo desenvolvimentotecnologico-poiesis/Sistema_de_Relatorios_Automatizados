@@ -125,6 +125,20 @@ var Utils = {
   },
 
   /**
+   * Retorna o nome de pasta padronizado para o Google Drive para cada área:
+   * Pedagógico; Bibliotecas; Articulação e Difusão; Fundação Casa
+   */
+  getAreaFolderName: function(areaStr) {
+    if (!areaStr) return "Pedagógico";
+    var norm = String(areaStr).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (norm.includes("PEDAGOGICO")) return "Pedagógico";
+    if (norm.includes("ARTICULACAO") || norm.includes("DIFUSAO")) return "Articulação e Difusão";
+    if (norm.includes("CASA")) return "Fundação Casa";
+    if (norm.includes("BIBLIOTECA")) return "Bibliotecas";
+    return String(areaStr).trim();
+  },
+
+  /**
    * Sanitiza chaves para o CacheService do Apps Script (máximo 250 caracteres, apenas ASCII)
    */
   sanitizeCacheKey: function(keyStr) {

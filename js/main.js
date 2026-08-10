@@ -576,6 +576,9 @@ function setupFormSubmission() {
     formDataObj.files = uploadedFiles;
     currentSubmittedData = formDataObj;
 
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
     showOverlay("Salvando dados da atividade na planilha e arquivos no Google Drive...", 35, "Etapa 1 de 2: Registrando Informações", true);
 
     callBackendAPI(
@@ -585,6 +588,14 @@ function setupFormSubmission() {
       onStage1Error
     );
   });
+}
+
+function enableFormSubmitBtn() {
+  const form = document.getElementById("reportForm");
+  if (form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 function extractFormData(form) {
@@ -705,6 +716,7 @@ function extractFormData(form) {
 function onStage1Success(response) {
   if (!response || !response.success) {
     hideOverlay();
+    enableFormSubmitBtn();
     alert("Erro na Etapa 1: " + (response ? response.message : "Resposta nula"));
     return;
   }
@@ -729,11 +741,13 @@ function onStage1Success(response) {
 
 function onStage1Error(errMessage) {
   hideOverlay();
+  enableFormSubmitBtn();
   alert("Erro de conexão na Etapa 1: " + errMessage);
 }
 
 function onStage2Success(response) {
   hideOverlay();
+  enableFormSubmitBtn();
   if (response && response.success) {
     showSuccessCard(response.pdfUrl, response.docUrl);
   } else {
@@ -743,6 +757,7 @@ function onStage2Success(response) {
 
 function onStage2Error(errMessage) {
   hideOverlay();
+  enableFormSubmitBtn();
   alert("Aviso: Os dados foram salvos no Sheets, mas a compilação do PDF falhou na Etapa 2: " + errMessage);
 }
 
