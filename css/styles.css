@@ -1727,7 +1727,7 @@ select:disabled {
 }
 
 /* ==========================================================================
-   7. ESTILOS DE AUTENTICAÇÃO E ÁREA RESTRITA (SECRETARIA / REGISTROS)
+   7. ESTILOS DE AUTENTICAÇÃO E ÁREA RESTRITA (REGISTROS E ACESSOS)
    ========================================================================== */
 .header-auth-area {
     display: flex;

@@ -214,7 +214,7 @@ relatorio-poiesis/
 │   ├── biblioteca.html             # Módulo Bibliotecas
 │   ├── fundacao-casa.html          # Módulo Fundação CASA (Cards de Encontros da Seção 03)
 │   ├── pedagogico.html             # Módulo Pedagógico (Meta 'Cursos de Férias' e Tipo 'Curso de Férias')
-│   └── secretaria.html             # Módulo de Acesso Restrito / Secretaria (Firebase Auth + Cursos de Férias)
+│   └── area-restrita.html          # Módulo de Acesso Restrito (Firebase Auth + Cursos de Férias)
 ├── js/
 │   ├── api.js                      # HTTP Client (Fetch API Wrapper com tratamento de erros, escapeHtml e retentativas)
 │   ├── auth.js                     # Gerenciador de Autenticação Firebase e Lista Branca
