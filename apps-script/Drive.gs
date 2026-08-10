@@ -117,8 +117,11 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
       const mesFolder = getOrCreateSubFolder(unidadeFolder, mesStr);
       
       parentFolder = mesFolder;
-      if (setorNorm === "PEDAGÓGICO" && tipoPedagogico) {
-        parentFolder = getOrCreateSubFolder(mesFolder, tipoPedagogico.trim());
+      if (setorNorm === "PEDAGÓGICO") {
+        const cleanTipo = Utils.normalizeTipoPedagogicoFolderName(tipoPedagogico);
+        if (cleanTipo) {
+          parentFolder = getOrCreateSubFolder(mesFolder, cleanTipo);
+        }
       }
     }
     

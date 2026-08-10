@@ -140,6 +140,20 @@ var Utils = {
   },
 
   /**
+   * Normaliza os nomes de pastas para o tipo pedagógico no Google Drive:
+   * Trilha; Ateliê; Núcleo de Moda; Curso de Férias
+   */
+  normalizeTipoPedagogicoFolderName: function(tipoStr) {
+    if (!tipoStr) return "";
+    var norm = String(tipoStr).trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (norm.includes("ferias")) return "Curso de Férias";
+    if (norm.includes("trilha")) return "Trilha";
+    if (norm.includes("atelie")) return "Ateliê";
+    if (norm.includes("moda")) return "Núcleo de Moda";
+    return String(tipoStr).trim();
+  },
+
+  /**
    * Sanitiza chaves para o CacheService do Apps Script (máximo 250 caracteres, apenas ASCII)
    */
   sanitizeCacheKey: function(keyStr) {

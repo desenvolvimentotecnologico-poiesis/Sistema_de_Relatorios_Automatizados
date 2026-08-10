@@ -416,7 +416,7 @@ function checkEmailInWhitelist(email) {
 }
 
 /**
- * Localiza a atividade na planilha de respostas e verifica presença de documentos
+ * Normaliza a representação do mês para o código numérico de 2 dígitos ("01" a "12")
  */
 function normalizeMonthCode(mes) {
   if (!mes) return "";
