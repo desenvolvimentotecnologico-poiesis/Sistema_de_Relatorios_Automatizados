@@ -167,6 +167,18 @@ function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registr
     if (!formData) formData = {};
     formData.area = formData.area || area || formData.setor || "Pedagógico";
     formData.setor = formData.setor || formData.area;
+
+    const areaStr = formData.area || "N/D";
+    const unidadeStr = formData.unidade || formData.centroAtendimento || "N/D";
+    const atividadeStr = formData.atividade || "N/D";
+    const respStr = formData.responsavel || "N/D";
+
+    if (!relatorioFolderId || typeof relatorioFolderId !== "string" || relatorioFolderId.trim() === "") {
+      const logDetails = "ID da pasta 'Relatório' ausente ou inválido [Área: " + areaStr + " | Unidade: " + unidadeStr + " | Atividade: " + atividadeStr + " | Resp: " + respStr + " | Aba: " + (sheetName || "N/D") + " | Linha: " + (rowNumber || "N/D") + "]";
+      Utils.logError("Code.generatePdfReportAsync", logDetails);
+      return Utils.createResponse(false, logDetails);
+    }
+    
     const relatorioFolder = DriveApp.getFolderById(relatorioFolderId);
     
     // Constrói o Google Docs, substitui placeholders, insere imagens e exporta em PDF
@@ -177,8 +189,12 @@ function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registr
       docUrl: reportUrls.docUrl
     });
   } catch (error) {
-    Logger.log("Erro na Etapa 2 (generatePdfReportAsync): " + error.toString());
-    Utils.logError("Code.generatePdfReportAsync", error);
-    return Utils.createResponse(false, "Falha na compilação em segundo plano: " + error.message);
+    const areaStr = (formData && formData.area) || area || "N/D";
+    const unidadeStr = (formData && (formData.unidade || formData.centroAtendimento)) || "N/D";
+    const logDetails = "[Área: " + areaStr + " | Unidade: " + unidadeStr + " | Aba: " + (sheetName || "N/D") + " | Linha: " + (rowNumber || "N/D") + "] Erro: " + error.toString();
+    
+    Logger.log("Erro na Etapa 2 (generatePdfReportAsync): " + logDetails);
+    Utils.logError("Code.generatePdfReportAsync", logDetails);
+    return Utils.createResponse(false, "Falha na compilação em segundo plano " + logDetails);
   }
 }

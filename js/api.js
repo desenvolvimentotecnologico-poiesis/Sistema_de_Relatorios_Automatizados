@@ -40,9 +40,10 @@ function callBackendAPI(action, payload, onSuccess, onError) {
   }
 
   const controller = new AbortController();
+  const timeoutMs = 300000; // Timeout estendido para 5 minutos (300.000 ms) para prevenir timeouts em conexões lentas
   const timeoutId = setTimeout(() => {
     controller.abort();
-  }, 50000); // Timeout de segurança de 50 segundos
+  }, timeoutMs);
 
   fetch(GAS_API_URL, {
     method: "POST",
@@ -67,7 +68,7 @@ function callBackendAPI(action, payload, onSuccess, onError) {
       clearTimeout(timeoutId);
       console.error("Erro de rede/API:", err);
       if (err.name === "AbortError") {
-        if (onError) onError("Tempo limite excedido (50s). O servidor demorou muito para responder. Verifique sua conexão e tente novamente.");
+        if (onError) onError("Tempo limite excedido (5 min). O servidor demorou muito para responder. Verifique sua conexão e tente novamente.");
       } else {
         if (onError) onError("Erro de conexão ao comunicar com o servidor. Verifique sua conexão à internet.");
       }
