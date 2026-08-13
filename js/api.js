@@ -6,7 +6,7 @@
 
 // URLs públicas dos dois ambientes do Google Apps Script
 const GAS_API_URL_HOMOLOG = "https://script.google.com/macros/s/AKfycby2BFuc7DSyLLz_VIK1OVstF1qknXLbd4Plc4e1CKF9mNR5uEzdCyxccQ9sMcqI04PF/exec";
-const GAS_API_URL_PROD    = "https://script.google.com/macros/s/AKfycbxm5BpWN_4qsrBVuCfx020zW8s1SZHfdoRYVRN9EMnuY9VJ6afl4lYz39fk2_s7q16p4g/exec";
+const GAS_API_URL_PROD = "https://script.google.com/macros/s/AKfycbxm5BpWN_4qsrBVuCfx020zW8s1SZHfdoRYVRN9EMnuY9VJ6afl4lYz39fk2_s7q16p4g/exec";
 
 /**
  * Retorna dinamicamente a URL do Backend com base no Hostname do navegador
@@ -16,9 +16,9 @@ function getActiveBackendUrl() {
   const host = (window.location.hostname || "").toLowerCase();
 
   // Em localhost, IP local ou qualquer subdomínio contendo "homolog", usa o backend de HOMOLOGAÇÃO
-  const isHomologation = host.includes("localhost") || 
-                         host.includes("127.0.0.1") || 
-                         host.includes("homolog");
+  const isHomologation = host.includes("localhost") ||
+    host.includes("127.0.0.1") ||
+    host.includes("homolog");
 
   // No domínio principal da Vercel (sistema-de-relatorios-automatizados.vercel.app) ou domínio oficial, usa PRODUÇÃO
   return isHomologation ? GAS_API_URL_HOMOLOG : GAS_API_URL_PROD;
@@ -57,10 +57,10 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
 
   // Ações de gravação/compilação não devem re-tentar automaticamente para impedir duplicação de dados no servidor
   const isWriteAction = action === "submitForm" || action === "uploadComplementaryDocs" || action === "generatePdfReportAsync";
-  const maxRetries = isWriteAction ? 0 : 2; 
-  const timeoutMs = isWriteAction ? 90000 : 35000; // 90s para gravação/PDF, 35s para consultas leves
+  const maxRetries = isWriteAction ? 0 : 2;
 
   const controller = new AbortController();
+  const timeoutMs = 300000; // Timeout estendido para 5 minutos (300.000 ms) para prevenir timeouts em conexões lentas
   const timeoutId = setTimeout(() => {
     controller.abort();
   }, timeoutMs);
@@ -96,12 +96,9 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
     })
     .catch(err => {
       clearTimeout(timeoutId);
-      console.warn("Oscilação de rede ou inicialização a frio (Tentativa " + (retryCount + 1) + "):", err);
-      if (retryCount < maxRetries) {
-        console.warn("Re-tentando conexão em 1.5s...");
-        setTimeout(() => {
-          callBackendAPI(action, payload, onSuccess, onError, retryCount + 1);
-        }, 1500);
+      console.error("Erro de rede/API:", err);
+      if (err.name === "AbortError") {
+        if (onError) onError("Tempo limite excedido (5 min). O servidor demorou muito para responder. Verifique sua conexão e tente novamente.");
       } else {
         if (err.name === "AbortError") {
           if (onError) onError("O servidor demorou para responder. Por favor, verifique se a operação foi concluída.");

@@ -176,11 +176,18 @@ function submitForm(formData) {
 function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registroFolderId, area, formData) {
   try {
     if (!formData) formData = {};
-    formData.area = Utils.normalizeAreaName(formData.area || area || formData.setor || "Pedagógico");
-    formData.setor = formData.area;
-    
-    if (!relatorioFolderId) {
-      throw new Error("ID da pasta de destino do relatório (relatorioFolderId) não foi fornecido.");
+    formData.area = formData.area || area || formData.setor || "Pedagógico";
+    formData.setor = formData.setor || formData.area;
+
+    const areaStr = formData.area || "N/D";
+    const unidadeStr = formData.unidade || formData.centroAtendimento || "N/D";
+    const atividadeStr = formData.atividade || "N/D";
+    const respStr = formData.responsavel || "N/D";
+
+    if (!relatorioFolderId || typeof relatorioFolderId !== "string" || relatorioFolderId.trim() === "") {
+      const logDetails = "ID da pasta 'Relatório' ausente ou inválido [Área: " + areaStr + " | Unidade: " + unidadeStr + " | Atividade: " + atividadeStr + " | Resp: " + respStr + " | Aba: " + (sheetName || "N/D") + " | Linha: " + (rowNumber || "N/D") + "]";
+      Utils.logError("Code.generatePdfReportAsync", logDetails);
+      return Utils.createResponse(false, logDetails);
     }
     
     const relatorioFolder = DriveApp.getFolderById(relatorioFolderId);
@@ -193,9 +200,13 @@ function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registr
       docUrl: reportUrls.docUrl
     });
   } catch (error) {
-    Logger.log("Erro na Etapa 2 (generatePdfReportAsync): " + error.toString());
-    Utils.logError("Code.generatePdfReportAsync", error);
-    return Utils.createResponse(false, "Falha na compilação em segundo plano: " + error.message);
+    const areaStr = (formData && formData.area) || area || "N/D";
+    const unidadeStr = (formData && (formData.unidade || formData.centroAtendimento)) || "N/D";
+    const logDetails = "[Área: " + areaStr + " | Unidade: " + unidadeStr + " | Aba: " + (sheetName || "N/D") + " | Linha: " + (rowNumber || "N/D") + "] Erro: " + error.toString();
+    
+    Logger.log("Erro na Etapa 2 (generatePdfReportAsync): " + logDetails);
+    Utils.logError("Code.generatePdfReportAsync", logDetails);
+    return Utils.createResponse(false, "Falha na compilação em segundo plano " + logDetails);
   }
 }
 

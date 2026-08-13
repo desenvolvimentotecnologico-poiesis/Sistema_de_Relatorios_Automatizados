@@ -7,6 +7,7 @@
 let dropDownHierarchy = {};
 let uploadedFiles = [];
 let currentSubmittedData = null;
+let isSubmitting = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   initializeDropdowns();
@@ -40,8 +41,14 @@ function showOverlay(message, percent = 10, title = "Processando Formulário..."
 }
 
 function hideOverlay() {
+  isSubmitting = false;
   const overlay = document.getElementById("loadingOverlay");
   if (overlay) overlay.classList.add("hidden");
+
+  const submitBtns = document.querySelectorAll('button[type="submit"]');
+  submitBtns.forEach(btn => {
+    btn.disabled = false;
+  });
 }
 
 /* 1. CARREGAMENTO E POPULAÇÃO DE DROPDOWNS */
@@ -60,7 +67,7 @@ function onDropdownDataReceived(response) {
 
   if (unidadeSelect) {
     unidadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade...</option>';
-    
+
     Object.keys(hierarchy).forEach(key => {
       if (key !== "Fundação Casa") {
         const opt = document.createElement("option");
@@ -391,32 +398,32 @@ async function handleFiles(files) {
     return;
   }
 
-    showOverlay("Otimizando e compactando mídias para envio...");
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+  showOverlay("Otimizando e compactando mídias para envio...");
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
 
-      if (file.size > MAX_FILE_SIZE) {
-        alert(`Arquivo Ignorado: "${file.name}" excede o limite máximo de 15MB por mídia.`);
-        continue;
-      }
-
-      try {
-        if (file.type.startsWith("image/")) {
-          const compressed = await ImageCompressor.compressFile(file);
-          uploadedFiles.push(compressed);
-        } else {
-          const base64Data = await readAsBase64(file);
-          uploadedFiles.push({
-            name: file.name,
-            size: file.size,
-            mimeType: file.type || "video/mp4",
-            base64Data: base64Data
-          });
-        }
-      } catch (err) {
-        console.warn("Falha ao processar mídia:", file.name, err);
-      }
+    if (file.size > MAX_FILE_SIZE) {
+      alert(`Arquivo Ignorado: "${file.name}" excede o limite máximo de 15MB por mídia.`);
+      continue;
     }
+
+    try {
+      if (file.type.startsWith("image/")) {
+        const compressed = await ImageCompressor.compressFile(file);
+        uploadedFiles.push(compressed);
+      } else {
+        const base64Data = await readAsBase64(file);
+        uploadedFiles.push({
+          name: file.name,
+          size: file.size,
+          mimeType: file.type || "video/mp4",
+          base64Data: base64Data
+        });
+      }
+    } catch (err) {
+      console.warn("Falha ao processar mídia:", file.name, err);
+    }
+  }
   hideOverlay();
   renderPreviewGrid();
 }
@@ -525,6 +532,12 @@ function setupFormSubmission() {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
+    if (isSubmitting) return;
+    isSubmitting = true;
+
+    const submitBtns = form.querySelectorAll('button[type="submit"]');
+    submitBtns.forEach(btn => btn.disabled = true);
+
     const isCasaForm = form.getAttribute("data-theme") === "fundacaocasa";
 
     // Validação estrita da Seção de Evidências (Arquivos / Tabela)
@@ -543,15 +556,18 @@ function setupFormSubmission() {
 
       if (!hasContent) {
         alert("Atenção: Por favor, preencha a data e a descrição de pelo menos 1 encontro no Plano de Atividades.");
+        hideOverlay();
         return;
       }
     } else {
       if (uploadedFiles.length < 3) {
         alert(`Atenção: É necessário anexar no mínimo 3 fotos ou vídeos como evidência da atividade (atualmente você anexou ${uploadedFiles.length}).`);
+        hideOverlay();
         return;
       }
       if (uploadedFiles.length > 5) {
         alert(`Atenção: É permitido anexar no máximo 5 fotos ou vídeos como evidência da atividade (atualmente você anexou ${uploadedFiles.length}).`);
+        hideOverlay();
         return;
       }
     }
@@ -569,12 +585,14 @@ function setupFormSubmission() {
       if (minLen > 0 && valLen < minLen) {
         alert(`O campo "${fieldName}" requer no mínimo ${minLen} caracteres (atualmente possui ${valLen}).`);
         field.focus();
+        hideOverlay();
         return;
       }
 
       if (maxLen > 0 && valLen > maxLen) {
         alert(`O campo "${fieldName}" permite no máximo ${maxLen} caracteres (atualmente possui ${valLen}).`);
         field.focus();
+        hideOverlay();
         return;
       }
     }
@@ -758,14 +776,13 @@ function onStage2Success(response) {
   if (response && response.success) {
     showSuccessCard(response.pdfUrl, response.docUrl);
   } else {
-    alert("O formulário foi salvo, mas houve uma divergência ao compilar o PDF: " + (response ? response.message : "Erro desconhecido"));
+    alert("O formulário foi salvo no Sheets/Drive, mas houve uma divergência ao compilar o PDF. Por favor, entre em contato com a equipe através do e-mail: sistemasdegestao@poiesis.org.br\n\nDetalhes: " + (response ? response.message : "Erro desconhecido"));
   }
 }
 
 function onStage2Error(errMessage) {
   hideOverlay();
-  enableFormSubmitBtn();
-  alert("Aviso: Os dados foram salvos no Sheets, mas a compilação do PDF falhou na Etapa 2: " + errMessage);
+  alert("Aviso: Os dados foram salvos no Sheets, mas a compilação do PDF falhou na Etapa 2. Por favor, entre em contato através do e-mail: sistemasdegestao@poiesis.org.br\n\nDetalhes: " + errMessage);
 }
 
 function showSuccessCard(pdfUrl, docUrl) {
@@ -821,10 +838,10 @@ function setupPlanoModoToggle() {
 }
 
 function getSelectedUnidadeName() {
-  const selUnidade = document.getElementById("centroCasaSelect") || 
-                     document.getElementById("unidadeSelect") || 
-                     document.getElementById("unidade") || 
-                     document.getElementById("centroAtendimento");
+  const selUnidade = document.getElementById("centroCasaSelect") ||
+    document.getElementById("unidadeSelect") ||
+    document.getElementById("unidade") ||
+    document.getElementById("centroAtendimento");
   if (selUnidade && selUnidade.value) {
     return selUnidade.value;
   }

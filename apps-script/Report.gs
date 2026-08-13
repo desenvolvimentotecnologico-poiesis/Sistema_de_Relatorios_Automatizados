@@ -339,24 +339,35 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
               const row = table.appendTableRow();
               for (let c = 0; c < 2; c++) {
                 const cell = row.appendTableCell();
-                cell.setPaddingTop(6).setPaddingBottom(6).setPaddingLeft(6).setPaddingRight(6);
+                cell.setPaddingTop(4).setPaddingBottom(4).setPaddingLeft(4).setPaddingRight(4);
                 if (imgIdx < imageBlobs.length) {
                   const p = cell.getChild(0).asParagraph();
                   p.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
                   const img = p.appendInlineImage(imageBlobs[imgIdx]);
                   
-                  const origWidth = img.getWidth();
-                  const origHeight = img.getHeight();
-                  const targetWidth = 220;
+                  const origWidth = img.getWidth() || 1;
+                  const origHeight = img.getHeight() || 1;
+                  const targetWidth = 210;
+                  const maxHeight = 160;
                   
-                  if (origWidth > 0 && origHeight > 0 && origWidth > targetWidth) {
-                    const ratio = targetWidth / origWidth;
-                    img.setWidth(targetWidth);
-                    img.setHeight(Math.round(origHeight * ratio));
+                  let newWidth = targetWidth;
+                  let newHeight = (targetWidth / origWidth) * origHeight;
+                  
+                  if (newHeight > maxHeight) {
+                    newWidth = (maxHeight / origHeight) * origWidth;
+                    newHeight = maxHeight;
                   }
+                  
+                  img.setWidth(Math.round(newWidth));
+                  img.setHeight(Math.round(newHeight));
                   imgIdx++;
                 }
               }
+            }
+
+            // Remove a linha vazia inicial gerada automaticamente pelo DocumentApp
+            if (table.getNumRows() > tableRows) {
+              table.removeRow(0);
             }
             imageCount = imageBlobs.length;
           } catch (imgTableErr) {
