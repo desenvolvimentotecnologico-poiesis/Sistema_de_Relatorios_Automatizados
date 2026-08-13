@@ -69,7 +69,7 @@
         <p>Este formulário tem como objetivo registrar, monitorar e sistematizar as ações desenvolvidas pela área de
           Articulação e Difusão das Fábricas de Cultura, contemplando aspectos relacionados ao planejamento, à execução,
           ao alcance, à participação dos públicos, à articulação territorial e à difusão cultural.</p>
-        <p style="margin-top: 0.65rem;">As informações reunidas subsidiam o acompanhamento institucional das atividades,
+        <p>As informações reunidas subsidiam o acompanhamento institucional das atividades,
           a consolidação de indicadores, a avaliação dos resultados, a prestação de contas e a construção da memória
           institucional do Programa, contribuindo para o aprimoramento das ações e para o fortalecimento das relações
           com os públicos, artistas, coletivos, parceiros e territórios atendidos.</p>
@@ -557,7 +557,7 @@
                   <p><strong>Arraste os arquivos de mídia aqui</strong> ou clique para buscar no computador</p>
                 </div>
                 <span class="helper-text-input">Obrigatório: mínimo 3 e máximo 5 arquivos (fotos/vídeos compactados automaticamente)</span>
-                <input type="file" id="fileInput" multiple accept="image/*,video/*" style="display:none">
+                <input type="file" id="fileInput" multiple accept="image/*,video/*" class="hidden">
               </div>
               <div id="previewGrid" class="preview-grid"></div>
             </div>
@@ -576,9 +576,9 @@
               correspondem às atividades efetivamente realizadas no período indicado e estão aptas a subsidiar o
               acompanhamento institucional e a prestação de contas.</p>
 
-            <div class="divider-line" style="margin: 0.5rem 0 0.85rem 0;"></div>
+            <div class="divider-line"></div>
 
-            <label class="checkbox-label" style="font-weight: 700;">
+            <label class="checkbox-label">
               <input type="checkbox" id="concordoTermos" required>
               <span>Li e estou de acordo com a declaração acima. <span class="required">*</span></span>
             </label>
@@ -623,6 +623,7 @@
   </footer>
 
   <script src="../js/api.js"></script>
+  <script src="../js/shared-helpers.js"></script>
   <script src="../js/image-compressor.js"></script>
   <script src="../js/main.js"></script>
 </body>

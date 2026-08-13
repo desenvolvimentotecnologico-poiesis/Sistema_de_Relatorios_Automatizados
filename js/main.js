@@ -104,12 +104,6 @@ function onDropdownDataReceived(response) {
   }
 }
 
-function isJardimSaoLuis(unidadeName) {
-  if (!unidadeName) return false;
-  const norm = unidadeName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-  return norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ") || norm.includes("SAO LUIS") || norm.includes("SAO LUIZ") || norm.includes("JSL");
-}
-
 function updateTipoPedagogicoOptions() {
   const unidadeSelect = document.getElementById("unidadeSelect");
   const tipoPedagogicoSelect = document.getElementById("tipoPedagogicoSelect");
@@ -147,31 +141,6 @@ function updateTipoPedagogicoOptions() {
 function onDropdownDataError(errMessage) {
   hideOverlay();
   alert("Aviso de Conexão: " + errMessage);
-}
-
-function matchActivityType(itemType, selectedTipo) {
-  if (!itemType || typeof itemType !== "string") return false;
-
-  const typeNorm = itemType.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const selectedNorm = selectedTipo.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  if (selectedNorm.includes("ferias")) {
-    return typeNorm.includes("ferias");
-  }
-
-  if (selectedNorm.includes("moda")) {
-    return typeNorm.includes("moda") || (typeNorm.includes("nucleo") && !typeNorm.includes("trilha") && !typeNorm.includes("atelie") && !typeNorm.includes("ferias"));
-  }
-
-  if (selectedNorm.includes("trilha")) {
-    return typeNorm.includes("trilha") && !typeNorm.includes("moda") && !typeNorm.includes("ferias");
-  }
-
-  if (selectedNorm.includes("atelie")) {
-    return typeNorm.includes("atelie") && !typeNorm.includes("moda") && !typeNorm.includes("ferias");
-  }
-
-  return typeNorm.includes(selectedNorm) || selectedNorm.includes(typeNorm);
 }
 
 function updateAtividadeDropdown() {
@@ -798,43 +767,6 @@ function showSuccessCard(pdfUrl, docUrl) {
       pdfBtn.target = "_blank";
     }
   }
-}
-
-/* GERENCIAMENTO DA ALTERNÂNCIA E TABELA DINÂMICA DO PLANO DE ATIVIDADES */
-function setupPlanoModoToggle() {
-  const form = document.getElementById("reportForm");
-  if (!form || form.getAttribute("data-theme") !== "fundacaocasa") return;
-
-  const modoRadios = document.getElementsByName("modoPlanoAtividade");
-  const cardTabela = document.getElementById("cardModoTabela");
-  const cardPdf = document.getElementById("cardModoPdf");
-  const secaoTabela = document.getElementById("secaoPlanoTabela");
-  const secaoPdf = document.getElementById("secaoPlanoPdf");
-
-  function updateModoView() {
-    let selectedModo = "tabela";
-    modoRadios.forEach(r => {
-      if (r.checked) selectedModo = r.value;
-    });
-
-    if (selectedModo === "tabela") {
-      if (cardTabela) cardTabela.classList.add("selected");
-      if (cardPdf) cardPdf.classList.remove("selected");
-      if (secaoTabela) secaoTabela.classList.remove("hidden");
-      if (secaoPdf) secaoPdf.classList.add("hidden");
-    } else {
-      if (cardPdf) cardPdf.classList.add("selected");
-      if (cardTabela) cardTabela.classList.remove("selected");
-      if (secaoPdf) secaoPdf.classList.remove("hidden");
-      if (secaoTabela) secaoTabela.classList.add("hidden");
-    }
-  }
-
-  modoRadios.forEach(r => r.addEventListener("change", updateModoView));
-  updateModoView();
-
-  // Inicializa a tabela dinâmica interativa
-  initDynamicPlanoTable();
 }
 
 function getSelectedUnidadeName() {

@@ -387,8 +387,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     }
     
     doc.saveAndClose();
+    // Aguarda a propagação do save do Google Docs antes de exportar o PDF: o getAs("application/pdf")
+    // logo abaixo pode ler uma versão desatualizada do documento (sem as últimas substituições/imagens)
+    // se executado imediatamente após saveAndClose(), devido à latência de sincronização do Docs.
     Utilities.sleep(1500);
-    
+
     const pdfBlob = copiedFile.getAs("application/pdf");
     pdfBlob.setName(documentName + ".pdf");
     const pdfFile = targetFolder.createFile(pdfBlob);

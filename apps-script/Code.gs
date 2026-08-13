@@ -113,7 +113,25 @@ function submitForm(formData) {
     if (formData.area !== "PEDAGÓGICO") {
       formData.atividade = formData.atividade.toString().toUpperCase().trim();
     }
-    
+
+    // Validação de segurança das mídias anexadas (espelha as regras já aplicadas no front-end,
+    // protegendo contra chamadas diretas à API que ignorem a validação client-side)
+    if (formData.area !== "FUNDAÇÃO CASA") {
+      const fileCount = formData.files ? formData.files.length : 0;
+      if (fileCount < 3 || fileCount > 5) {
+        return Utils.createResponse(false, "É obrigatório anexar entre 3 e 5 fotos ou vídeos como evidência da atividade (recebido: " + fileCount + ").");
+      }
+      const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
+      for (let i = 0; i < formData.files.length; i++) {
+        const f = formData.files[i];
+        const base64Only = (f.base64Data || "").split(",").pop();
+        const approxBytes = Math.floor(base64Only.length * 0.75);
+        if (approxBytes > MAX_FILE_SIZE_BYTES) {
+          return Utils.createResponse(false, "O arquivo \"" + (f.name || "anexo") + "\" excede o limite máximo de 15MB por mídia.");
+        }
+      }
+    }
+
     // 1. Cria a estrutura hierárquica de pastas no Google Drive
     const folders = getOrCreateFolderStructure(
       formData.setor,

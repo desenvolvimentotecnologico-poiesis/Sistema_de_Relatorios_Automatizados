@@ -413,6 +413,10 @@ body {
     color: var(--txt-muted);
 }
 
+.form-presentation-card p + p {
+    margin-top: 0.65rem;
+}
+
 /* Indicador de Área Selecionada no Topo */
 .form-header-badge {
     display: flex;
@@ -841,6 +845,14 @@ select:disabled {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
+}
+
+.declaration-casa-box .divider-line {
+    margin: 0.5rem 0 0.85rem 0;
+}
+
+.declaration-casa-box .checkbox-label {
+    font-weight: 700;
 }
 
 .declaration-paragraph {
@@ -1744,6 +1756,10 @@ select:disabled {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .btn-restricted-access:hover {

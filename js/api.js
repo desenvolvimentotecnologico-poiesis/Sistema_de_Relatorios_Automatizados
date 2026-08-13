@@ -100,11 +100,7 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
       if (err.name === "AbortError") {
         if (onError) onError("Tempo limite excedido (5 min). O servidor demorou muito para responder. Verifique sua conexão e tente novamente.");
       } else {
-        if (err.name === "AbortError") {
-          if (onError) onError("O servidor demorou para responder. Por favor, verifique se a operação foi concluída.");
-        } else {
-          if (onError) onError("Falha de conexão ao comunicar com o servidor: " + (err.message || "Verifique sua conexão com a internet."));
-        }
+        if (onError) onError("Falha de conexão ao comunicar com o servidor: " + (err.message || "Verifique sua conexão com a internet."));
       }
     });
 }

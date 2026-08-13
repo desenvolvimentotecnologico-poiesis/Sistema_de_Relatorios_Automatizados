@@ -565,7 +565,6 @@ function saveComplementaryDocsAndRow(payload) {
       lastCol += 4;
     }
 
-    const activityInfo = findActivityRowAndDocs(payload);
     const timestamp = Utils.getFormattedTimestampBR(new Date());
 
     if (activityInfo.exists) {

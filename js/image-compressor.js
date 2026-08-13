@@ -1,18 +1,20 @@
 /**
  * COMPRESSOR DE IMAGENS EM NAVEGADOR (OTIMIZADO PARA MÓBILE)
- * Redimensiona fotos da câmera para uma resolução máxima otimizada (1600px)
- * e aplica compressão JPEG a 80%, reduzindo o tamanho de ~6MB para ~250KB por foto.
+ * Redimensiona fotos da câmera para uma resolução máxima otimizada (1000px)
+ * e aplica compressão JPEG a 75%, reduzindo o tamanho de ~1-8MB para ~50-60KB por foto
+ * sem impacto perceptível no tempo de processamento (a etapa é limitada pela rede/API,
+ * não pela compressão em si, que roda em poucas dezenas de milissegundos via Canvas API).
  */
 
 const ImageCompressor = {
   /**
    * Converte e compacta um File de imagem para um objeto Base64
    * @param {File} file Arquivo de imagem obtido via input ou drag-drop
-   * @param {number} maxWidth Resolução máxima de largura/altura (default 1600)
-   * @param {number} quality Qualidade do JPEG entre 0 e 1 (default 0.8)
+   * @param {number} maxWidth Resolução máxima de largura/altura (default 1000)
+   * @param {number} quality Qualidade do JPEG entre 0 e 1 (default 0.75)
    * @returns {Promise<Object>} Promessa contendo { name, mimeType, base64Data }
    */
-  compressFile: function(file, maxWidth = 1000, quality = 0.7) {
+  compressFile: function(file, maxWidth = 1000, quality = 0.75) {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith("image/")) {
         reject(new Error("O arquivo selecionado não é uma imagem válida."));
