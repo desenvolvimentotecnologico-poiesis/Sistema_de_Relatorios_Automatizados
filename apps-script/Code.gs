@@ -121,14 +121,32 @@ function submitForm(formData) {
       if (fileCount < 3 || fileCount > 5) {
         return Utils.createResponse(false, "É obrigatório anexar entre 3 e 5 fotos ou vídeos como evidência da atividade (recebido: " + fileCount + ").");
       }
-      const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
+
+      const MAX_IMAGE_SIZE_BYTES = 15 * 1024 * 1024;
+      // Vídeo não é comprimido (ao contrário da foto), então tem um teto menor para evitar
+      // payloads Base64 gigantes que travam/estouram o timeout do envio.
+      const MAX_VIDEO_SIZE_BYTES = 8 * 1024 * 1024;
+      const MAX_VIDEOS_PER_SUBMISSION = 2;
+
+      let videoCount = 0;
       for (let i = 0; i < formData.files.length; i++) {
         const f = formData.files[i];
+        const isVideo = f.mimeType && f.mimeType.toString().startsWith("video/");
         const base64Only = (f.base64Data || "").split(",").pop();
         const approxBytes = Math.floor(base64Only.length * 0.75);
-        if (approxBytes > MAX_FILE_SIZE_BYTES) {
+
+        if (isVideo) {
+          videoCount++;
+          if (approxBytes > MAX_VIDEO_SIZE_BYTES) {
+            return Utils.createResponse(false, "O vídeo \"" + (f.name || "anexo") + "\" excede o limite máximo de 8MB. Grave um vídeo mais curto ou em qualidade menor.");
+          }
+        } else if (approxBytes > MAX_IMAGE_SIZE_BYTES) {
           return Utils.createResponse(false, "O arquivo \"" + (f.name || "anexo") + "\" excede o limite máximo de 15MB por mídia.");
         }
+      }
+
+      if (videoCount > MAX_VIDEOS_PER_SUBMISSION) {
+        return Utils.createResponse(false, "É permitido anexar no máximo " + MAX_VIDEOS_PER_SUBMISSION + " vídeo(s) por envio (recebido: " + videoCount + "). As demais evidências devem ser fotos.");
       }
     }
 

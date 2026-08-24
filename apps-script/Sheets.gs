@@ -307,41 +307,107 @@ function saveResponseRow(data) {
       ];
     }
     
-    // Deduplicação preventiva: se a submissão foi enviada recentemente para a mesma Unidade e Atividade, reutiliza a linha
-    const currentLastRow = sheet.getLastRow();
-    if (currentLastRow >= 2) {
-      const checkCount = Math.min(currentLastRow - 1, 5);
-      const recentRows = sheet.getRange(currentLastRow - checkCount + 1, 1, checkCount, sheet.getLastColumn()).getValues();
-
-      const searchUnidade = String(data.unidade || "").trim().toUpperCase();
-      const searchAtividade = String(data.atividade || "").trim().toUpperCase();
-
-      for (let r = recentRows.length - 1; r >= 0; r--) {
-        const rowData = recentRows[r];
-        const rUnidade = String(rowData[1] || "").trim().toUpperCase();
-        const rAtividade = String(rowData[4] || rowData[5] || rowData[3] || "").trim().toUpperCase();
-
-        if (searchUnidade && rUnidade === searchUnidade && searchAtividade && (rAtividade === searchAtividade || rAtividade.includes(searchAtividade))) {
-          const matchRowNumber = currentLastRow - checkCount + 1 + r;
-          Logger.log("Reutilizando linha existente para evitar duplicação no Sheets: linha " + matchRowNumber);
-          return {
-            sheetName: config.sheetName,
-            rowNumber: matchRowNumber
-          };
-        }
-      }
+    // Antiduplicação estrita: é proibido existir mais de um envio para a mesma Unidade + Atividade
+    // + Período de referência (Ano/Mês, ou Data quando a área não usa Ano/Mês). Se já existir um
+    // envio anterior (ex.: reenvio manual após timeout de rede), a linha existente é sobrescrita
+    // com os dados mais recentes ao invés de gerar uma linha duplicada.
+    //
+    // A checagem + gravação roda dentro de um LockService: sem isso, dois envios quase simultâneos
+    // para a mesma atividade poderiam ambos concluir a checagem antes que o primeiro terminasse de
+    // gravar, e a proteção acima seria contornada por essa corrida (race condition).
+    const lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+    } catch (lockErr) {
+      throw new Error("O sistema está processando outro envio no momento. Aguarde alguns segundos e tente novamente.");
     }
 
-    sheet.appendRow(newRow);
-    
-    return {
-      sheetName: config.sheetName,
-      rowNumber: sheet.getLastRow()
-    };
+    try {
+      const duplicateRowNumber = findDuplicateActivityRow(sheet, data);
+      if (duplicateRowNumber) {
+        sheet.getRange(duplicateRowNumber, 1, 1, newRow.length).setValues([newRow]);
+        Logger.log("Envio duplicado detectado para a mesma atividade. Linha " + duplicateRowNumber + " sobrescrita com os dados mais recentes.");
+        return {
+          sheetName: config.sheetName,
+          rowNumber: duplicateRowNumber
+        };
+      }
+
+      sheet.appendRow(newRow);
+
+      return {
+        sheetName: config.sheetName,
+        rowNumber: sheet.getLastRow()
+      };
+    } finally {
+      lock.releaseLock();
+    }
   } catch (error) {
     Logger.log("Erro ao gravar dados na planilha: " + error.toString());
     throw new Error("Falha ao salvar respostas: " + error.message);
   }
+}
+
+/**
+ * Localiza uma linha já existente na planilha de respostas para a mesma Unidade + Atividade
+ * + Período de referência (Ano/Mês, ou Data da Atividade quando a área não usa Ano/Mês).
+ * Usado para impedir o envio duplicado da mesma atividade (ex.: reenvio após timeout de rede).
+ */
+function findDuplicateActivityRow(sheet, data) {
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) return null;
+
+  const normalize = Utils.normalizeText;
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(normalize);
+
+  const idxUnidade = headers.findIndex(h => h.includes("UNIDADE"));
+  const idxAtividade = headers.findIndex(h => h.includes("NOME DA ATIVIDADE"));
+  const idxAno = headers.findIndex(h => h.includes("ANO DE REFERENCIA"));
+  const idxMes = headers.findIndex(h => h.includes("MES DE REFERENCIA"));
+  const idxData = headers.findIndex(h => h.includes("DATA DA ATIVIDADE"));
+
+  if (idxUnidade === -1 || idxAtividade === -1) return null;
+
+  const searchUnidade = normalize(data.unidade);
+  const searchAtividade = normalize(data.atividade);
+  const searchAno = data.anoReferencia ? data.anoReferencia.toString().trim() : "";
+  const searchMes = normalizeMonthCode(data.mesReferencia);
+  const searchData = normalize(data.dataRelatorio);
+
+  if (!searchUnidade || !searchAtividade) return null;
+
+  const usesPeriodo = idxAno !== -1 && idxMes !== -1;
+  const usesData = !usesPeriodo && idxData !== -1;
+
+  if (usesPeriodo && !searchAno && !searchMes) return null;
+  if (usesData && !searchData) return null;
+
+  const values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const rowUnidade = normalize(row[idxUnidade]);
+    const rowAtividade = normalize(row[idxAtividade]);
+    if (rowUnidade !== searchUnidade || rowAtividade !== searchAtividade) continue;
+
+    if (usesPeriodo) {
+      const rowAno = row[idxAno] ? row[idxAno].toString().trim() : "";
+      const rowMes = normalizeMonthCode(row[idxMes]);
+      if (rowAno === searchAno && rowMes === searchMes) {
+        return i + 2;
+      }
+    } else if (usesData) {
+      const rowData = normalize(row[idxData]);
+      if (rowData === searchData) {
+        return i + 2;
+      }
+    } else {
+      return i + 2;
+    }
+  }
+  return null;
 }
 
 /**
@@ -363,53 +429,30 @@ function checkEmailInWhitelist(email) {
   if (!email) return null;
   const cleanEmail = email.trim().toLowerCase();
 
-  const cacheKey = "whitelist_users_all";
-  const cache = CacheService.getScriptCache();
-  let usersJson = cache.get(cacheKey);
-  let usersList = null;
+  // Consulta sempre direto na planilha (sem CacheService) para que qualquer alteração de
+  // permissão/unidade feita pela equipe de Sistemas reflita imediatamente em todo carregamento
+  // de página, sem depender da expiração de um cache local.
+  const ss = getUsersSpreadsheetConnection();
+  const sheet = ss.getSheetByName("Responsaveis_Autorizados") || ss.getSheetByName("Usuários") || ss.getSheets()[0];
 
-  if (usersJson) {
-    try {
-      usersList = JSON.parse(usersJson);
-    } catch (e) {
-      usersList = null;
-    }
-  }
+  if (!sheet) return null;
 
-  if (!usersList) {
-    const ss = getUsersSpreadsheetConnection();
-    let sheet = ss.getSheetByName("Responsaveis_Autorizados") || ss.getSheetByName("Usuários") || ss.getSheets()[0];
-    
-    if (!sheet) return null;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
 
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2) return null;
+  const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
-    const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-    usersList = [];
-
-    for (let i = 0; i < values.length; i++) {
-      const rowEmail = values[i][0] ? values[i][0].toString().trim().toLowerCase() : "";
-      if (rowEmail) {
-        usersList.push({
-          email: rowEmail,
-          nome: values[i][1] ? values[i][1].toString().trim() : "Responsável",
-          unidade: values[i][2] ? values[i][2].toString().trim() : "Todas",
-          setor: values[i][3] ? values[i][3].toString().trim() : "Pedagógico"
-        });
-      }
-    }
-
-    try {
-      cache.put(cacheKey, JSON.stringify(usersList), 600); // Guarda em cache por 10 minutos
-    } catch (e) {
-      Logger.log("Erro ao salvar lista branca no CacheService: " + e.message);
-    }
-  }
-
-  for (let i = 0; i < usersList.length; i++) {
-    if (usersList[i].email === cleanEmail) {
-      return usersList[i];
+  for (let i = 0; i < values.length; i++) {
+    const rowEmail = values[i][0] ? values[i][0].toString().trim().toLowerCase() : "";
+    if (rowEmail === cleanEmail) {
+      const unidadeRaw = values[i][2] ? values[i][2].toString().trim() : "Todas";
+      return {
+        email: rowEmail,
+        nome: values[i][1] ? values[i][1].toString().trim() : "Responsável",
+        unidade: unidadeRaw || "Todas",
+        unidades: Utils.parseUnidadesList(unidadeRaw),
+        setor: values[i][3] ? values[i][3].toString().trim() : "Pedagógico"
+      };
     }
   }
   return null;
@@ -502,9 +545,41 @@ function findActivityRowAndDocs(params) {
 }
 
 /**
+ * Revalida no backend o que a Área Restrita já checa no front-end: o e-mail precisa constar
+ * na Lista Branca e a unidade informada no envio precisa estar entre as unidades liberadas para
+ * esse e-mail (ou o e-mail ter acesso "Todas"). Sem isso, uma chamada direta à API (a URL do
+ * Apps Script é pública, visível em js/api.js) poderia contornar completamente a trava de
+ * permissão de unidade e enviar documentos em nome de qualquer e-mail para qualquer unidade.
+ */
+function authorizeComplementaryDocsUpload(payload) {
+  const email = payload && payload.userEmail ? payload.userEmail.toString().trim().toLowerCase() : "";
+  if (!email) {
+    throw new Error("Acesso não autorizado: e-mail do responsável não informado.");
+  }
+
+  const authorizedUser = checkEmailInWhitelist(email);
+  if (!authorizedUser) {
+    throw new Error("Acesso não autorizado: e-mail não consta na lista de responsáveis autorizados.");
+  }
+
+  const unidadesPermitidas = authorizedUser.unidades || Utils.parseUnidadesList(authorizedUser.unidade);
+  const acessoTotal = unidadesPermitidas.some(u => Utils.normalizeText(u) === "TODAS");
+
+  if (!acessoTotal) {
+    const unidadeAlvo = Utils.normalizeText(payload.unidade);
+    const isAllowed = unidadesPermitidas.some(u => Utils.normalizeText(u) === unidadeAlvo);
+    if (!unidadeAlvo || !isAllowed) {
+      throw new Error("Acesso não autorizado: este e-mail não tem permissão para enviar documentos para a unidade '" + (payload.unidade || "N/D") + "'.");
+    }
+  }
+}
+
+/**
  * Grava documentos no Drive e atualiza colunas de controle na planilha
  */
 function saveComplementaryDocsAndRow(payload) {
+  authorizeComplementaryDocsUpload(payload);
+
   const activityInfo = findActivityRowAndDocs(payload);
   if (!activityInfo.exists) {
     throw new Error("Atividade não localizada nos registros pedagógicos deste mês/ano.");
@@ -586,17 +661,8 @@ function uploadSingleFile(fileObj, folder, payload) {
   if (base64.includes(",")) base64 = base64.split(",")[1];
   const bytes = Utilities.base64Decode(base64);
   const fileName = fileObj.name || "Documento.pdf";
-  
-  // Remove versão anterior com o mesmo nome para prevenir arquivos duplicados
-  const existingFiles = folder.getFilesByName(fileName);
-  while (existingFiles.hasNext()) {
-    const oldFile = existingFiles.next();
-    try {
-      oldFile.setTrashed(true);
-    } catch (e) {
-      Logger.log("Aviso ao remover duplicado no Drive: " + e.message);
-    }
-  }
+
+  Utils.removeExistingFilesByName(folder, fileName);
 
   const blob = Utilities.newBlob(bytes, fileObj.mimeType || "application/pdf", fileName);
   folder.createFile(blob);

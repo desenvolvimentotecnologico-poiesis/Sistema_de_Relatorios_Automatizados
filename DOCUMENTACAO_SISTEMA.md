@@ -111,7 +111,8 @@ Toda vez que uma atividade é registrada, o sistema cria (ou reaproveita) a segu
 - **Onde alterar**: Abra a **Planilha de Listas Institucionais** do Google Sheets.
 - Acesse a aba chamada **`Responsaveis_Autorizados`**.
 - Para adicionar alguém: inclua o e-mail corporativo da pessoa (coluna A), Nome (coluna B), Unidade (coluna C) e Setor (coluna D).
-- Para remover o acesso de alguém: exclua a linha do e-mail da pessoa. A alteração tem efeito imediato no próximo login.
+- **Coluna C (Unidade) — liberando uma ou mais unidades**: informe o nome exato de uma unidade (ex.: `Diadema`) para liberar upload apenas para ela; separe várias unidades por vírgula ou ponto-e-vírgula (ex.: `Diadema, Heliópolis, Osasco`) para liberar upload para essa pessoa em mais de uma unidade; ou use `Todas` para acesso irrestrito a todas as unidades.
+- Para remover o acesso de alguém: exclua a linha do e-mail da pessoa. A alteração tem efeito imediato no próximo carregamento da página/login — a consulta a esta planilha nunca usa cache, sempre lê o dado mais recente.
 
 ### E. O que fazer se alterar o código no Google Apps Script?
 Toda vez que o arquivo `Code.gs`, `Report.gs`, `Drive.gs` ou `Sheets.gs` for alterado no editor do Google Apps Script:

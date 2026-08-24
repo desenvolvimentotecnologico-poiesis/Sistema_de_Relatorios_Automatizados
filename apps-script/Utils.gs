@@ -180,6 +180,72 @@ var Utils = {
   },
 
   /**
+   * Normaliza texto para comparação (maiúsculas, sem acentos, sem espaços nas pontas).
+   * Usado para comparar nomes de unidades/atividades vindos de fontes distintas (planilhas, payloads).
+   */
+  normalizeText: function(str) {
+    if (!str) return "";
+    return str.toString().trim().toUpperCase().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
+  },
+
+  /**
+   * Remove do Drive qualquer arquivo existente com o mesmo nome antes de gravar uma nova versão,
+   * evitando duplicidade quando o mesmo relatório/anexo é reenviado (ex.: retentativa após timeout)
+   */
+  removeExistingFilesByName: function(folder, fileName) {
+    if (!folder || !fileName) return;
+    try {
+      var existingFiles = folder.getFilesByName(fileName);
+      while (existingFiles.hasNext()) {
+        var oldFile = existingFiles.next();
+        try {
+          oldFile.setTrashed(true);
+        } catch (e) {
+          Logger.log("Aviso ao remover duplicado no Drive ('" + fileName + "'): " + e.message);
+        }
+      }
+    } catch (e) {
+      Logger.log("Erro ao buscar arquivos duplicados ('" + fileName + "'): " + e.message);
+    }
+  },
+
+  /**
+   * Remove todos os arquivos de uma pasta do Drive (preservando subpastas).
+   * Usado para garantir que um reenvio da mesma atividade substitua por completo
+   * o lote de mídias anterior, ao invés de duplicá-lo.
+   */
+  clearFolderFiles: function(folder) {
+    if (!folder) return;
+    try {
+      var files = folder.getFiles();
+      while (files.hasNext()) {
+        var file = files.next();
+        try {
+          file.setTrashed(true);
+        } catch (e) {
+          Logger.log("Aviso ao limpar pasta antes do reenvio: " + e.message);
+        }
+      }
+    } catch (e) {
+      Logger.log("Erro ao limpar arquivos da pasta: " + e.message);
+    }
+  },
+
+  /**
+   * Converte a coluna "Unidade" da Lista Branca em um array de unidades liberadas para upload.
+   * Aceita múltiplas unidades separadas por vírgula ou ponto-e-vírgula (ex.: "Diadema, Heliópolis"),
+   * ou o valor "Todas" para acesso irrestrito a todas as unidades.
+   */
+  parseUnidadesList: function(unidadeStr) {
+    var raw = (unidadeStr || "").toString().trim();
+    if (!raw) return ["Todas"];
+    var parts = raw.split(/[,;]/).map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+    if (parts.length === 0) return ["Todas"];
+    var hasTodas = parts.some(function(p) { return p.toUpperCase() === "TODAS"; });
+    return hasTodas ? ["Todas"] : parts;
+  },
+
+  /**
    * Cria respostas padrão em formato JSON estruturado
    */
   createResponse: function(success, message, data) {

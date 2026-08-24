@@ -359,7 +359,11 @@ async function handleFiles(files) {
   const isCasaForm = form && form.getAttribute("data-theme") === "fundacaocasa";
   if (isCasaForm) return;
 
-  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB em bytes
+  const MAX_IMAGE_SIZE = 15 * 1024 * 1024; // 15MB em bytes
+  // Vídeo não passa por compressão (ao contrário da foto, que cai para ~50-60KB via ImageCompressor),
+  // então o teto é bem menor: evita payloads Base64 gigantes que travam/estouram o timeout do envio.
+  const MAX_VIDEO_SIZE = 8 * 1024 * 1024; // 8MB em bytes
+  const MAX_VIDEOS_PER_SUBMISSION = 2;
 
   // Formulários das demais áreas (Pedagógico, Articulação, Biblioteca): mínimo 3, máximo 5 mídias
   if (uploadedFiles.length + files.length > 5) {
@@ -367,11 +371,23 @@ async function handleFiles(files) {
     return;
   }
 
+  let videoCount = uploadedFiles.filter(f => f.mimeType && f.mimeType.startsWith("video/")).length;
+
   showOverlay("Otimizando e compactando mídias para envio...");
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    const isVideo = file.type.startsWith("video/");
 
-    if (file.size > MAX_FILE_SIZE) {
+    if (isVideo) {
+      if (videoCount >= MAX_VIDEOS_PER_SUBMISSION) {
+        alert(`Arquivo Ignorado: "${file.name}" — é permitido anexar no máximo ${MAX_VIDEOS_PER_SUBMISSION} vídeo(s) por envio. As demais evidências devem ser fotos.`);
+        continue;
+      }
+      if (file.size > MAX_VIDEO_SIZE) {
+        alert(`Arquivo Ignorado: "${file.name}" excede o limite máximo de 8MB por vídeo. Grave um vídeo mais curto ou em qualidade menor.`);
+        continue;
+      }
+    } else if (file.size > MAX_IMAGE_SIZE) {
       alert(`Arquivo Ignorado: "${file.name}" excede o limite máximo de 15MB por mídia.`);
       continue;
     }
@@ -388,6 +404,7 @@ async function handleFiles(files) {
           mimeType: file.type || "video/mp4",
           base64Data: base64Data
         });
+        if (isVideo) videoCount++;
       }
     } catch (err) {
       console.warn("Falha ao processar mídia:", file.name, err);

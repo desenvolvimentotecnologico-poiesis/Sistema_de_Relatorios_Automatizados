@@ -4,6 +4,11 @@
  * quanto na Area Restrita, extraidas para evitar duplicacao e divergencia futura.
  */
 
+function normalizeText(str) {
+  if (!str) return "";
+  return str.toString().trim().toUpperCase().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
+}
+
 function isJardimSaoLuis(unidadeName) {
   if (!unidadeName) return false;
   const norm = unidadeName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();

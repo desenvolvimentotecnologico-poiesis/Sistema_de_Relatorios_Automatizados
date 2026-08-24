@@ -164,7 +164,12 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
     }
     
     const setorNorm = Utils.normalizeAreaName(metadata.setor);
-    
+
+    // Limpa a pasta antes de gravar o novo lote: garante que um reenvio da mesma atividade
+    // (ex.: retentativa manual após timeout de rede) substitua por completo as mídias do envio
+    // anterior, ao invés de duplicá-las ou deixar sobras de um lote com mais/menos arquivos.
+    Utils.clearFolderFiles(targetFolder);
+
     for (let i = 0; i < files.length; i++) {
       const fileData = files[i];
       let base64 = fileData.base64Data || "";
@@ -193,17 +198,6 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
         cleanFileName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
       }
       
-      // Remove versão antiga com o mesmo nome para evitar duplicidade de arquivos
-      const existingFiles = targetFolder.getFilesByName(cleanFileName);
-      while (existingFiles.hasNext()) {
-        const oldFile = existingFiles.next();
-        try {
-          oldFile.setTrashed(true);
-        } catch (e) {
-          Logger.log("Aviso ao remover duplicado no Drive: " + e.message);
-        }
-      }
-
       const blob = Utilities.newBlob(bytes, mime, cleanFileName);
       targetFolder.createFile(blob);
     }

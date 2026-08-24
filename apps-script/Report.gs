@@ -72,6 +72,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
     }
     
+    // Remove uma eventual versão anterior do relatório (Docs) desta mesma atividade antes de
+    // gerar a nova cópia, evitando arquivos duplicados quando a compilação é reenviada
+    // (ex.: retentativa manual após timeout de rede).
+    Utils.removeExistingFilesByName(targetFolder, documentName);
+
     const templateFile = getTemplateFileConnection(data.area || data.setor);
     const copiedFile = templateFile.makeCopy(documentName, targetFolder);
     const doc = DocumentApp.openById(copiedFile.getId());
@@ -392,8 +397,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     // se executado imediatamente após saveAndClose(), devido à latência de sincronização do Docs.
     Utilities.sleep(1500);
 
+    const pdfFileName = documentName + ".pdf";
+    Utils.removeExistingFilesByName(targetFolder, pdfFileName);
+
     const pdfBlob = copiedFile.getAs("application/pdf");
-    pdfBlob.setName(documentName + ".pdf");
+    pdfBlob.setName(pdfFileName);
     const pdfFile = targetFolder.createFile(pdfBlob);
     
     copiedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);

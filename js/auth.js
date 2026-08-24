@@ -186,7 +186,8 @@ function displayAuthenticatedView(profile) {
 }
 
 /**
- * Popula a lista de unidades na tela restrita
+ * Popula a lista de unidades na tela restrita, restringindo as opções às unidades
+ * liberadas para o responsável logado (uma ou várias, conforme a planilha de acesso)
  */
 function populateRestrictedUnidades(profile) {
   const unidadeSelect = document.getElementById("restritoUnidade");
@@ -194,17 +195,29 @@ function populateRestrictedUnidades(profile) {
 
   unidadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade...</option>';
 
+  const unidadesPermitidas = Array.isArray(profile.unidades) && profile.unidades.length > 0
+    ? profile.unidades
+    : (profile.unidade ? [profile.unidade] : ["Todas"]);
+
+  const acessoTotal = unidadesPermitidas.some(u => normalizeText(u) === "TODAS");
+
+  const allowedKeys = [];
+
   Object.keys(restrictedHierarchy).forEach(key => {
-    if (key !== "Fundação Casa") {
-      const opt = document.createElement("option");
-      opt.value = key;
-      opt.textContent = key;
-      unidadeSelect.appendChild(opt);
-    }
+    if (key === "Fundação Casa") return;
+
+    const isAllowed = acessoTotal || unidadesPermitidas.some(u => normalizeText(u) === normalizeText(key));
+    if (!isAllowed) return;
+
+    allowedKeys.push(key);
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = key;
+    unidadeSelect.appendChild(opt);
   });
 
-  if (profile.unidade && profile.unidade.toLowerCase() !== "todas") {
-    unidadeSelect.value = profile.unidade;
+  if (!acessoTotal && allowedKeys.length === 1) {
+    unidadeSelect.value = allowedKeys[0];
     unidadeSelect.disabled = true;
   } else {
     unidadeSelect.disabled = false;
