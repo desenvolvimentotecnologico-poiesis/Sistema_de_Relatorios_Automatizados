@@ -528,20 +528,55 @@ function setupFormSubmission() {
 
     // Validação estrita da Seção de Evidências (Arquivos / Tabela)
     if (isCasaForm) {
-      // Validação dos Cards do Plano de Atividades
+      // Validação dos Cards do Plano de Atividades: um encontro com qualquer campo preenchido
+      // precisa ter Data, Horário de Início, Horário de Término e Descrição todos preenchidos,
+      // para não gerar linhas incompletas ("---") no relatório final. Cards totalmente vazios
+      // (sobra dos encontros padrão não utilizados) são ignorados, não bloqueiam o envio.
       const container = document.getElementById("tabelaEncontrosBody");
-      const cards = container ? container.querySelectorAll(".encontro-card, tr") : [];
-      let hasContent = false;
-      cards.forEach(card => {
+      const cards = container ? Array.from(container.querySelectorAll(".encontro-card, tr")) : [];
+      let hasCompleteEncontro = false;
+      let incompleteIndex = -1;
+      let incompleteMissing = [];
+
+      cards.forEach((card, idx) => {
         const dataEl = card.querySelector(".input-plano-data");
+        const inicioEl = card.querySelector(".input-plano-inicio");
+        const fimEl = card.querySelector(".input-plano-fim");
         const descEl = card.querySelector(".input-plano-descricao");
-        if ((dataEl && dataEl.value) || (descEl && descEl.value.trim())) {
-          hasContent = true;
+
+        const dataVal = dataEl ? dataEl.value : "";
+        const inicioVal = inicioEl ? inicioEl.value : "";
+        const fimVal = fimEl ? fimEl.value : "";
+        const descVal = descEl ? descEl.value.trim() : "";
+
+        if (!dataVal && !inicioVal && !fimVal && !descVal) {
+          return; // card vazio, nao utilizado: ignora
+        }
+
+        const missing = [];
+        if (!dataVal) missing.push("Data do Encontro");
+        if (!inicioVal) missing.push("Horário de Início");
+        if (!fimVal) missing.push("Horário de Término");
+        if (!descVal) missing.push("Descrição das Atividades");
+
+        if (missing.length > 0) {
+          if (incompleteIndex === -1) {
+            incompleteIndex = idx;
+            incompleteMissing = missing;
+          }
+        } else {
+          hasCompleteEncontro = true;
         }
       });
 
-      if (!hasContent) {
-        alert("Atenção: Por favor, preencha a data e a descrição de pelo menos 1 encontro no Plano de Atividades.");
+      if (incompleteIndex !== -1) {
+        alert(`Atenção: o Encontro ${incompleteIndex + 1} do Plano de Atividades está incompleto. Preencha: ${incompleteMissing.join(", ")}. Ou remova esse encontro caso não vá utilizá-lo.`);
+        hideOverlay();
+        return;
+      }
+
+      if (!hasCompleteEncontro) {
+        alert("Atenção: Preencha ao menos 1 encontro completo (Data, Horário de Início, Horário de Término e Descrição) no Plano de Atividades.");
         hideOverlay();
         return;
       }
@@ -862,7 +897,7 @@ function addEncontroRow(dataVal, inicioVal, fimVal, descVal) {
       </div>
 
       <div class="encontro-field encontro-field-horario">
-        <label>HORÁRIO (INÍCIO ÀS FIM)</label>
+        <label>HORÁRIO (INÍCIO ÀS FIM) <span class="required">*</span></label>
         <div class="horario-inputs-inline">
           <input type="time" class="input-plano-inicio" value="${inicioVal}" title="Horário de Início">
           <span class="horario-divisor">às</span>

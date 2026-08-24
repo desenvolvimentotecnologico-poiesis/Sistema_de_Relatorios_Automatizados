@@ -148,6 +148,21 @@ function submitForm(formData) {
       if (videoCount > MAX_VIDEOS_PER_SUBMISSION) {
         return Utils.createResponse(false, "É permitido anexar no máximo " + MAX_VIDEOS_PER_SUBMISSION + " vídeo(s) por envio (recebido: " + videoCount + "). As demais evidências devem ser fotos.");
       }
+    } else {
+      // Validação de segurança do Plano de Atividades da Fundação CASA (espelha a validação do
+      // front-end, protegendo contra chamadas diretas à API): cada encontro enviado precisa ter
+      // Data, Horário e Descrição preenchidos, para não gerar linhas incompletas ("---") no relatório.
+      const plano = Array.isArray(formData.planoTabela) ? formData.planoTabela : [];
+      const isPreenchido = function(v) {
+        return v && v.toString().trim() !== "" && v.toString().trim() !== "---";
+      };
+      const temEncontroIncompleto = plano.some(function(item) {
+        return !isPreenchido(item && item.data) || !isPreenchido(item && item.horario) || !isPreenchido(item && item.descricao);
+      });
+
+      if (plano.length === 0 || temEncontroIncompleto) {
+        return Utils.createResponse(false, "É obrigatório preencher Data, Horário e Descrição de pelo menos 1 encontro completo no Plano de Atividades.");
+      }
     }
 
     // 1. Cria a estrutura hierárquica de pastas no Google Drive
