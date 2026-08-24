@@ -70,6 +70,17 @@ function getFormattedMonthName(monthStr) {
 }
 
 function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, tipoPedagogico, divisaoRegional, responsavel, mesReferencia, anoReferencia) {
+  // Duas submissões simultâneas para a mesma atividade (ex.: duplo envio quase ao mesmo tempo)
+  // podem cada uma checar "a subpasta já existe?" antes de qualquer uma delas terminar de criá-la,
+  // resultando em pastas duplicadas ("Registro Fotográfico", "Relatório" etc.) para a mesma
+  // atividade. O LockService serializa essa resolução de pastas entre chamadas concorrentes.
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (lockErr) {
+    throw new Error("O sistema está processando outro envio no momento. Aguarde alguns segundos e tente novamente.");
+  }
+
   try {
     const rootFolder = getRootFolderConnection();
     const fabricasFolder = getOrCreateSubFolder(rootFolder, "Fábricas de Cultura");
@@ -154,6 +165,8 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
   } catch (error) {
     Logger.log("Erro no getOrCreateFolderStructure: " + error.toString());
     throw new Error("Falha na organização de pastas no Drive: " + error.message);
+  } finally {
+    lock.releaseLock();
   }
 }
 

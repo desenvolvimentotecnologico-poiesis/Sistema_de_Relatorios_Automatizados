@@ -360,6 +360,24 @@ function findDuplicateActivityRow(sheet, data) {
 
   const normalize = Utils.normalizeText;
 
+  // O Google Sheets converte automaticamente uma string de data (ex.: "2028-12-15") em um valor
+  // de data real na célula quando ela é gravada via appendRow/setValues. Uma comparação de texto
+  // simples entre o valor lido de volta (um objeto Date) e a string original enviada no próximo
+  // envio nunca dá match, então a coluna "Data da Atividade" precisa ser normalizada para a mesma
+  // chave AAAA-MM-DD dos dois lados antes de comparar.
+  const toDateKey = function(v) {
+    if (!v) return "";
+    if (v instanceof Date && !isNaN(v.getTime())) {
+      return Utilities.formatDate(v, "America/Sao_Paulo", "yyyy-MM-dd");
+    }
+    const str = v.toString().trim();
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) return isoMatch[1] + "-" + isoMatch[2] + "-" + isoMatch[3];
+    const brMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (brMatch) return brMatch[3] + "-" + brMatch[2] + "-" + brMatch[1];
+    return normalize(str);
+  };
+
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(normalize);
 
   const idxUnidade = headers.findIndex(h => h.includes("UNIDADE"));
@@ -374,7 +392,7 @@ function findDuplicateActivityRow(sheet, data) {
   const searchAtividade = normalize(data.atividade);
   const searchAno = data.anoReferencia ? data.anoReferencia.toString().trim() : "";
   const searchMes = normalizeMonthCode(data.mesReferencia);
-  const searchData = normalize(data.dataRelatorio);
+  const searchData = toDateKey(data.dataRelatorio);
 
   if (!searchUnidade || !searchAtividade) return null;
 
@@ -399,7 +417,7 @@ function findDuplicateActivityRow(sheet, data) {
         return i + 2;
       }
     } else if (usesData) {
-      const rowData = normalize(row[idxData]);
+      const rowData = toDateKey(row[idxData]);
       if (rowData === searchData) {
         return i + 2;
       }

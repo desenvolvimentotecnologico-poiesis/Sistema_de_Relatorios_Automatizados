@@ -72,10 +72,19 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
     }
     
-    // Remove uma eventual versão anterior do relatório (Docs) desta mesma atividade antes de
-    // gerar a nova cópia, evitando arquivos duplicados quando a compilação é reenviada
-    // (ex.: retentativa manual após timeout de rede).
-    Utils.removeExistingFilesByName(targetFolder, documentName);
+    // Remove uma eventual versão anterior do relatório (Docs+PDF) desta mesma atividade antes de
+    // gerar a nova cópia, evitando arquivos duplicados quando a compilação é reenviada (ex.:
+    // retentativa manual após timeout de rede). Nas áreas que não são Fundação CASA, a pasta
+    // "Relatório" é dedicada só a esses dois arquivos, então pode ser limpa por completo — isso é
+    // mais robusto que remover só pelo nome exato, que falha se algum campo usado no nome do
+    // arquivo (ex.: Responsável) mudar entre o envio original e o reenvio. Na Fundação CASA essa
+    // mesma pasta também guarda o PDF do Plano de Atividade enviado na Etapa 1, então ali a limpeza
+    // é só pelo nome, para não apagar aquele outro arquivo.
+    if (setorNorm === "FUNDAÇÃO CASA") {
+      Utils.removeExistingFilesByName(targetFolder, documentName);
+    } else {
+      Utils.clearFolderFiles(targetFolder);
+    }
 
     const templateFile = getTemplateFileConnection(data.area || data.setor);
     const copiedFile = templateFile.makeCopy(documentName, targetFolder);
@@ -398,7 +407,12 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     Utilities.sleep(1500);
 
     const pdfFileName = documentName + ".pdf";
-    Utils.removeExistingFilesByName(targetFolder, pdfFileName);
+    // Fora da Fundação CASA a pasta já foi limpa por completo acima, então não há nada a remover
+    // por nome aqui; na Fundação CASA (pasta compartilhada com o Plano de Atividade) mantém a
+    // remoção pelo nome exato do PDF antigo.
+    if (setorNorm === "FUNDAÇÃO CASA") {
+      Utils.removeExistingFilesByName(targetFolder, pdfFileName);
+    }
 
     const pdfBlob = copiedFile.getAs("application/pdf");
     pdfBlob.setName(pdfFileName);
