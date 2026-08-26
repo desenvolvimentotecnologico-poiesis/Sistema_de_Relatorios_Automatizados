@@ -108,6 +108,10 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     Utils.safeReplaceText(body, "\\{\\{DIAS_ATIVIDADE\\}\\}", data.diasAtividade);
     Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL\\}\\}", String(data.responsavel || "").toUpperCase());
     Utils.safeReplaceText(body, "\\{\\{RAZAO_SOCIAL\\}\\}", String(data.responsavel || "").toUpperCase());
+    // Bibliotecas: tags independentes para Responsável pelo Preenchimento x Responsável pela
+    // Execução (quando "Sim" no formulário, ambos os valores chegam iguais).
+    Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL_EXECUCAO\\}\\}", String(data.responsavel || "").toUpperCase());
+    Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL_PREENCHIMENTO\\}\\}", String(data.responsavelPreenchimento || "").toUpperCase());
     Utils.safeReplaceText(body, "\\{\\{HORARIO_INICIO\\}\\}", data.horarioInicio);
     Utils.safeReplaceText(body, "\\{\\{HORARIO_TERMINO\\}\\}", data.horarioTermino);
     Utils.safeReplaceText(body, "\\{\\{ENCONTROS_PREVISTOS\\}\\}", data.encontrosPrevistos);
@@ -169,8 +173,14 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     
     // Substituição dinâmica da Declaração de Responsabilidade com Carimbo de Aceite Eletrônico
     const timestampBR = Utils.getFormattedTimestampExtensoBR(new Date());
-    const responsavelNome = Utils.formatField(data.responsavel).toUpperCase();
-    
+    // Bibliotecas: a assinatura/declaração deve sempre usar o Responsável pelo Preenchimento,
+    // independentemente de quem seja o Responsável pela Execução. Demais áreas continuam
+    // usando o Responsável padrão, sem alteração de comportamento.
+    let responsavelNome = Utils.formatField(data.responsavel).toUpperCase();
+    if (setorNorm === "BIBLIOTECA" && data.responsavelPreenchimento) {
+      responsavelNome = Utils.formatField(data.responsavelPreenchimento).toUpperCase();
+    }
+
     let declaracaoTexto = "";
     if (setorNorm === "FUNDAÇÃO CASA") {
       declaracaoTexto = "DECLARAÇÃO DE RESPONSABILIDADE E CONFORMIDADE INSTITUCIONAL\n\n" +

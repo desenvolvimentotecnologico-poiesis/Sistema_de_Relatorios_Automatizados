@@ -159,7 +159,7 @@ function getSheetConfigForArea(area) {
       sheetName: CONFIG.SHEET_RESPONSES_BIBLIOTECA,
       headers: [
         "Carimbo de Data/Hora", "Unidade", "Número do Contrato", "Meta de Referência",
-        "Nome da Atividade", "Responsável", "Data da Atividade", "Horário de Início",
+        "Nome da Atividade", "Responsável pelo Preenchimento", "Responsável", "Data da Atividade", "Horário de Início",
         "Horário de Término", "Público Total", "Perfil do Público", "Faixa Etária Predominante",
         "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
         "Descrição das Ações e Metodologia", "Engajamento e Participação", "Pontos Fortes",
@@ -290,6 +290,7 @@ function saveResponseRow(data) {
         Utils.formatField(contratoVal),
         Utils.formatField(data.metaReferencia),
         Utils.formatField(data.atividade),
+        Utils.formatField(data.responsavelPreenchimento),
         Utils.formatField(data.responsavel),
         Utils.formatField(data.dataRelatorio),
         Utils.formatField(data.horarioInicio),
@@ -306,7 +307,7 @@ function saveResponseRow(data) {
         Utils.formatField(data.pontosFracos)
       ];
     }
-    
+
     // Antiduplicação estrita: é proibido existir mais de um envio para a mesma Unidade + Atividade
     // + Período de referência (Ano/Mês, ou Data quando a área não usa Ano/Mês). Se já existir um
     // envio anterior (ex.: reenvio manual após timeout de rede), a linha existente é sobrescrita
