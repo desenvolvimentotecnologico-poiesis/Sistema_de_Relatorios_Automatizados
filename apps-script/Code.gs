@@ -242,12 +242,43 @@ function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registr
     const atividadeStr = formData.atividade || "N/D";
     const respStr = formData.responsavel || "N/D";
 
+    // Autorrecuperação: se o ID da pasta 'Relatório' não chegou nesta chamada (ex.: falha de
+    // transmissão entre a Etapa 1 e a Etapa 2 do envio em 2 etapas), tenta reobter a mesma
+    // estrutura de pastas a partir dos dados do formulário, em vez de falhar direto. Isso é
+    // seguro porque getOrCreateFolderStructure é idempotente (reaproveita pelo nome as pastas já
+    // criadas na Etapa 1), então nunca gera pastas duplicadas.
+    if ((!relatorioFolderId || typeof relatorioFolderId !== "string" || relatorioFolderId.trim() === "") && formData.unidade && formData.atividade) {
+      try {
+        const recoveredFolders = getOrCreateFolderStructure(
+          formData.setor,
+          formData.dataRelatorio,
+          formData.unidade,
+          formData.atividade,
+          formData.tipoPedagogico,
+          formData.divisaoRegional,
+          formData.responsavel,
+          formData.mesReferencia,
+          formData.anoReferencia
+        );
+        const recoveredRelatorioFolder = recoveredFolders.relatorioFolder || recoveredFolders.activityFolder;
+        if (recoveredRelatorioFolder) {
+          relatorioFolderId = recoveredRelatorioFolder.getId();
+        }
+        if ((!registroFolderId || registroFolderId.toString().trim() === "") && recoveredFolders.registroFolder) {
+          registroFolderId = recoveredFolders.registroFolder.getId();
+        }
+        Logger.log("generatePdfReportAsync: ID da pasta 'Relatório' recuperado via getOrCreateFolderStructure (não chegou na requisição da Etapa 2).");
+      } catch (recoverErr) {
+        Logger.log("Falha ao tentar recuperar a pasta 'Relatório': " + recoverErr.toString());
+      }
+    }
+
     if (!relatorioFolderId || typeof relatorioFolderId !== "string" || relatorioFolderId.trim() === "") {
       const logDetails = "ID da pasta 'Relatório' ausente ou inválido [Área: " + areaStr + " | Unidade: " + unidadeStr + " | Atividade: " + atividadeStr + " | Resp: " + respStr + " | Aba: " + (sheetName || "N/D") + " | Linha: " + (rowNumber || "N/D") + "]";
       Utils.logError("Code.generatePdfReportAsync", logDetails);
       return Utils.createResponse(false, logDetails);
     }
-    
+
     const relatorioFolder = DriveApp.getFolderById(relatorioFolderId);
     
     // Constrói o Google Docs, substitui placeholders, insere imagens e exporta em PDF

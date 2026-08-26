@@ -159,7 +159,7 @@ function getSheetConfigForArea(area) {
       sheetName: CONFIG.SHEET_RESPONSES_BIBLIOTECA,
       headers: [
         "Carimbo de Data/Hora", "Unidade", "Número do Contrato", "Meta de Referência",
-        "Nome da Atividade", "Responsável pelo Preenchimento", "Responsável", "Data da Atividade", "Horário de Início",
+        "Nome da Atividade", "Responsável pelo Preenchimento", "Responsável pela Execução", "Data da Atividade", "Horário de Início",
         "Horário de Término", "Público Total", "Perfil do Público", "Faixa Etária Predominante",
         "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
         "Descrição das Ações e Metodologia", "Engajamento e Participação", "Pontos Fortes",
