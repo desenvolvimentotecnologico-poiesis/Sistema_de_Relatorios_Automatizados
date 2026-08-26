@@ -133,10 +133,41 @@
               <input type="text" id="nomeAtividade" name="atividade" placeholder="Digite o nome da atividade" required>
             </div>
 
-            <div class="form-group">
-              <label for="responsavel">Responsável pela Execução <span class="required">*</span></label>
-              <input type="text" id="responsavel" name="responsavel" placeholder="Digite seu nome completo" required>
+            <div class="form-group form-group-full">
+              <label>O responsável pelo preenchimento deste formulário é o mesmo responsável pela execução da
+                atividade? <span class="required">*</span></label>
+              <div class="radio-group-horizontal">
+                <label class="radio-label">
+                  <input type="radio" name="mesmoResponsavelPreenchimento" value="Sim" required>
+                  <span>Sim</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="mesmoResponsavelPreenchimento" value="Não">
+                  <span>Não</span>
+                </label>
+              </div>
             </div>
+
+            <div class="form-group hidden" id="grupoResponsavelUnico">
+              <label for="responsavelUnicoInput">Nome completo <span class="required">*</span></label>
+              <input type="text" id="responsavelUnicoInput" placeholder="Digite seu nome completo">
+            </div>
+
+            <div class="form-group hidden" id="grupoResponsavelPreenchimento">
+              <label for="responsavelPreenchimentoInput">Nome do Responsável pelo Preenchimento do Formulário <span
+                  class="required">*</span></label>
+              <input type="text" id="responsavelPreenchimentoInput" placeholder="Digite seu nome completo">
+            </div>
+
+            <div class="form-group hidden" id="grupoResponsavelExecucao">
+              <label for="responsavelExecucaoInput">Nome do Responsável pela Execução da Atividade <span
+                  class="required">*</span></label>
+              <input type="text" id="responsavelExecucaoInput"
+                placeholder="Digite o nome completo de quem executou a atividade">
+            </div>
+
+            <input type="hidden" id="responsavelHidden" name="responsavel">
+            <input type="hidden" id="responsavelPreenchimentoHidden" name="responsavelPreenchimento">
 
             <div class="form-group">
               <label for="anoReferencia">Ano de Referência <span class="required">*</span></label>
@@ -626,6 +657,76 @@
   <script src="../js/shared-helpers.js"></script>
   <script src="../js/image-compressor.js"></script>
   <script src="../js/main.js"></script>
+  <script>
+    /**
+     * LÓGICA EXCLUSIVA DO FORMULÁRIO DE ARTICULAÇÃO E DIFUSÃO
+     * Distingue Responsável pelo Preenchimento x Responsável pela Execução, sincronizando
+     * os dois campos ocultos ("responsavel" e "responsavelPreenchimento") que o restante do
+     * sistema (planilha, relatório e assinatura digital) já espera receber.
+     */
+    (function () {
+      document.addEventListener("DOMContentLoaded", function () {
+        const radios = document.querySelectorAll('input[name="mesmoResponsavelPreenchimento"]');
+        const grupoUnico = document.getElementById("grupoResponsavelUnico");
+        const grupoPreenchimento = document.getElementById("grupoResponsavelPreenchimento");
+        const grupoExecucao = document.getElementById("grupoResponsavelExecucao");
+        const inputUnico = document.getElementById("responsavelUnicoInput");
+        const inputPreenchimento = document.getElementById("responsavelPreenchimentoInput");
+        const inputExecucao = document.getElementById("responsavelExecucaoInput");
+        const hiddenResponsavel = document.getElementById("responsavelHidden");
+        const hiddenResponsavelPreenchimento = document.getElementById("responsavelPreenchimentoHidden");
+
+        if (!radios.length || !grupoUnico || !grupoPreenchimento || !grupoExecucao) return;
+
+        function clearAllValues() {
+          inputUnico.value = "";
+          inputPreenchimento.value = "";
+          inputExecucao.value = "";
+          hiddenResponsavel.value = "";
+          hiddenResponsavelPreenchimento.value = "";
+        }
+
+        function syncHiddenFromUnico() {
+          hiddenResponsavel.value = inputUnico.value;
+          hiddenResponsavelPreenchimento.value = inputUnico.value;
+        }
+
+        function syncHiddenFromDuplo() {
+          hiddenResponsavel.value = inputExecucao.value;
+          hiddenResponsavelPreenchimento.value = inputPreenchimento.value;
+        }
+
+        // Ao trocar a resposta (inclusive Sim -> Não ou Não -> Sim), limpa todos os campos e
+        // valores ocultos antes de aplicar o novo modo, evitando reenviar valores residuais.
+        function applyMode(mode) {
+          clearAllValues();
+
+          const isSim = mode === "Sim";
+          const isNao = mode === "Não";
+
+          grupoUnico.classList.toggle("hidden", !isSim);
+          grupoPreenchimento.classList.toggle("hidden", !isNao);
+          grupoExecucao.classList.toggle("hidden", !isNao);
+
+          inputUnico.required = isSim;
+          inputPreenchimento.required = isNao;
+          inputExecucao.required = isNao;
+        }
+
+        radios.forEach(function (radio) {
+          radio.addEventListener("change", function () {
+            applyMode(radio.value);
+          });
+        });
+
+        inputUnico.addEventListener("input", syncHiddenFromUnico);
+        inputPreenchimento.addEventListener("input", syncHiddenFromDuplo);
+        inputExecucao.addEventListener("input", syncHiddenFromDuplo);
+
+        applyMode("");
+      });
+    })();
+  </script>
 </body>
 
 </html>

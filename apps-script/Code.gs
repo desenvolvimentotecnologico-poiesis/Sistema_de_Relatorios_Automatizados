@@ -110,10 +110,10 @@ function submitForm(formData) {
       return Utils.createResponse(false, "Campos obrigatórios faltando. Certifique-se de preencher Unidade, Atividade, Setor, Responsável e Mês/Ano.");
     }
 
-    // Bibliotecas: distingue Responsável pelo Preenchimento do Responsável pela Execução.
-    // Validação espelha a regra condicional do front-end, protegendo contra chamadas diretas
-    // à API que ignorem a validação client-side.
-    if (formData.area === "BIBLIOTECA" && !formData.responsavelPreenchimento) {
+    // Pedagógico, Articulação e Difusão e Bibliotecas: distingue Responsável pelo Preenchimento
+    // do Responsável pela Execução. Validação espelha a regra condicional do front-end,
+    // protegendo contra chamadas diretas à API que ignorem a validação client-side.
+    if (Utils.usesResponsavelPreenchimento(formData.area) && !formData.responsavelPreenchimento) {
       return Utils.createResponse(false, "Campo obrigatório faltando: Nome do Responsável pelo Preenchimento.");
     }
 

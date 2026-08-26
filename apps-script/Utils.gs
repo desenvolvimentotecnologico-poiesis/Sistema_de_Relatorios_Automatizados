@@ -126,6 +126,16 @@ var Utils = {
   },
 
   /**
+   * Indica se a área distingue Responsável pelo Preenchimento x Responsável pela Execução
+   * (Pedagógico, Articulação e Difusão, Bibliotecas). Fundação CASA fica de fora porque já tem
+   * um conceito de responsável próprio (Razão Social) e declaração de responsabilidade distinta.
+   * Centralizado aqui para Code.gs e Report.gs nunca divergirem sobre quais áreas usam a regra.
+   */
+  usesResponsavelPreenchimento: function(areaNorm) {
+    return areaNorm === "BIBLIOTECA" || areaNorm === "PEDAGÓGICO" || areaNorm === "ARTICULAÇÃO E DIFUSÃO";
+  },
+
+  /**
    * Retorna o nome de pasta padronizado para o Google Drive para cada área:
    * Pedagógico; Bibliotecas; Articulação e Difusão; Fundação Casa
    */

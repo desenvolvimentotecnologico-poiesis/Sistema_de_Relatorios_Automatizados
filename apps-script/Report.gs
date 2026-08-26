@@ -108,8 +108,9 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     Utils.safeReplaceText(body, "\\{\\{DIAS_ATIVIDADE\\}\\}", data.diasAtividade);
     Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL\\}\\}", String(data.responsavel || "").toUpperCase());
     Utils.safeReplaceText(body, "\\{\\{RAZAO_SOCIAL\\}\\}", String(data.responsavel || "").toUpperCase());
-    // Bibliotecas: tags independentes para Responsável pelo Preenchimento x Responsável pela
-    // Execução (quando "Sim" no formulário, ambos os valores chegam iguais).
+    // Pedagógico, Articulação e Difusão e Bibliotecas: tags independentes para Responsável pelo
+    // Preenchimento x Responsável pela Execução (quando "Sim" no formulário, ambos os valores
+    // chegam iguais). Genérico: fica sem efeito nos templates que não tiverem essas marcações.
     Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL_EXECUCAO\\}\\}", String(data.responsavel || "").toUpperCase());
     Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL_PREENCHIMENTO\\}\\}", String(data.responsavelPreenchimento || "").toUpperCase());
     Utils.safeReplaceText(body, "\\{\\{HORARIO_INICIO\\}\\}", data.horarioInicio);
@@ -173,11 +174,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     
     // Substituição dinâmica da Declaração de Responsabilidade com Carimbo de Aceite Eletrônico
     const timestampBR = Utils.getFormattedTimestampExtensoBR(new Date());
-    // Bibliotecas: a assinatura/declaração deve sempre usar o Responsável pelo Preenchimento,
-    // independentemente de quem seja o Responsável pela Execução. Demais áreas continuam
-    // usando o Responsável padrão, sem alteração de comportamento.
+    // Pedagógico, Articulação e Difusão e Bibliotecas: a assinatura/declaração deve sempre usar
+    // o Responsável pelo Preenchimento, independentemente de quem seja o Responsável pela
+    // Execução. Fundação CASA continua usando o Responsável padrão, sem alteração de comportamento.
     let responsavelNome = Utils.formatField(data.responsavel).toUpperCase();
-    if (setorNorm === "BIBLIOTECA" && data.responsavelPreenchimento) {
+    if (Utils.usesResponsavelPreenchimento(setorNorm) && data.responsavelPreenchimento) {
       responsavelNome = Utils.formatField(data.responsavelPreenchimento).toUpperCase();
     }
 

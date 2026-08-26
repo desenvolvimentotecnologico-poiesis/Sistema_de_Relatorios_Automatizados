@@ -123,7 +123,7 @@ function getSheetConfigForArea(area) {
       headers: [
         "Carimbo de Data/Hora", "Unidade", "Número do Contrato", "Meta de Referência",
         "Tipo (Trilha/Ateliê/Núcleo)", "Nome da Atividade", "Ano de Referência", "Mês de Referência",
-        "Responsável", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
+        "Responsável pelo Preenchimento", "Responsável", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
         "Carga Horária Realizada", "Data de Eventual Reposição", "Público Total", "Perfil do Público",
         "Faixa Etária Predominante", "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
         "Descrição das Ações e Metodologia", "Engajamento e Participação", "Pontos Fortes", "Pontos Fracos e Desafios"
@@ -135,7 +135,7 @@ function getSheetConfigForArea(area) {
       headers: [
         "Carimbo de Data/Hora", "Unidade", "Número do Contrato", "Meta de Referência",
         "Nome da Atividade", "Ano de Referência", "Mês de Referência", "Dia(s) do Mês",
-        "Responsável", "Horário de Início", "Horário de Término", "Carga Horária Total", "Número de Sessões",
+        "Responsável pelo Preenchimento", "Responsável", "Horário de Início", "Horário de Término", "Carga Horária Total", "Número de Sessões",
         "Público Total", "Público por Sessão", "Perfil do Público", "Faixa Etária Predominante",
         "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
         "Linguagem Artística", "Inclusão e Diversidade", "Efeméride", "Relato",
@@ -212,6 +212,7 @@ function saveResponseRow(data) {
         Utils.formatField(data.atividade),
         Utils.formatField(data.anoReferencia),
         Utils.formatField(data.mesReferencia),
+        Utils.formatField(data.responsavelPreenchimento),
         Utils.formatField(data.responsavel),
         Utils.formatField(data.encontrosPrevistos),
         Utils.formatField(data.encontrosRealizados),
@@ -239,6 +240,7 @@ function saveResponseRow(data) {
         Utils.formatField(data.anoReferencia),
         Utils.formatField(data.mesReferencia),
         Utils.formatField(data.diasAtividade),
+        Utils.formatField(data.responsavelPreenchimento),
         Utils.formatField(data.responsavel),
         Utils.formatField(data.horarioInicio),
         Utils.formatField(data.horarioTermino),
