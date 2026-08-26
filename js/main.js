@@ -59,7 +59,18 @@ function initializeDropdowns() {
 
 function onDropdownDataReceived(response) {
   hideOverlay();
-  const hierarchy = response && response.hierarchy ? response.hierarchy : (response || {});
+
+  // Se a chamada falhou no backend (ex.: instabilidade temporária na Planilha de Listas), o
+  // objeto de resposta não tem "hierarchy". Sem essa checagem, o fallback abaixo usava a própria
+  // resposta de erro ({success, message}) como se fosse a hierarquia de unidades, populando o
+  // campo "Unidade" com opções falsas de valor "success"/"message" — permitindo um envio com
+  // Unidade inválida e Atividade vazia (dropdown dependente ficava sem opções).
+  if (!response || !response.success || !response.hierarchy) {
+    onDropdownDataError((response && response.message) || "Não foi possível carregar as listas institucionais. Recarregue a página e tente novamente.");
+    return;
+  }
+
+  const hierarchy = response.hierarchy;
   dropDownHierarchy = hierarchy;
 
   const unidadeSelect = document.getElementById("unidadeSelect");
@@ -888,7 +899,7 @@ function addEncontroRow(dataVal, inicioVal, fimVal, descVal) {
     <div class="encontro-header-row">
       <div class="encontro-field encontro-field-data">
         <label>DATA DO ENCONTRO <span class="required">*</span></label>
-        <input type="date" class="input-plano-data" value="${dataVal}">
+        <input type="date" class="input-plano-data" value="${dataVal}" min="2026-01-01">
       </div>
 
       <div class="encontro-field encontro-field-unidade">
