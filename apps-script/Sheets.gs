@@ -123,7 +123,7 @@ function getSheetConfigForArea(area) {
       headers: [
         "Carimbo de Data/Hora", "Unidade", "Número do Contrato", "Meta de Referência",
         "Tipo (Trilha/Ateliê/Núcleo)", "Nome da Atividade", "Ano de Referência", "Mês de Referência",
-        "Responsável pelo Preenchimento", "Responsável", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
+        "Responsável pelo Preenchimento", "Responsável pela Execução", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
         "Carga Horária Realizada", "Data de Eventual Reposição", "Público Total", "Perfil do Público",
         "Faixa Etária Predominante", "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
         "Descrição das Ações e Metodologia", "Engajamento e Participação", "Pontos Fortes", "Pontos Fracos e Desafios"
@@ -135,7 +135,7 @@ function getSheetConfigForArea(area) {
       headers: [
         "Carimbo de Data/Hora", "Unidade", "Número do Contrato", "Meta de Referência",
         "Nome da Atividade", "Ano de Referência", "Mês de Referência", "Dia(s) do Mês",
-        "Responsável pelo Preenchimento", "Responsável", "Horário de Início", "Horário de Término", "Carga Horária Total", "Número de Sessões",
+        "Responsável pelo Preenchimento", "Responsável pela Execução", "Horário de Início", "Horário de Término", "Carga Horária Total", "Número de Sessões",
         "Público Total", "Público por Sessão", "Perfil do Público", "Faixa Etária Predominante",
         "Destaque da Ação", "Objetivos da Atividade", "Impacto Territorial / Cultural",
         "Linguagem Artística", "Inclusão e Diversidade", "Efeméride", "Relato",
@@ -172,10 +172,72 @@ function getSheetConfigForArea(area) {
 }
 
 /**
+ * Renomeações de cabeçalho aplicadas automaticamente às abas já existentes.
+ *
+ * Sem isto, trocar o nome de uma coluna em getSheetConfigForArea faria ensureSheetHeaders tratar
+ * o nome novo como uma coluna FALTANDO: ele inseriria uma coluna vazia ao lado e a antiga ficaria
+ * órfã, com todo o histórico preso sob um rótulo que o sistema não usa mais. Renomear preserva a
+ * coluna e os dados — muda apenas o texto do cabeçalho.
+ *
+ * A comparação é exata, então "Responsável pelo Preenchimento" nunca é confundido com
+ * "Responsável". Aplicar de novo numa aba já renomeada não faz nada.
+ */
+const HEADER_RENAMES = [
+  { de: "Responsável", para: "Responsável pela Execução" }
+];
+
+/**
  * Normaliza um cabeçalho de coluna para comparação (maiúsculas, sem acentos, espaços colapsados).
  */
 function normalizeHeaderKey(header) {
   return Utils.normalizeText(header);
+}
+
+/**
+ * Aplica as renomeações de cabeçalho pendentes na aba, preservando a coluna e seus dados.
+ *
+ * @return {boolean} true se algum cabeçalho foi renomeado
+ */
+function applyHeaderRenames(sheet, config) {
+  const width = sheet.getLastColumn();
+  if (width < 1) return false;
+
+  const headerRow = sheet.getRange(1, 1, 1, width).getValues()[0];
+  const chavesCanonicas = config.headers.map(normalizeHeaderKey);
+  let renomeou = false;
+
+  for (let r = 0; r < HEADER_RENAMES.length; r++) {
+    const regra = HEADER_RENAMES[r];
+    const chaveDe = normalizeHeaderKey(regra.de);
+    const chavePara = normalizeHeaderKey(regra.para);
+
+    // Só renomeia se a área realmente usa o nome novo — evita mexer em áreas que mantêm um rótulo
+    // próprio para o mesmo conceito (ex.: "Razão Social (Responsável)" na Fundação CASA).
+    if (chavesCanonicas.indexOf(chavePara) === -1) continue;
+
+    for (let c = 0; c < headerRow.length; c++) {
+      if (normalizeHeaderKey(headerRow[c]) !== chaveDe) continue;
+
+      // Se o nome novo já existe em outra coluna, renomear criaria dois rótulos iguais e a
+      // gravação por nome ficaria ambígua. Nesse caso a aba precisa ser conferida à mão.
+      const jaExiste = headerRow.some(function(h, idx) {
+        return idx !== c && normalizeHeaderKey(h) === chavePara;
+      });
+      if (jaExiste) {
+        Logger.log("Renomeação ignorada em '" + config.sheetName + "': a coluna '" + regra.para + "' já existe além da coluna '" + regra.de + "'.");
+        continue;
+      }
+
+      sheet.getRange(1, c + 1).setValue(regra.para)
+        .setFontWeight("bold").setBackground("#f3f3f3");
+      headerRow[c] = regra.para;
+      renomeou = true;
+      Logger.log("Coluna '" + regra.de + "' renomeada para '" + regra.para + "' na aba '" + config.sheetName + "'.");
+    }
+  }
+
+  if (renomeou) SpreadsheetApp.flush();
+  return renomeou;
 }
 
 /**
@@ -226,6 +288,12 @@ function ensureSheetHeaders(sheet, config) {
     return readHeaderLayout(sheet);
   }
 
+  // As renomeações vêm ANTES da checagem de colunas faltantes: um cabeçalho ainda com o nome
+  // antigo seria lido como "coluna nova ausente" e ganharia uma coluna vazia ao lado.
+  if (applyHeaderRenames(sheet, config)) {
+    layout = readHeaderLayout(sheet);
+  }
+
   for (let i = 0; i < headers.length; i++) {
     const key = normalizeHeaderKey(headers[i]);
     if (layout.index[key] !== undefined) continue;
@@ -258,12 +326,11 @@ function ensureSheetHeaders(sheet, config) {
  * @param {Object} layout Layout físico devolvido por ensureSheetHeaders
  * @param {Array} headers Cabeçalhos canônicos da área
  * @param {Array} values Valores na ordem canônica
- * @param {Array} [baseRow] Linha existente a preservar (usado na sobrescrita de duplicidade)
  */
-function buildPhysicalRow(layout, headers, values, baseRow) {
+function buildPhysicalRow(layout, headers, values) {
   const row = new Array(layout.width);
   for (let c = 0; c < layout.width; c++) {
-    row[c] = baseRow && baseRow[c] !== undefined ? baseRow[c] : "";
+    row[c] = "";
   }
 
   for (let i = 0; i < headers.length; i++) {
@@ -273,6 +340,94 @@ function buildPhysicalRow(layout, headers, values, baseRow) {
     }
   }
   return row;
+}
+
+/**
+ * Verifica se a atividade já teve relatório enviado e devolve os dados do envio original.
+ *
+ * Usa exatamente o mesmo critério de identificação da deduplicação (Unidade + Atividade + Tipo +
+ * Divisão Regional + Período), que é o mesmo par de chaves que a Área Restrita usa para localizar
+ * a atividade na planilha.
+ *
+ * Consulta somente-leitura: não normaliza o cabeçalho nem grava nada. Se as colunas ainda não
+ * puderem ser resolvidas, devolve "não existe" e o fluxo normal segue — a trava definitiva é a
+ * revalidação dentro do LockService, em saveResponseRow.
+ *
+ * @return {Object} { exists, rowNumber, dataHora, responsavel }
+ */
+function findExistingSubmission(data) {
+  try {
+    const ss = getResponsesSpreadsheetConnection(data.area);
+    const config = getSheetConfigForArea(data.area);
+    const sheet = ss.getSheetByName(config.sheetName);
+    if (!sheet || sheet.getLastRow() < 2) return { exists: false };
+
+    const layout = readHeaderLayout(sheet);
+    const rowNumber = findDuplicateActivityRow(sheet, data, layout);
+    if (!rowNumber) return { exists: false };
+
+    return describeExistingSubmission(sheet, layout, rowNumber);
+  } catch (err) {
+    // Uma falha na consulta não pode impedir um envio legítimo: o bloqueio definitivo acontece
+    // de qualquer forma dentro do lock, na hora de gravar.
+    Logger.log("Falha ao consultar envio anterior: " + err.toString());
+    return { exists: false };
+  }
+}
+
+/**
+ * Extrai da linha localizada quando o relatório foi enviado e por quem, para a mensagem
+ * apresentada ao educador.
+ */
+function describeExistingSubmission(sheet, layout, rowNumber) {
+  const colOf = function(headerName) {
+    const idx = layout.index[normalizeHeaderKey(headerName)];
+    return idx === undefined ? -1 : idx;
+  };
+
+  const row = sheet.getRange(rowNumber, 1, 1, layout.width).getValues()[0];
+
+  const idxCarimbo = colOf("Carimbo de Data/Hora");
+  const valorCarimbo = idxCarimbo !== -1 ? row[idxCarimbo] : "";
+  let dataHora = "";
+  if (valorCarimbo instanceof Date && !isNaN(valorCarimbo.getTime())) {
+    dataHora = Utils.getFormattedTimestampBR(valorCarimbo);
+  } else if (valorCarimbo) {
+    dataHora = valorCarimbo.toString().trim();
+  }
+
+  // A Fundação CASA não separa preenchimento de execução: ali o responsável é a Razão Social.
+  const idxPreenchimento = colOf("Responsável pelo Preenchimento");
+  const idxExecucao = colOf("Responsável pela Execução") !== -1
+    ? colOf("Responsável pela Execução")
+    : colOf("Razão Social (Responsável)");
+
+  let responsavel = "";
+  if (idxPreenchimento !== -1 && row[idxPreenchimento]) {
+    responsavel = row[idxPreenchimento].toString().trim();
+  }
+  if (!responsavel && idxExecucao !== -1 && row[idxExecucao]) {
+    responsavel = row[idxExecucao].toString().trim();
+  }
+
+  return {
+    exists: true,
+    rowNumber: rowNumber,
+    dataHora: dataHora,
+    responsavel: responsavel
+  };
+}
+
+/**
+ * Monta a mensagem exibida ao educador quando o envio é recusado por já existir.
+ */
+function buildDuplicateMessage(info) {
+  let msg = "Esta atividade já teve o relatório enviado";
+  if (info && info.dataHora) msg += " em " + info.dataHora;
+  if (info && info.responsavel) msg += " por " + info.responsavel;
+  msg += ".\n\nNão é permitido enviar o relatório da mesma atividade duas vezes no mesmo período.";
+  msg += "\n\nSe algum dado precisa ser corrigido, entre em contato com a equipe através do e-mail: sistemasdegestao@poiesis.org.br";
+  return msg;
 }
 
 function saveResponseRow(data) {
@@ -424,33 +579,27 @@ function saveResponseRow(data) {
     try {
       const layout = ensureSheetHeaders(sheet, config);
 
+      // Revalidação sob o lock: é aqui que a recusa é definitiva. A consulta feita no início do
+      // envio pode ficar desatualizada se outro envio da mesma atividade for gravado enquanto
+      // este ainda estava em andamento, e sem esta segunda checagem os dois passariam.
       const duplicateRowNumber = findDuplicateActivityRow(sheet, data, layout);
       if (duplicateRowNumber) {
-        // Preserva as colunas que não pertencem ao formulário (ex.: "Inscrição Enviada" e
-        // "Presença Enviada", gravadas pela Área Restrita) ao regravar a linha.
-        const existingRow = sheet.getRange(duplicateRowNumber, 1, 1, layout.width).getValues()[0];
-        const mergedRow = buildPhysicalRow(layout, config.headers, newRow, existingRow);
-        sheet.getRange(duplicateRowNumber, 1, 1, layout.width).setValues([mergedRow]);
-        SpreadsheetApp.flush();
-
-        // Toda sobrescrita fica registrada na aba _LOGS. Uma linha sobrescrita é a única operação
-        // do sistema que descarta dados já gravados, então precisa deixar rastro para auditoria.
+        const info = describeExistingSubmission(sheet, layout, duplicateRowNumber);
         const rastro = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
           " | Unidade: " + (data.unidade || "N/D") +
           " | Atividade: " + (data.atividade || "N/D") +
           " | Tipo: " + (data.tipoPedagogico || "-") +
           " | Período: " + (data.anoReferencia || data.dataRelatorio || "N/D") + "/" + (data.mesReferencia || "-") +
-          " | Responsável: " + (data.responsavel || "N/D");
-        Logger.log("Reenvio da mesma atividade. Linha sobrescrita com os dados mais recentes. " + rastro);
-        Utils.logInfo("Sheets.saveResponseRow (linha sobrescrita por reenvio)", rastro);
-        return {
-          sheetName: config.sheetName,
-          rowNumber: duplicateRowNumber
-        };
+          " | Envio original: " + (info.dataHora || "N/D") + " por " + (info.responsavel || "N/D");
+
+        Logger.log("Reenvio recusado: a atividade já possui relatório enviado. " + rastro);
+        Utils.logInfo("Sheets.saveResponseRow (reenvio recusado)", rastro);
+
+        return { duplicate: true, info: info };
       }
 
       const targetRow = sheet.getLastRow() + 1;
-      const physicalRow = buildPhysicalRow(layout, config.headers, newRow, null);
+      const physicalRow = buildPhysicalRow(layout, config.headers, newRow);
       sheet.getRange(targetRow, 1, 1, layout.width).setValues([physicalRow]);
       SpreadsheetApp.flush();
 

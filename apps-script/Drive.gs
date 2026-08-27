@@ -127,7 +127,17 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
 
     const setorNorm = Utils.normalizeAreaName(setor);
     const areaFolderName = Utils.getAreaFolderName(setor);
-    const cleanAtividadeName = Utils.buildActivityFolderName(atividade);
+
+    // Bibliotecas: a data entra no nome da pasta da atividade. Sem isso, dois envios da mesma
+    // atividade em dias diferentes do mesmo mês compartilham a pasta, e as fotos do segundo
+    // substituem as do primeiro. Nas demais áreas o período já está na hierarquia de pastas.
+    let cleanAtividadeName = Utils.buildActivityFolderName(atividade);
+    if (setorNorm === "BIBLIOTECA") {
+      const prefixoData = Utils.getDateFolderPrefix(dataRelatorio);
+      if (prefixoData) {
+        cleanAtividadeName = prefixoData + "_" + cleanAtividadeName;
+      }
+    }
 
     const setorFolder = getOrCreateSubFolder(fabricasFolder, areaFolderName);
     const anoFolder = getOrCreateSubFolder(setorFolder, anoStr);
@@ -194,12 +204,17 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
     const setorNorm = Utils.normalizeAreaName(metadata.setor);
     const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
 
+    // Bibliotecas: a data também prefixa o nome de cada foto, para que o arquivo continue
+    // identificável fora da pasta e para que a limpeza abaixo nunca alcance o lote de outra data.
+    const prefixoData = setorNorm === "BIBLIOTECA" ? Utils.getDateFolderPrefix(metadata.dataAtividade) : "";
+
     // Remove o lote de mídias do envio anterior DESTA atividade antes de gravar o novo: garante que
     // uma retentativa manual (ex.: após timeout de rede) substitua as mídias antigas em vez de
     // duplicá-las ou deixar sobras de um lote com mais arquivos. A remoção é restrita aos arquivos
     // cujo nome carrega o nome desta atividade — antes a pasta inteira era esvaziada, o que apagava
     // as evidências de qualquer outra atividade que tivesse caído na mesma pasta.
-    Utils.removeFilesMatching(targetFolder, [cleanAtividade]);
+    const escopoDasMidias = prefixoData ? [prefixoData, cleanAtividade] : [cleanAtividade];
+    Utils.removeFilesMatching(targetFolder, escopoDasMidias);
 
     for (let i = 0; i < files.length; i++) {
       const fileData = files[i];
@@ -221,10 +236,12 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
         cleanFileName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_PlanoDeAtividade." + ext;
       } else {
         // Formato Demais Áreas: [SiglaUnidade]_[NomeResponsavel]_[NomeAtividade]_[Index].[ext]
+        // Bibliotecas: prefixado pela data da atividade ([DD-MM-AAAA]_...), como o relatório.
         const unidadeSigla = Utils.getUnidadeSigla(metadata.unidade);
         const cleanResponsavel = Utils.sanitizeFileName(metadata.responsavel || "").toUpperCase().replace(/\s+/g, "_");
         const indexStr = (i + 1).toString().padStart(2, "0");
-        cleanFileName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
+        cleanFileName = (prefixoData ? prefixoData + "_" : "") +
+          unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
       }
 
       const blob = Utilities.newBlob(bytes, mime, cleanFileName);

@@ -196,6 +196,18 @@ function submitForm(formData) {
       }
     }
 
+    // Recusa o reenvio ANTES de tocar no Drive. A checagem precisa vir antes da criação de pastas
+    // e do upload porque o upload substitui as mídias do envio anterior desta atividade: recusar
+    // só na hora de gravar a planilha já teria apagado as fotos do relatório original.
+    const envioAnterior = findExistingSubmission(formData);
+    if (envioAnterior.exists) {
+      return Utils.createResponse(false, buildDuplicateMessage(envioAnterior), {
+        duplicate: true,
+        submittedAt: envioAnterior.dataHora,
+        submittedBy: envioAnterior.responsavel
+      });
+    }
+
     // 1. Cria a estrutura hierárquica de pastas no Google Drive
     const folders = getOrCreateFolderStructure(
       formData.setor,
@@ -217,13 +229,24 @@ function submitForm(formData) {
         responsavel: formData.responsavel,
         atividade: formData.atividade,
         setor: formData.setor,
-        mesReferencia: formData.mesReferencia
+        mesReferencia: formData.mesReferencia,
+        dataAtividade: formData.dataRelatorio
       });
     }
     
     // 3. Salva os dados textuais no Google Sheets da área
     const saveResult = saveResponseRow(formData);
-    
+
+    // Recusa detectada na revalidação sob lock (outro envio da mesma atividade concluiu enquanto
+    // este estava em andamento).
+    if (saveResult.duplicate) {
+      return Utils.createResponse(false, buildDuplicateMessage(saveResult.info), {
+        duplicate: true,
+        submittedAt: saveResult.info.dataHora,
+        submittedBy: saveResult.info.responsavel
+      });
+    }
+
     const relatorioFolderObj = folders.relatorioFolder || folders.activityFolder;
     const relatorioFolderId = relatorioFolderObj ? relatorioFolderObj.getId() : null;
     const registroFolderId = folders.registroFolder ? folders.registroFolder.getId() : null;

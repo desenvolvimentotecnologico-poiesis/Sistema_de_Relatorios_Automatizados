@@ -857,6 +857,14 @@ function onStage1Success(response) {
   if (!response || !response.success) {
     hideOverlay();
     enableFormSubmitBtn();
+
+    // Um relatório já enviado não é uma falha do sistema: a mensagem do servidor já explica
+    // quando e por quem foi enviado, e prefixá-la com "Erro na Etapa 1" só confundiria o educador.
+    if (response && response.duplicate) {
+      alert(response.message);
+      return;
+    }
+
     alert("Erro na Etapa 1: " + (response ? response.message : "Resposta nula"));
     return;
   }

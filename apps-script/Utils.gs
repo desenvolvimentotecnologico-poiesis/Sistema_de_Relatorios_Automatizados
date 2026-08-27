@@ -49,6 +49,24 @@ var Utils = {
   },
 
   /**
+   * Devolve a data da atividade no formato DD-MM-AAAA, usada como prefixo da pasta e dos arquivos
+   * nas Bibliotecas.
+   *
+   * Bibliotecas registram várias atividades por mês, e a pasta é organizada por mês — sem a data
+   * no nome, dois envios da mesma atividade em dias diferentes caem na mesma pasta e as fotos do
+   * segundo substituem as do primeiro. O formato DD-MM-AAAA é o mesmo já usado no nome do
+   * relatório da área, e dentro da pasta de um mês ele também ordena cronologicamente.
+   *
+   * @return {string} Data em DD-MM-AAAA, ou "" se não for uma data reconhecível
+   */
+  getDateFolderPrefix: function(dataAtividade) {
+    if (!dataAtividade) return "";
+    var br = this.formatDateToBR(dataAtividade);
+    var clean = String(br).replace(/\//g, "-").trim();
+    return /^\d{2}-\d{2}-\d{4}$/.test(clean) ? clean : "";
+  },
+
+  /**
    * Retorna a sigla padronizada de 3 letras da unidade das Fábricas de Cultura
    */
   getUnidadeSigla: function(unidadeName) {
