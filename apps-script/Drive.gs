@@ -74,6 +74,25 @@ function getOrCreateSubFolder(parentFolder, folderName) {
   return targetFolder;
 }
 
+/**
+ * Prefixo de data usado no nome da pasta da atividade e no nome de cada foto.
+ *
+ * Só as áreas cuja pasta pode receber mais de uma ocorrência da mesma atividade no mês recebem
+ * prefixo: Bibliotecas (pela Data da Atividade) e Articulação e Difusão (pelo primeiro dia
+ * selecionado no calendário). Devolve "" para as demais, que seguem com o nome de sempre.
+ *
+ * @return {string} Data em DD-MM-AAAA, ou "" quando a área não usa prefixo
+ */
+function getActivityDatePrefix(setorNorm, dataRelatorio, mesReferencia, anoReferencia, diasAtividade) {
+  if (setorNorm === "BIBLIOTECA") {
+    return Utils.getDateFolderPrefix(dataRelatorio);
+  }
+  if (setorNorm === "ARTICULAÇÃO E DIFUSÃO") {
+    return Utils.buildArticulacaoDateKey(diasAtividade, mesReferencia, anoReferencia);
+  }
+  return "";
+}
+
 function getFormattedMonthName(monthStr) {
   const months = {
     "01": "01 - Janeiro", "02": "02 - Fevereiro", "03": "03 - Março",
@@ -84,7 +103,7 @@ function getFormattedMonthName(monthStr) {
   return months[monthStr] || monthStr;
 }
 
-function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, tipoPedagogico, divisaoRegional, responsavel, mesReferencia, anoReferencia) {
+function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, tipoPedagogico, divisaoRegional, responsavel, mesReferencia, anoReferencia, diasAtividade) {
   // Duas submissões simultâneas para a mesma atividade (ex.: duplo envio quase ao mesmo tempo)
   // podem cada uma checar "a subpasta já existe?" antes de qualquer uma delas terminar de criá-la,
   // resultando em pastas duplicadas ("Registro Fotográfico", "Relatório" etc.) para a mesma
@@ -128,15 +147,14 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     const setorNorm = Utils.normalizeAreaName(setor);
     const areaFolderName = Utils.getAreaFolderName(setor);
 
-    // Bibliotecas: a data entra no nome da pasta da atividade. Sem isso, dois envios da mesma
-    // atividade em dias diferentes do mesmo mês compartilham a pasta, e as fotos do segundo
-    // substituem as do primeiro. Nas demais áreas o período já está na hierarquia de pastas.
+    // Bibliotecas e Articulação: a data entra no nome da pasta da atividade. Nessas duas áreas a
+    // mesma atividade pode ocorrer em dias diferentes do mesmo mês, e a hierarquia de pastas vai
+    // só até o mês — sem a data no nome, as ocorrências compartilhariam a pasta e as fotos de uma
+    // substituiriam as da outra. No Pedagógico e na Fundação CASA o período já é único por pasta.
     let cleanAtividadeName = Utils.buildActivityFolderName(atividade);
-    if (setorNorm === "BIBLIOTECA") {
-      const prefixoData = Utils.getDateFolderPrefix(dataRelatorio);
-      if (prefixoData) {
-        cleanAtividadeName = prefixoData + "_" + cleanAtividadeName;
-      }
+    const prefixoDataPasta = getActivityDatePrefix(setorNorm, dataRelatorio, mesNum, anoStr, diasAtividade);
+    if (prefixoDataPasta) {
+      cleanAtividadeName = prefixoDataPasta + "_" + cleanAtividadeName;
     }
 
     const setorFolder = getOrCreateSubFolder(fabricasFolder, areaFolderName);
@@ -204,9 +222,12 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
     const setorNorm = Utils.normalizeAreaName(metadata.setor);
     const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
 
-    // Bibliotecas: a data também prefixa o nome de cada foto, para que o arquivo continue
-    // identificável fora da pasta e para que a limpeza abaixo nunca alcance o lote de outra data.
-    const prefixoData = setorNorm === "BIBLIOTECA" ? Utils.getDateFolderPrefix(metadata.dataAtividade) : "";
+    // Bibliotecas e Articulação: a data também prefixa o nome de cada foto, para que o arquivo
+    // continue identificável fora da pasta e para que a limpeza abaixo nunca alcance o lote de
+    // outra ocorrência da mesma atividade.
+    const prefixoData = getActivityDatePrefix(
+      setorNorm, metadata.dataAtividade, metadata.mesReferencia, metadata.anoReferencia, metadata.diasAtividade
+    );
 
     // Remove o lote de mídias do envio anterior DESTA atividade antes de gravar o novo: garante que
     // uma retentativa manual (ex.: após timeout de rede) substitua as mídias antigas em vez de

@@ -62,11 +62,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       escopoDoRelatorio = [unidadeSigla, cleanAtividade];
     } else if (setorNorm === "ARTICULAÇÃO E DIFUSÃO") {
       // Padrão Articulação: dataDoPrimeiroDiaDaAtividade_siglaUnidade_nomeDoEvento
-      let diaStr = data.diasAtividade ? String(data.diasAtividade).split(",")[0].trim() : "01";
-      if (diaStr.length === 1) diaStr = "0" + diaStr;
-      const mesStr = data.mesReferencia || "01";
-      const anoStr = data.anoReferencia || new Date().getFullYear().toString();
-      const dataFormatada = diaStr + "-" + mesStr + "-" + anoStr;
+      const dataFormatada = Utils.buildArticulacaoDateKey(data.diasAtividade, data.mesReferencia, data.anoReferencia);
       documentName = dataFormatada + "_" + unidadeSigla + "_" + cleanAtividade;
       // A data completa (e não só mês/ano) entra no escopo porque a mesma atividade pode ter
       // ocorrências em dias diferentes do mesmo mês, e todas dividem a pasta da atividade:

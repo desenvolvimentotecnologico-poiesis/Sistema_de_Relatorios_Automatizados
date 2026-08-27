@@ -277,7 +277,8 @@ function submitForm(formData) {
       formData.divisaoRegional,
       formData.responsavel,
       formData.mesReferencia,
-      formData.anoReferencia
+      formData.anoReferencia,
+      formData.diasAtividade
     );
     
     // 2. Upload rápido de arquivos anexados em Base64
@@ -289,7 +290,9 @@ function submitForm(formData) {
         atividade: formData.atividade,
         setor: formData.setor,
         mesReferencia: formData.mesReferencia,
-        dataAtividade: formData.dataRelatorio
+        anoReferencia: formData.anoReferencia,
+        dataAtividade: formData.dataRelatorio,
+        diasAtividade: formData.diasAtividade
       });
     }
     
@@ -364,7 +367,8 @@ function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registr
           formData.divisaoRegional,
           formData.responsavel,
           formData.mesReferencia,
-          formData.anoReferencia
+          formData.anoReferencia,
+          formData.diasAtividade
         );
         const recoveredRelatorioFolder = recoveredFolders.relatorioFolder || recoveredFolders.activityFolder;
         if (recoveredRelatorioFolder) {

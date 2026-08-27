@@ -67,6 +67,27 @@ var Utils = {
   },
 
   /**
+   * Monta a data da ocorrência de Articulação e Difusão em DD-MM-AAAA, a partir do primeiro dia
+   * selecionado no calendário.
+   *
+   * Fonte única desse formato: ele nomeia o relatório, a pasta da atividade e cada foto. Se cada
+   * ponto montasse a data por conta própria, uma divergência faria a limpeza do reenvio não
+   * encontrar os arquivos da versão anterior, que ficariam duplicados ao lado dos novos.
+   */
+  buildArticulacaoDateKey: function(diasAtividade, mesReferencia, anoReferencia) {
+    var dia = diasAtividade ? String(diasAtividade).split(/[,;]/)[0].replace(/[^0-9]/g, "") : "";
+    if (!dia) dia = "01";
+    if (dia.length === 1) dia = "0" + dia;
+
+    var mes = mesReferencia ? String(mesReferencia).trim() : "01";
+    if (mes.length === 1) mes = "0" + mes;
+
+    var ano = anoReferencia ? String(anoReferencia).trim() : new Date().getFullYear().toString();
+
+    return dia + "-" + mes + "-" + ano;
+  },
+
+  /**
    * Retorna a sigla padronizada de 3 letras da unidade das Fábricas de Cultura
    */
   getUnidadeSigla: function(unidadeName) {
