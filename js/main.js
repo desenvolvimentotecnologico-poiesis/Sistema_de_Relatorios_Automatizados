@@ -285,9 +285,16 @@ function hideOverlay() {
 }
 
 /* 1. CARREGAMENTO E POPULAÇÃO DE DROPDOWNS */
-function initializeDropdowns() {
-  showOverlay("Carregando unidades institucionais...");
-  callBackendAPI("getDropdownData", {}, onDropdownDataReceived, onDropdownDataError);
+function initializeDropdowns(forceRefresh = false) {
+  showDropdownError(false);
+  showOverlay(
+    forceRefresh
+      ? "Recarregando unidades institucionais do servidor..."
+      : "Carregando unidades institucionais..."
+  );
+
+  const payload = forceRefresh ? { forceRefresh: true, nocache: true } : {};
+  callBackendAPI("getDropdownData", payload, onDropdownDataReceived, onDropdownDataError);
 }
 
 function onDropdownDataReceived(response) {
@@ -299,10 +306,12 @@ function onDropdownDataReceived(response) {
   // campo "Unidade" com opções falsas de valor "success"/"message" — permitindo um envio com
   // Unidade inválida e Atividade vazia (dropdown dependente ficava sem opções).
   if (!response || !response.success || !response.hierarchy) {
-    onDropdownDataError((response && response.message) || "Não foi possível carregar as listas institucionais. Recarregue a página e tente novamente.");
+    const errorMsg = (response && response.message) || "Não foi possível carregar as listas institucionais. Recarregue a página ou clique em 'Tentar Novamente'.";
+    onDropdownDataError(errorMsg);
     return;
   }
 
+  showDropdownError(false);
   const hierarchy = response.hierarchy;
   dropDownHierarchy = hierarchy;
 
@@ -311,6 +320,7 @@ function onDropdownDataReceived(response) {
 
   if (unidadeSelect) {
     unidadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade...</option>';
+    unidadeSelect.disabled = false;
 
     Object.keys(hierarchy).forEach(key => {
       if (key !== "Fundação Casa") {
@@ -337,6 +347,7 @@ function onDropdownDataReceived(response) {
   const divisaoSelect = document.getElementById("divisaoRegionalSelect");
   if (divisaoSelect && hierarchy["Fundação Casa"]) {
     divisaoSelect.innerHTML = '<option value="" disabled selected>Selecione a Divisão Regional...</option>';
+    divisaoSelect.disabled = false;
     Object.keys(hierarchy["Fundação Casa"]).forEach(dr => {
       const opt = document.createElement("option");
       opt.value = dr;
@@ -384,7 +395,80 @@ function updateTipoPedagogicoOptions() {
 
 function onDropdownDataError(errMessage) {
   hideOverlay();
-  alert("Aviso de Conexão: " + errMessage);
+  const errorMsg = typeof errMessage === "string" ? errMessage : "Falha de conexão com o servidor ao consultar as listas.";
+  showDropdownError(true, errorMsg);
+}
+
+/**
+ * Exibe ou oculta o box de erro no topo do formulário com botão 'Tentar Novamente'
+ */
+function showDropdownError(show, message) {
+  let errorBox = document.getElementById("formDropdownErrorBox");
+
+  if (!errorBox && show) {
+    const form = document.getElementById("reportForm");
+    if (!form) return;
+
+    errorBox = document.createElement("div");
+    errorBox.id = "formDropdownErrorBox";
+    errorBox.className = "status-box error";
+    errorBox.style.cssText = "margin-bottom: 1.5rem; padding: 1rem 1.25rem;";
+    errorBox.innerHTML = `
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem; flex: 1; min-width: 260px;">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 2px;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div>
+            <strong style="display: block; font-size: 0.95rem; margin-bottom: 0.25rem; color: #991b1b;">Não foi possível carregar as listas institucionais</strong>
+            <span id="formDropdownErrorMessage" style="font-size: 0.88rem; line-height: 1.4; color: #b91c1c;">${escapeHtml(message || "Houve uma instabilidade temporária ao consultar o servidor.")}</span>
+          </div>
+        </div>
+        <button type="button" id="btnRetryPublicDropdown" onclick="initializeDropdowns(true)" class="btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1.1rem; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; white-space: nowrap; border-radius: 6px;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Tentar Novamente
+        </button>
+      </div>
+    `;
+
+    // Insere no topo do formulário (antes da primeira seção)
+    const firstSection = form.querySelector(".form-section") || form.firstElementChild;
+    if (firstSection) {
+      form.insertBefore(errorBox, firstSection);
+    } else {
+      form.appendChild(errorBox);
+    }
+  }
+
+  if (errorBox) {
+    errorBox.style.display = show ? "block" : "none";
+    if (show && message) {
+      const msgEl = errorBox.querySelector("#formDropdownErrorMessage");
+      if (msgEl) msgEl.textContent = message;
+    }
+  }
+
+  // Atualiza os selects para refletir o estado de erro
+  const unidadeSelect = document.getElementById("unidadeSelect");
+  const divisaoSelect = document.getElementById("divisaoRegionalSelect");
+  const atividadeSelect = document.getElementById("atividadeSelect");
+
+  if (show) {
+    if (unidadeSelect) {
+      unidadeSelect.innerHTML = '<option value="" disabled selected>Erro ao carregar. Clique em "Tentar Novamente" acima.</option>';
+      unidadeSelect.disabled = true;
+    }
+    if (divisaoSelect) {
+      divisaoSelect.innerHTML = '<option value="" disabled selected>Erro ao carregar. Clique em "Tentar Novamente" acima.</option>';
+      divisaoSelect.disabled = true;
+    }
+    if (atividadeSelect) {
+      atividadeSelect.innerHTML = '<option value="" disabled selected>Aguardando carregamento das unidades...</option>';
+      atividadeSelect.disabled = true;
+    }
+  }
 }
 
 function updateAtividadeDropdown() {

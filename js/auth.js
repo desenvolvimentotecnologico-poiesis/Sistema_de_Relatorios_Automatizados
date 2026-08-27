@@ -152,7 +152,7 @@ function showAuthLoading(show, message) {
 }
 
 /**
- * Exibe a visão autenticada e carrega os dropdowns institucionais
+ * Exibe a visão autenticada e inicia o carregamento dos dropdowns institucionais
  */
 function displayAuthenticatedView(profile) {
   const loginSec = document.getElementById("loginSection");
@@ -166,33 +166,94 @@ function displayAuthenticatedView(profile) {
     userDisplay.textContent = profile.nome + " (" + profile.email + ")";
   }
 
-  showAuthLoading(true, "Carregando atividades pedagógicas da unidade (" + profile.unidade + ")...");
+  showRestrictedDropdownError(false);
+  resetRestrictedDocsForm();
+  loadRestrictedDropdownData(profile, false);
+}
+
+/**
+ * Carrega a hierarquia de atividades pedagógicas via API
+ * @param {Object} profile Perfil do usuário autenticado
+ * @param {boolean} forceRefresh Se true, limpa o cache do servidor e força leitura da planilha
+ */
+function loadRestrictedDropdownData(profile, forceRefresh = false) {
+  if (!profile) profile = currentUserProfile;
+  if (!profile) return;
+
+  showRestrictedDropdownError(false);
+  showAuthLoading(true, forceRefresh
+    ? "Recarregando atividades pedagógicas da unidade (" + (profile.unidade || "Todas") + ")..."
+    : "Carregando atividades pedagógicas da unidade (" + (profile.unidade || "Todas") + ")..."
+  );
+
+  const unidadeSelect = document.getElementById("restritoUnidade");
+  if (unidadeSelect) {
+    unidadeSelect.innerHTML = '<option value="" disabled selected>Carregando unidade do responsável...</option>';
+    unidadeSelect.disabled = true;
+  }
 
   if (typeof callBackendAPI === "function") {
-    callBackendAPI("getDropdownData", {}, (response) => {
+    const payload = forceRefresh ? { forceRefresh: true, nocache: true } : {};
+    callBackendAPI("getDropdownData", payload, (response) => {
       showAuthLoading(false);
 
-      // Se a chamada falhou no backend, o objeto de resposta não tem "hierarchy". Sem esta
-      // checagem, a própria resposta de erro ({success, message}) era usada como se fosse a
-      // hierarquia de unidades, populando o campo "Unidade" com opções falsas de valor
-      // "success"/"message" — o mesmo defeito já corrigido no formulário público.
       if (!response || !response.success || !response.hierarchy) {
-        alert("Aviso: Falha ao obter a lista de atividades pedagógicas do servidor.\n\n" +
-          ((response && response.message) || "Recarregue a página e tente novamente."));
+        const errorMsg = (response && response.message) || "O servidor não retornou as listas de atividades pedagógicas.";
+        showRestrictedDropdownError(true, errorMsg);
         return;
       }
 
       restrictedHierarchy = response.hierarchy;
+      showRestrictedDropdownError(false);
       populateRestrictedUnidades(profile);
     }, (err) => {
       showAuthLoading(false);
-      alert("Aviso: Falha ao obter lista de atividades pedagógicas do servidor: " + err);
+      const errorMsg = typeof err === "string" ? err : "Falha de conexão com o servidor ao consultar as listas.";
+      showRestrictedDropdownError(true, errorMsg);
     });
   } else {
     showAuthLoading(false);
+    showRestrictedDropdownError(true, "Módulo de comunicação com a API não disponível.");
+  }
+}
+
+/**
+ * Disparado pelo botão 'Tentar Novamente' no box de erro visual
+ */
+function retryLoadingRestrictedDropdowns() {
+  if (currentUserProfile) {
+    loadRestrictedDropdownData(currentUserProfile, true);
+  } else {
+    alert("Sessão não identificada. Por favor, faça login novamente.");
+    handleUserLoggedOut();
+  }
+}
+
+/**
+ * Controla a exibição do box de erro e o estado dos selects em caso de falha
+ */
+function showRestrictedDropdownError(show, message) {
+  const errorBox = document.getElementById("restrictedDropdownErrorBox");
+  const errorMsgEl = document.getElementById("restrictedDropdownErrorMessage");
+  const unidadeSelect = document.getElementById("restritoUnidade");
+  const submitBtn = document.getElementById("submitDocsBtn");
+
+  if (errorBox) {
+    errorBox.style.display = show ? "block" : "none";
+    if (show && errorMsgEl && message) {
+      errorMsgEl.textContent = message;
+    }
   }
 
-  resetRestrictedDocsForm();
+  if (show) {
+    if (unidadeSelect) {
+      unidadeSelect.innerHTML = '<option value="" disabled selected>Erro ao carregar unidades. Clique em "Tentar Novamente" acima.</option>';
+      unidadeSelect.disabled = true;
+    }
+    if (submitBtn) {
+      submitBtn.disabled = true;
+    }
+  }
 }
 
 /**
