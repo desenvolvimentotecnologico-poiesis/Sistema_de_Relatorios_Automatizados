@@ -40,7 +40,7 @@ var Utils = {
    * O formato é mantido idêntico ao que o sistema sempre gerou (sanitização + MAIÚSCULAS +
    * espaços trocados por underscore) para que as pastas já criadas em produção continuem sendo
    * reaproveitadas. A separação entre atividades de nome parecido é garantida por
-   * normalizeFolderKey (busca) e removeActivityFiles (limpeza), não por mudança de formato.
+   * normalizeFolderKey (busca) e removeFilesMatching (limpeza), não por mudança de formato.
    */
   buildActivityFolderName: function(atividade) {
     var base = atividade ? String(atividade).trim() : "ATIVIDADE";
@@ -178,18 +178,50 @@ var Utils = {
   },
 
   /**
-   * Sanitiza chaves para o CacheService do Apps Script (máximo 250 caracteres, apenas ASCII)
+   * Sanitiza chaves para o CacheService do Apps Script (máximo 250 caracteres, apenas ASCII).
+   *
+   * A sanitização é lossy por natureza — troca todo caractere especial por "_" e corta o excedente
+   * —, então duas chaves distintas podem virar a mesma string. Numa chave de pasta do Drive isso
+   * significaria devolver a pasta de OUTRA atividade a partir do cache. O sufixo de hash abaixo
+   * deriva do texto original completo e torna essa colisão inviável na prática.
    */
   sanitizeCacheKey: function(keyStr) {
     if (!keyStr) return "cache_key_default";
-    var clean = String(keyStr)
+    var original = String(keyStr);
+    var clean = original
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .replace(new RegExp("[\u0300-\u036f]", "g"), "")
       .replace(/[^a-zA-Z0-9_-]/g, "_");
-    if (clean.length > 200) {
-      clean = clean.substring(0, 200);
+
+    var suffix = "_" + this.shortHash(original);
+    var maxBase = 200 - suffix.length;
+    if (clean.length > maxBase) {
+      clean = clean.substring(0, maxBase);
     }
-    return clean;
+    return clean + suffix;
+  },
+
+  /**
+   * Hash curto e estável (hexadecimal) de uma string, usado para desambiguar chaves de cache.
+   */
+  shortHash: function(text) {
+    try {
+      var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(text), Utilities.Charset.UTF_8);
+      var hex = "";
+      for (var i = 0; i < 6; i++) {
+        var b = (bytes[i] + 256) % 256;
+        hex += (b < 16 ? "0" : "") + b.toString(16);
+      }
+      return hex;
+    } catch (e) {
+      // Recuo determinístico caso o serviço de digest não esteja disponível na execução
+      var h = 0;
+      var str = String(text);
+      for (var j = 0; j < str.length; j++) {
+        h = ((h << 5) - h + str.charCodeAt(j)) | 0;
+      }
+      return Math.abs(h).toString(16);
+    }
   },
 
   /**
@@ -268,20 +300,26 @@ var Utils = {
    * preserva as duas garantias e elimina o dano colateral entre atividades distintas.
    *
    * @param {Folder} folder Pasta do Drive a limpar
-   * @param {string} cleanAtividade Nome da atividade já sanitizado (ex.: "OFICINA_DE_TEATRO")
-   * @param {Array<string>} [preserveTokens] Trechos de nome que blindam um arquivo contra a
-   *   remoção, mesmo pertencendo à atividade (ex.: o Plano de Atividade da Fundação CASA, que
-   *   divide a pasta com o relatório e foi enviado na Etapa 1 do mesmo envio).
+   * @param {Array<string>} requireAll Trechos que o nome do arquivo precisa conter TODOS para ser
+   *   removido. Quanto mais específico, mais estreita é a remoção: passar apenas a atividade
+   *   remove todas as versões dela na pasta; acrescentar a data/mês limita à versão daquele
+   *   período, o que importa nas áreas em que a mesma pasta guarda relatórios de datas diferentes.
+   * @param {Array<string>} [preserveTokens] Trechos que blindam um arquivo contra a remoção, mesmo
+   *   casando com requireAll (ex.: o Plano de Atividade da Fundação CASA, que divide a pasta com o
+   *   relatório e foi enviado na Etapa 1 do mesmo envio).
    */
-  removeActivityFiles: function(folder, cleanAtividade, preserveTokens) {
+  removeFilesMatching: function(folder, requireAll, preserveTokens) {
     if (!folder) return;
 
-    var activityKey = this.normalizeFolderKey(cleanAtividade);
-    // Sem um nome de atividade confiável não há como delimitar o que pertence a este envio;
-    // nesse caso é mais seguro não remover nada do que arriscar apagar arquivos de terceiros.
-    if (!activityKey) return;
-
     var self = this;
+    var required = (requireAll || [])
+      .map(function(t) { return self.normalizeFolderKey(t); })
+      .filter(function(t) { return t !== ""; });
+
+    // Sem nenhum critério não há como delimitar o que pertence a este envio; nesse caso é mais
+    // seguro não remover nada do que arriscar apagar arquivos de terceiros.
+    if (required.length === 0) return;
+
     var keep = (preserveTokens || []).map(function(t) { return self.normalizeFolderKey(t); });
 
     try {
@@ -290,7 +328,10 @@ var Utils = {
         var file = files.next();
         var fileKey = this.normalizeFolderKey(file.getName());
 
-        if (fileKey.indexOf(activityKey) === -1) continue;
+        var matchesAll = required.every(function(token) {
+          return fileKey.indexOf(token) !== -1;
+        });
+        if (!matchesAll) continue;
 
         var isProtected = keep.some(function(token) {
           return token && fileKey.indexOf(token) !== -1;
@@ -344,6 +385,22 @@ var Utils = {
    * Grava logs de erro na aba _LOGS da planilha de respostas
    */
   logError: function(context, error) {
+    this.writeLog(context, error, "#f8d7da");
+  },
+
+  /**
+   * Grava na aba _LOGS um evento relevante que NÃO é um erro (ex.: uma linha sobrescrita por
+   * reenvio). O Logger do Apps Script só é visível no editor e expira; eventos que descartam
+   * dados já gravados precisam de um rastro consultável pela equipe na própria planilha.
+   */
+  logInfo: function(context, message) {
+    this.writeLog(context, message, "#f8d7da");
+  },
+
+  /**
+   * Rotina compartilhada de gravação na aba _LOGS.
+   */
+  writeLog: function(context, detail, headerColor) {
     try {
       var spreadsheetId = CONFIG.SPREADSHEET_RESPONSES_ID;
       if (!spreadsheetId || spreadsheetId.startsWith("INSIRA_O_ID")) {
@@ -355,12 +412,12 @@ var Utils = {
         if (!sheet) {
           sheet = ss.insertSheet("_LOGS");
           sheet.appendRow(["Data/Hora", "Contexto", "Erro"]);
-          sheet.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#f8d7da");
+          sheet.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground(headerColor);
         }
-        sheet.appendRow([new Date(), context, error.toString()]);
+        sheet.appendRow([new Date(), context, detail ? detail.toString() : ""]);
       }
     } catch (e) {
-      Logger.log("Falha ao gravar erro: " + e.toString());
+      Logger.log("Falha ao gravar log: " + e.toString());
     }
   }
 };

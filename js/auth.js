@@ -171,8 +171,18 @@ function displayAuthenticatedView(profile) {
   if (typeof callBackendAPI === "function") {
     callBackendAPI("getDropdownData", {}, (response) => {
       showAuthLoading(false);
-      const hierarchy = response && response.hierarchy ? response.hierarchy : (response || {});
-      restrictedHierarchy = hierarchy;
+
+      // Se a chamada falhou no backend, o objeto de resposta não tem "hierarchy". Sem esta
+      // checagem, a própria resposta de erro ({success, message}) era usada como se fosse a
+      // hierarquia de unidades, populando o campo "Unidade" com opções falsas de valor
+      // "success"/"message" — o mesmo defeito já corrigido no formulário público.
+      if (!response || !response.success || !response.hierarchy) {
+        alert("Aviso: Falha ao obter a lista de atividades pedagógicas do servidor.\n\n" +
+          ((response && response.message) || "Recarregue a página e tente novamente."));
+        return;
+      }
+
+      restrictedHierarchy = response.hierarchy;
       populateRestrictedUnidades(profile);
     }, (err) => {
       showAuthLoading(false);

@@ -17,7 +17,25 @@ document.addEventListener("DOMContentLoaded", () => {
   setupOutroFieldsListeners();
   setupCharacterCounters();
   initDynamicPlanoTable();
+  setupUnloadGuard();
 });
+
+/**
+ * Pede confirmação do navegador se a página for fechada ou recarregada durante o envio.
+ *
+ * O overlay já pede para não fechar a página, mas nada impedia o fechamento acidental. Fechar
+ * entre a Etapa 1 e a Etapa 2 grava os dados na planilha sem gerar o relatório em PDF, e o
+ * educador não tem como concluir depois: um novo envio é tratado como reenvio da mesma atividade.
+ */
+function setupUnloadGuard() {
+  window.addEventListener("beforeunload", (e) => {
+    if (!isSubmitting) return;
+    e.preventDefault();
+    // Navegadores atuais exibem uma mensagem padrão própria; o valor só precisa ser não vazio.
+    e.returnValue = "";
+    return "";
+  });
+}
 
 /* Overlay de Carregamento Intuitivo com Barra de Progresso */
 function showOverlay(message, percent = 10, title = "Processando Formulário...", isFormSubmission = false) {
@@ -383,6 +401,7 @@ async function handleFiles(files) {
   }
 
   let videoCount = uploadedFiles.filter(f => f.mimeType && f.mimeType.startsWith("video/")).length;
+  const falhas = [];
 
   showOverlay("Otimizando e compactando mídias para envio...");
   for (let i = 0; i < files.length; i++) {
@@ -418,11 +437,18 @@ async function handleFiles(files) {
         if (isVideo) videoCount++;
       }
     } catch (err) {
+      // Uma mídia descartada em silêncio fazia o educador acreditar que havia anexado 3 fotos
+      // quando só 2 tinham entrado, e a falha só aparecia na validação do envio.
       console.warn("Falha ao processar mídia:", file.name, err);
+      falhas.push(file.name || "arquivo sem nome");
     }
   }
   hideOverlay();
   renderPreviewGrid();
+
+  if (falhas.length > 0) {
+    alert(`Não foi possível processar ${falhas.length === 1 ? "o arquivo" : "os arquivos"}: ${falhas.join(", ")}.\n\nO arquivo pode estar corrompido ou em um formato não suportado. Selecione outra mídia no lugar.`);
+  }
 }
 
 function readAsBase64(file) {

@@ -433,7 +433,16 @@ function saveResponseRow(data) {
         sheet.getRange(duplicateRowNumber, 1, 1, layout.width).setValues([mergedRow]);
         SpreadsheetApp.flush();
 
-        Logger.log("Envio duplicado detectado para a mesma atividade. Linha " + duplicateRowNumber + " sobrescrita com os dados mais recentes.");
+        // Toda sobrescrita fica registrada na aba _LOGS. Uma linha sobrescrita é a única operação
+        // do sistema que descarta dados já gravados, então precisa deixar rastro para auditoria.
+        const rastro = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
+          " | Unidade: " + (data.unidade || "N/D") +
+          " | Atividade: " + (data.atividade || "N/D") +
+          " | Tipo: " + (data.tipoPedagogico || "-") +
+          " | Período: " + (data.anoReferencia || data.dataRelatorio || "N/D") + "/" + (data.mesReferencia || "-") +
+          " | Responsável: " + (data.responsavel || "N/D");
+        Logger.log("Reenvio da mesma atividade. Linha sobrescrita com os dados mais recentes. " + rastro);
+        Utils.logInfo("Sheets.saveResponseRow (linha sobrescrita por reenvio)", rastro);
         return {
           sheetName: config.sheetName,
           rowNumber: duplicateRowNumber
@@ -522,37 +531,52 @@ function findDuplicateActivityRow(sheet, data, layout) {
 
   if (!searchUnidade || !searchAtividade) return null;
 
+  // O período é a trava que separa o relatório deste mês do relatório de um mês anterior da MESMA
+  // atividade. Como um acerto aqui faz a linha existente ser SOBRESCRITA, ele precisa ser
+  // confirmado dos dois lados — nunca presumido.
+  //
+  // A versão anterior tinha um caminho em que, se as colunas de período não fossem localizadas,
+  // qualquer linha com a mesma Unidade + Atividade era devolvida, de QUALQUER mês/ano: o envio de
+  // março apagava o relatório de janeiro. Também bastava o Mês chegar vazio para o envio casar com
+  // uma linha antiga de mês vazio. Agora, quando o período não pode ser determinado com certeza, a
+  // função devolve null e o envio vira uma linha NOVA — uma linha a mais é recuperável, um
+  // relatório sobrescrito não é.
   const usesPeriodo = idxAno !== -1 && idxMes !== -1;
   const usesData = !usesPeriodo && idxData !== -1;
 
-  if (usesPeriodo && !searchAno && !searchMes) return null;
-  if (usesData && !searchData) return null;
+  let searchPeriodo;
+  let periodoDaLinha;
+
+  if (usesPeriodo) {
+    if (!searchAno || !searchMes) return null;
+    searchPeriodo = searchAno + "-" + searchMes;
+    periodoDaLinha = function(row) {
+      const ano = row[idxAno] ? row[idxAno].toString().trim() : "";
+      const mes = normalizeMonthCode(row[idxMes]);
+      return ano && mes ? ano + "-" + mes : "";
+    };
+  } else if (usesData) {
+    if (!searchData) return null;
+    searchPeriodo = searchData;
+    periodoDaLinha = function(row) { return toDateKey(row[idxData]); };
+  } else {
+    return null;
+  }
 
   const values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
   for (let i = 0; i < values.length; i++) {
     const row = values[i];
-    const rowUnidade = normalize(row[idxUnidade]);
-    const rowAtividade = normalize(row[idxAtividade]);
-    if (rowUnidade !== searchUnidade || rowAtividade !== searchAtividade) continue;
+    if (normalize(row[idxUnidade]) !== searchUnidade) continue;
+    if (normalize(row[idxAtividade]) !== searchAtividade) continue;
 
     // Discriminadores adicionais: só participam quando a área realmente os usa, para não impedir
     // a deduplicação nas áreas (e nas linhas legadas) em que a coluna não existe ou está vazia.
     if (idxTipo !== -1 && searchTipo && normalize(row[idxTipo]) !== searchTipo) continue;
     if (idxDivisao !== -1 && searchDivisao && normalize(row[idxDivisao]) !== searchDivisao) continue;
 
-    if (usesPeriodo) {
-      const rowAno = row[idxAno] ? row[idxAno].toString().trim() : "";
-      const rowMes = normalizeMonthCode(row[idxMes]);
-      if (rowAno === searchAno && rowMes === searchMes) {
-        return i + 2;
-      }
-    } else if (usesData) {
-      const rowData = toDateKey(row[idxData]);
-      if (rowData === searchData) {
-        return i + 2;
-      }
-    } else {
+    const rowPeriodo = periodoDaLinha(row);
+    if (rowPeriodo && rowPeriodo === searchPeriodo) {
       return i + 2;
     }
   }
@@ -589,7 +613,13 @@ function checkEmailInWhitelist(email) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  // A leitura era fixa em 4 colunas: uma aba com menos colunas fazia getRange lançar exceção e
+  // derrubava o login inteiro da Área Restrita, em vez de apenas não encontrar o e-mail.
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return null;
+  const numCols = Math.min(4, lastCol);
+
+  const values = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
 
   for (let i = 0; i < values.length; i++) {
     const rowEmail = values[i][0] ? values[i][0].toString().trim().toLowerCase() : "";

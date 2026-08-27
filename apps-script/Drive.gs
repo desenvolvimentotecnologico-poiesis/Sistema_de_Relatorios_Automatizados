@@ -199,7 +199,7 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
     // duplicá-las ou deixar sobras de um lote com mais arquivos. A remoção é restrita aos arquivos
     // cujo nome carrega o nome desta atividade — antes a pasta inteira era esvaziada, o que apagava
     // as evidências de qualquer outra atividade que tivesse caído na mesma pasta.
-    Utils.removeActivityFiles(targetFolder, cleanAtividade);
+    Utils.removeFilesMatching(targetFolder, [cleanAtividade]);
 
     for (let i = 0; i < files.length; i++) {
       const fileData = files[i];

@@ -97,10 +97,24 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
     .catch(err => {
       clearTimeout(timeoutId);
       console.error("Erro de rede/API:", err);
+
       if (err.name === "AbortError") {
         if (onError) onError("Tempo limite excedido (5 min). O servidor demorou muito para responder. Verifique sua conexão e tente novamente.");
-      } else {
-        if (onError) onError("Falha de conexão ao comunicar com o servidor: " + (err.message || "Verifique sua conexão com a internet."));
+        return;
       }
+
+      // Instabilidade de rede e erros HTTP transitórios do Apps Script também merecem re-tentativa
+      // nas ações de leitura. Antes, só uma resposta com JSON inválido era re-tentada: uma oscilação
+      // de conexão ao carregar as listas institucionais derrubava o formulário de imediato.
+      // Ações de gravação seguem com maxRetries = 0, para nunca duplicarem dados no servidor.
+      if (retryCount < maxRetries) {
+        console.warn("Re-tentando conexão com o servidor em 1.5s...");
+        setTimeout(() => {
+          callBackendAPI(action, payload, onSuccess, onError, retryCount + 1);
+        }, 1500);
+        return;
+      }
+
+      if (onError) onError("Falha de conexão ao comunicar com o servidor: " + (err.message || "Verifique sua conexão com a internet."));
     });
 }

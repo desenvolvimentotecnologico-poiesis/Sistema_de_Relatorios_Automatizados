@@ -45,6 +45,13 @@ const ImageCompressor = {
           canvas.height = height;
 
           const ctx = canvas.getContext("2d");
+
+          // O JPEG não tem canal de transparência: sem um fundo pintado antes, toda área
+          // transparente de um PNG/WebP era exportada como PRETO, manchando a evidência no
+          // relatório final. O branco preserva a aparência original da imagem.
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, width, height);
+
           ctx.drawImage(img, 0, 0, width, height);
 
           const dataUrl = canvas.toDataURL("image/jpeg", quality);

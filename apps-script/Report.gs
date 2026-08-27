@@ -48,10 +48,18 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     const cleanAtividade = Utils.sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
     
     let documentName = "";
-    
+    // Trechos que identificam ESTE relatório dentro da pasta, usados para remover a versão
+    // anterior sem tocar nos relatórios vizinhos. O Responsável fica de fora de propósito: é o
+    // campo que pode mudar entre o envio original e o reenvio, e a versão antiga precisa sair
+    // mesmo assim. Já a data/mês entra sempre que a pasta é compartilhada por vários períodos —
+    // é o que impede o relatório de uma data apagar o de outra data da mesma atividade.
+    let escopoDoRelatorio = [];
+
     if (setorNorm === "PEDAGÓGICO") {
       // Padrão Pedagógico: siglaUnidade_nomeResponsavel_nomeAtividade
       documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
+      // A pasta do Pedagógico já é única por Ano/Unidade/Mês/Tipo/Atividade.
+      escopoDoRelatorio = [unidadeSigla, cleanAtividade];
     } else if (setorNorm === "ARTICULAÇÃO E DIFUSÃO") {
       // Padrão Articulação: dataDoPrimeiroDiaDaAtividade_siglaUnidade_nomeDoEvento
       let diaStr = data.diasAtividade ? String(data.diasAtividade).split(",")[0].trim() : "01";
@@ -60,16 +68,22 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       const anoStr = data.anoReferencia || new Date().getFullYear().toString();
       const dataFormatada = diaStr + "-" + mesStr + "-" + anoStr;
       documentName = dataFormatada + "_" + unidadeSigla + "_" + cleanAtividade;
+      escopoDoRelatorio = [unidadeSigla, cleanAtividade, mesStr + "-" + anoStr];
     } else if (setorNorm === "BIBLIOTECA") {
       // Padrão Biblioteca: dataDaAtividade_siglaUnidade_nomeAtividade_nomeResponsavel
       let dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
       documentName = dataAtiv + "_" + unidadeSigla + "_" + cleanAtividade + "_" + cleanResponsavel;
+      // Bibliotecas registram várias atividades no mesmo mês, e todas dividem a mesma pasta da
+      // atividade. Sem a data no escopo, o relatório de uma data apagaria o de outra.
+      escopoDoRelatorio = [dataAtiv, unidadeSigla, cleanAtividade];
     } else if (setorNorm === "FUNDAÇÃO CASA") {
       // Padrão Fundação CASA: mesPorExtenso_nomeCentroAtendimento_nomeAtividade_nomeResponsavel
       const mesExt = Utils.getMonthNameExtenso(data.mesReferencia);
       documentName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_" + cleanResponsavel;
+      escopoDoRelatorio = [mesExt, cleanCentro, cleanAtividade];
     } else {
       documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
+      escopoDoRelatorio = [unidadeSigla, cleanAtividade];
     }
     
     // Remove a versão anterior do relatório (Docs+PDF) DESTA atividade antes de gerar a nova cópia,
@@ -85,7 +99,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     //
     // Na Fundação CASA a pasta de destino é a própria pasta da atividade, que também guarda o PDF
     // do Plano de Atividade enviado na Etapa 1 deste mesmo envio — ele é blindado da remoção.
-    Utils.removeActivityFiles(targetFolder, cleanAtividade, ["PlanoDeAtividade"]);
+    Utils.removeFilesMatching(targetFolder, escopoDoRelatorio, ["PlanoDeAtividade"]);
 
     const templateFile = getTemplateFileConnection(data.area || data.setor);
     const copiedFile = templateFile.makeCopy(documentName, targetFolder);
