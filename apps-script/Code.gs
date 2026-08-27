@@ -5,6 +5,14 @@
  */
 
 /**
+ * Marcador da versão do backend. É devolvido pelo doGet e serve para confirmar, sem abrir o
+ * editor, se a implantação (URL /exec) já está servindo o código atual — a causa mais comum de
+ * "a regra nova não funciona" é o Apps Script não ter sido reimplantado após colar os arquivos.
+ * Incrementar a cada conjunto de mudanças publicado.
+ */
+const BACKEND_VERSION = "2026-08-27.7 (dedup por dia + bloqueio de reenvio + data na pasta Bibliotecas/Articulacao)";
+
+/**
  * Roteador HTTP POST para chamadas vindas do Frontend na Vercel
  * @param {Object} e Evento de requisição HTTP POST contendo postData
  * @return {TextOutput} Resposta JSON com cabeçalhos apropriados
@@ -74,6 +82,7 @@ function doGet(e) {
     
     return responseJSON(Utils.createResponse(true, "API Headless Google Apps Script ativa e operacional.", {
       system: CONFIG.SYSTEM_NAME,
+      backendVersion: BACKEND_VERSION,
       timestamp: new Date().toISOString()
     }));
   } catch (error) {

@@ -729,7 +729,14 @@ function findDuplicateActivityRow(sheet, data, layout) {
     // Articulação e Difusão: a mesma atividade pode acontecer em dias diferentes do mesmo mês, e
     // cada ocorrência é um relatório próprio. O dia entra na identidade pelo primeiro dia
     // selecionado no calendário, que é o mesmo critério usado para nomear o relatório.
-    if (idxDias !== -1 && searchDia && getFirstDayOfMonth(row[idxDias]) !== searchDia) continue;
+    //
+    // Só há duplicata quando o dia CONFERE dos dois lados. Se o dia não puder ser comparado
+    // (envio sem dia, ou linha legada gravada sem o dia), a ocorrência não é tratada como a
+    // mesma — cria uma linha nova em vez de arriscar bloquear/sobrescrever a ocorrência errada.
+    if (idxDias !== -1) {
+      const rowDia = getFirstDayOfMonth(row[idxDias]);
+      if (!searchDia || !rowDia || rowDia !== searchDia) continue;
+    }
 
     const rowPeriodo = periodoDaLinha(row);
     if (rowPeriodo && rowPeriodo === searchPeriodo) {
