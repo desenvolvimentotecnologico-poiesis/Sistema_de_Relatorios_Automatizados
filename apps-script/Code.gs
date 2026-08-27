@@ -41,6 +41,8 @@ function doPost(e) {
       result = verifyUserAccess(payload.email);
     } else if (action === "checkActivityStatus") {
       result = checkActivityStatus(payload);
+    } else if (action === "checkReportStatus") {
+      result = checkReportStatus(payload);
     } else if (action === "uploadComplementaryDocs") {
       result = uploadComplementaryDocs(payload);
     } else {
@@ -88,9 +90,72 @@ function responseJSON(dataObject) {
 }
 
 /**
+ * Aplica à identificação da atividade exatamente o mesmo tratamento usado na gravação: área
+ * normalizada, período consolidado em dataRelatorio e nome da atividade em maiúsculas fora do
+ * Pedagógico.
+ *
+ * Compartilhado entre a consulta prévia (checkReportStatus) e o envio (submitForm) para que os
+ * dois nunca divirjam: uma chave montada de forma diferente faria a consulta liberar um envio que
+ * a gravação recusaria em seguida — ou o contrário.
+ *
+ * @param {Object} formData Dados do formulário (alterado no lugar)
+ * @return {Object} O mesmo objeto, com os campos de identificação normalizados
+ */
+function normalizeSubmissionKey(formData) {
+  formData.area = Utils.normalizeAreaName(formData.setor || formData.area);
+  formData.setor = formData.area;
+
+  formData.dataRelatorio = formData.dataRelatorio || (formData.mesReferencia && formData.anoReferencia ? (formData.mesReferencia + " / " + formData.anoReferencia) : formData.dataReposicao);
+
+  if (formData.area !== "PEDAGÓGICO" && formData.atividade) {
+    formData.atividade = formData.atividade.toString().toUpperCase().trim();
+  }
+
+  return formData;
+}
+
+/**
+ * Consulta prévia: informa se a atividade já teve relatório enviado, antes do educador preencher
+ * o formulário inteiro. Espelha o comportamento já usado na Área Restrita.
+ *
+ * Somente leitura — não cria pastas, não grava nada.
+ */
+function checkReportStatus(params) {
+  try {
+    if (!params || !params.unidade || !params.atividade) {
+      return Utils.createResponse(true, "Dados insuficientes para a consulta.", { alreadySubmitted: false });
+    }
+
+    const chave = normalizeSubmissionKey({
+      area: params.area,
+      setor: params.setor || params.area,
+      unidade: params.unidade,
+      atividade: params.atividade,
+      tipoPedagogico: params.tipoPedagogico,
+      divisaoRegional: params.divisaoRegional,
+      anoReferencia: params.anoReferencia,
+      mesReferencia: params.mesReferencia,
+      dataRelatorio: params.dataRelatorio
+    });
+
+    const info = findExistingSubmission(chave);
+
+    return Utils.createResponse(true, "Consulta realizada com sucesso.", {
+      alreadySubmitted: info.exists,
+      submittedAt: info.dataHora || "",
+      submittedBy: info.responsavel || "",
+      detail: info.exists ? buildDuplicateMessage(info) : ""
+    });
+  } catch (error) {
+    Utils.logError("Code.checkReportStatus", error);
+    return Utils.createResponse(false, "Erro ao consultar o relatório: " + error.message);
+  }
+}
+
+/**
  * ETAPA 1: Processamento síncrono rápido (< 1.5s)
  * Cria pastas no Drive, faz upload das imagens em Base64 e salva a linha no Sheets.
- * 
+ *
  * @param {Object} formData Dados do formulário
  * @return {Object} Retorno com IDs de pasta para a Etapa 2
  */
@@ -99,12 +164,9 @@ function submitForm(formData) {
     if (!formData) {
       return Utils.createResponse(false, "Dados do formulário não informados.");
     }
-    
-    formData.area = Utils.normalizeAreaName(formData.setor || formData.area);
-    formData.setor = formData.area;
-    
-    formData.dataRelatorio = formData.dataRelatorio || (formData.mesReferencia && formData.anoReferencia ? (formData.mesReferencia + " / " + formData.anoReferencia) : formData.dataReposicao);
-    
+
+    normalizeSubmissionKey(formData);
+
     // Validação de segurança dos campos obrigatórios básicos
     if (!formData.unidade || !formData.atividade || !formData.setor || !formData.responsavel || !formData.dataRelatorio) {
       return Utils.createResponse(false, "Campos obrigatórios faltando. Certifique-se de preencher Unidade, Atividade, Setor, Responsável e Mês/Ano.");
@@ -115,10 +177,6 @@ function submitForm(formData) {
     // protegendo contra chamadas diretas à API que ignorem a validação client-side.
     if (Utils.usesResponsavelPreenchimento(formData.area) && !formData.responsavelPreenchimento) {
       return Utils.createResponse(false, "Campo obrigatório faltando: Nome do Responsável pelo Preenchimento.");
-    }
-
-    if (formData.area !== "PEDAGÓGICO") {
-      formData.atividade = formData.atividade.toString().toUpperCase().trim();
     }
 
     // Validação de segurança dos campos de seleção múltipla obrigatórios (espelha a validação

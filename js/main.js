@@ -9,6 +9,10 @@ let uploadedFiles = [];
 let currentSubmittedData = null;
 let isSubmitting = false;
 
+// Estado da consulta prévia de duplicidade (ver setupDuplicateCheck)
+let reportAlreadySubmitted = false;
+let duplicateCheckMessage = "";
+
 document.addEventListener("DOMContentLoaded", () => {
   initializeDropdowns();
   setupCalendarGrid();
@@ -18,7 +22,145 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCharacterCounters();
   initDynamicPlanoTable();
   setupUnloadGuard();
+  setupDuplicateCheck();
 });
+
+/* 1b. CONSULTA PRÉVIA DE RELATÓRIO JÁ ENVIADO */
+
+/**
+ * Campos que identificam a atividade em cada formulário. A consulta só é disparada quando todos
+ * os presentes na página estão preenchidos — é a mesma chave usada pelo backend para decidir se o
+ * relatório já existe.
+ */
+const CAMPOS_CHAVE_DUPLICIDADE = [
+  { id: "unidadeSelect", chave: "unidade" },
+  { id: "centroCasaSelect", chave: "unidade" },
+  { id: "divisaoRegionalSelect", chave: "divisaoRegional" },
+  { id: "tipoPedagogicoSelect", chave: "tipoPedagogico" },
+  { id: "atividadeSelect", chave: "atividade" },
+  { id: "nomeAtividade", chave: "atividade" },
+  { id: "anoReferencia", chave: "anoReferencia" },
+  { id: "mesReferencia", chave: "mesReferencia" },
+  { id: "dataRelatorio", chave: "dataRelatorio" }
+];
+
+/**
+ * Consulta a planilha assim que a atividade fica identificada e, se o relatório já tiver sido
+ * enviado, avisa quando e por quem e bloqueia o envio — o mesmo comportamento da Área Restrita.
+ *
+ * Sem isso, o educador só descobriria a recusa depois de preencher o formulário inteiro e anexar
+ * as evidências. O aviso é criado por JavaScript, reaproveitando o estilo .status-box que a Área
+ * Restrita já usa, para que nenhum dos quatro formulários precise ser alterado.
+ */
+function setupDuplicateCheck() {
+  const form = document.getElementById("reportForm");
+  if (!form) return;
+
+  const campos = CAMPOS_CHAVE_DUPLICIDADE
+    .map(def => ({ el: document.getElementById(def.id), chave: def.chave }))
+    .filter(c => c.el);
+
+  if (campos.length === 0) return;
+
+  const aviso = document.createElement("div");
+  aviso.id = "reportStatusBox";
+  aviso.className = "status-box";
+  aviso.style.display = "none";
+
+  const rodape = form.querySelector(".form-footer");
+  if (rodape) {
+    form.insertBefore(aviso, rodape);
+  } else {
+    form.appendChild(aviso);
+  }
+
+  let debounce = null;
+  const agendarConsulta = () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => runDuplicateCheck(form, campos, aviso), 400);
+  };
+
+  campos.forEach(c => {
+    c.el.addEventListener("change", agendarConsulta);
+    if (c.el.tagName === "INPUT") c.el.addEventListener("input", agendarConsulta);
+  });
+}
+
+function runDuplicateCheck(form, campos, aviso) {
+  const payload = {
+    setor: form.querySelector('input[name="setor"]') ? form.querySelector('input[name="setor"]').value : ""
+  };
+
+  for (let c of campos) {
+    const valor = (c.el.value || "").trim();
+    // Enquanto a atividade não estiver completamente identificada não há o que consultar
+    if (!valor) {
+      resetDuplicateState(aviso);
+      return;
+    }
+    payload[c.chave] = valor;
+  }
+
+  aviso.className = "status-box info";
+  aviso.textContent = "Verificando se esta atividade já possui relatório enviado...";
+  aviso.style.display = "block";
+
+  callBackendAPI("checkReportStatus", payload, (response) => {
+    if (!response || !response.success) {
+      // Uma falha de consulta não pode impedir um envio legítimo: o backend recusa de qualquer
+      // forma na hora de gravar, então aqui o formulário segue liberado.
+      resetDuplicateState(aviso);
+      return;
+    }
+
+    if (response.alreadySubmitted) {
+      const jaEstavaBloqueado = reportAlreadySubmitted;
+      reportAlreadySubmitted = true;
+      duplicateCheckMessage = response.detail || "Esta atividade já possui relatório enviado.";
+
+      let texto = "Esta atividade já teve o relatório enviado";
+      if (response.submittedAt) texto += " em " + response.submittedAt;
+      if (response.submittedBy) texto += " por " + response.submittedBy;
+      texto += ". Não é permitido enviar o relatório da mesma atividade duas vezes no mesmo período.";
+
+      aviso.className = "status-box warning";
+      aviso.textContent = texto;
+      aviso.style.display = "block";
+      setSubmitBlocked(form, true);
+
+      // Leva o educador até o aviso apenas na transição para bloqueado, para não puxar a página
+      // a cada nova consulta enquanto ele preenche o formulário.
+      if (!jaEstavaBloqueado) {
+        aviso.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
+    reportAlreadySubmitted = false;
+    duplicateCheckMessage = "";
+    aviso.className = "status-box success";
+    aviso.textContent = "Atividade liberada: ainda não há relatório enviado para este período.";
+    aviso.style.display = "block";
+    setSubmitBlocked(form, false);
+  }, () => {
+    resetDuplicateState(aviso);
+  });
+}
+
+function resetDuplicateState(aviso) {
+  reportAlreadySubmitted = false;
+  duplicateCheckMessage = "";
+  aviso.style.display = "none";
+  aviso.textContent = "";
+  const form = document.getElementById("reportForm");
+  if (form) setSubmitBlocked(form, false);
+}
+
+function setSubmitBlocked(form, blocked) {
+  form.querySelectorAll('button[type="submit"]').forEach(btn => {
+    btn.disabled = blocked;
+  });
+}
 
 /**
  * Pede confirmação do navegador se a página for fechada ou recarregada durante o envio.
@@ -63,9 +205,11 @@ function hideOverlay() {
   const overlay = document.getElementById("loadingOverlay");
   if (overlay) overlay.classList.add("hidden");
 
+  // Um relatório já enviado mantém o botão desabilitado: reabilitar aqui desfaria o bloqueio da
+  // consulta prévia toda vez que um overlay fosse fechado.
   const submitBtns = document.querySelectorAll('button[type="submit"]');
   submitBtns.forEach(btn => {
-    btn.disabled = false;
+    btn.disabled = reportAlreadySubmitted;
   });
 }
 
@@ -556,6 +700,16 @@ function setupFormSubmission() {
     e.preventDefault();
 
     if (isSubmitting) return;
+
+    // Trava final: com o relatório já enviado, nenhuma requisição chega a sair daqui. O botão já
+    // está desabilitado pela consulta prévia, mas um submit disparado pelo teclado ou por um
+    // navegador que ignore o estado do botão passaria por cima disso.
+    if (reportAlreadySubmitted) {
+      alert(duplicateCheckMessage || "Esta atividade já possui relatório enviado. Não é permitido enviar duas vezes no mesmo período.");
+      setSubmitBlocked(form, true);
+      return;
+    }
+
     isSubmitting = true;
 
     const submitBtns = form.querySelectorAll('button[type="submit"]');
@@ -734,7 +888,7 @@ function enableFormSubmitBtn() {
   const form = document.getElementById("reportForm");
   if (form) {
     const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.disabled = false;
+    if (submitBtn) submitBtn.disabled = reportAlreadySubmitted;
   }
 }
 
@@ -855,16 +1009,21 @@ function extractFormData(form) {
 
 function onStage1Success(response) {
   if (!response || !response.success) {
-    hideOverlay();
-    enableFormSubmitBtn();
-
-    // Um relatório já enviado não é uma falha do sistema: a mensagem do servidor já explica
-    // quando e por quem foi enviado, e prefixá-la com "Erro na Etapa 1" só confundiria o educador.
+    // Recusa por duplicidade detectada no servidor (ex.: outro envio da mesma atividade concluiu
+    // enquanto este estava em andamento). O estado é marcado ANTES de fechar o overlay, que
+    // reabilita os botões conforme este mesmo sinalizador.
     if (response && response.duplicate) {
+      reportAlreadySubmitted = true;
+      duplicateCheckMessage = response.message;
+      hideOverlay();
+      // Um relatório já enviado não é falha do sistema: prefixar com "Erro na Etapa 1"
+      // confundiria o educador. A mensagem do servidor já diz quando e por quem foi enviado.
       alert(response.message);
       return;
     }
 
+    hideOverlay();
+    enableFormSubmitBtn();
     alert("Erro na Etapa 1: " + (response ? response.message : "Resposta nula"));
     return;
   }
