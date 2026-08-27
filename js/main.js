@@ -67,12 +67,13 @@ function setupDuplicateCheck() {
   aviso.className = "status-box";
   aviso.style.display = "none";
 
-  // O aviso fica ao final da seção de Identificação da Atividade, que é onde estão todos os
-  // campos que compõem a chave. Aparecer só junto ao botão, no fim da página, faria o educador
-  // preencher o relatório inteiro antes de ver que a atividade já estava enviada.
-  const secaoIdentificacao = form.querySelector("fieldset.form-section");
-  if (secaoIdentificacao) {
-    secaoIdentificacao.insertAdjacentElement("afterend", aviso);
+  // O aviso é inserido logo abaixo do último campo que compõe a chave, que é o momento exato em
+  // que a atividade fica identificada e a consulta pode responder: Mês de Referência no
+  // Pedagógico e na Fundação CASA, o calendário na Articulação, a Data nas Bibliotecas. Colocá-lo
+  // no fim da seção ou junto ao botão deixaria a resposta longe do campo que a provocou.
+  const ancora = findDuplicateNoticeAnchor(form, campos);
+  if (ancora) {
+    ancora.insertAdjacentElement("afterend", aviso);
   } else {
     const rodape = form.querySelector(".form-footer");
     if (rodape) form.insertBefore(aviso, rodape); else form.appendChild(aviso);
@@ -96,6 +97,38 @@ function setupDuplicateCheck() {
     calendario.addEventListener("change", agendarConsulta);
     calendario.addEventListener("click", agendarConsulta);
   }
+}
+
+/**
+ * Localiza o bloco depois do qual o aviso deve ser inserido: o campo da chave que aparece por
+ * último no formulário, considerando também o calendário da Articulação, que participa da
+ * identificação mas não é um campo comum.
+ *
+ * A ordem é lida do próprio DOM em vez de fixada por área, para que a âncora continue correta se
+ * a ordem dos campos mudar em algum formulário.
+ *
+ * @returns {Element|null} O .form-group do último campo da chave, ou null se nada for encontrado
+ */
+function findDuplicateNoticeAnchor(form, campos) {
+  const candidatos = campos.map(c => c.el);
+
+  const calendario = document.getElementById("calendarGrid");
+  if (calendario) candidatos.push(calendario);
+
+  let ultimo = null;
+  candidatos.forEach(el => {
+    if (!ultimo) {
+      ultimo = el;
+      return;
+    }
+    // DOCUMENT_POSITION_FOLLOWING: "el" vem depois do candidato atual no documento
+    if (ultimo.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) {
+      ultimo = el;
+    }
+  });
+
+  if (!ultimo) return null;
+  return ultimo.closest(".form-group") || ultimo;
 }
 
 /**
