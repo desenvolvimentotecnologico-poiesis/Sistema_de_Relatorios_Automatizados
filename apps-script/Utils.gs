@@ -75,7 +75,23 @@ var Utils = {
    * encontrar os arquivos da versão anterior, que ficariam duplicados ao lado dos novos.
    */
   buildArticulacaoDateKey: function(diasAtividade, mesReferencia, anoReferencia) {
-    var dia = diasAtividade ? String(diasAtividade).split(/[,;]/)[0].replace(/[^0-9]/g, "") : "";
+    var dia = "";
+    if (diasAtividade instanceof Date && !isNaN(diasAtividade.getTime())) {
+      dia = String(diasAtividade.getDate());
+    } else if (diasAtividade) {
+      var raw = String(diasAtividade).trim();
+      var firstPart = raw.split(/[,;]/)[0].replace(/[^0-9]/g, "");
+      if (firstPart) {
+        var num = parseInt(firstPart, 10);
+        if (!isNaN(num) && num >= 1 && num <= 31) {
+          dia = String(num);
+        }
+      }
+      if (!dia) {
+        var match = raw.match(/^(\d{1,2})[\/\-]/);
+        if (match) dia = String(parseInt(match[1], 10));
+      }
+    }
     if (!dia) dia = "01";
     if (dia.length === 1) dia = "0" + dia;
 

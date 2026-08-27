@@ -315,6 +315,13 @@ function ensureSheetHeaders(sheet, config) {
     layout = readHeaderLayout(sheet);
   }
 
+  // Garante que a coluna 'Dia(s) do Mês' use formatação de texto simples (@) para impedir
+  // que o Google Sheets converta seleções de dias múltiplos (ex.: "1, 5, 10") em data (ex.: "1, 5, 2010").
+  const idxDiasCol = layout.index[normalizeHeaderKey("Dia(s) do Mês")];
+  if (idxDiasCol !== undefined) {
+    sheet.getRange(1, idxDiasCol + 1, sheet.getMaxRows(), 1).setNumberFormat("@");
+  }
+
   return layout;
 }
 
@@ -600,7 +607,9 @@ function saveResponseRow(data) {
 
       const targetRow = sheet.getLastRow() + 1;
       const physicalRow = buildPhysicalRow(layout, config.headers, newRow);
-      sheet.getRange(targetRow, 1, 1, layout.width).setValues([physicalRow]);
+      const targetRange = sheet.getRange(targetRow, 1, 1, layout.width);
+      targetRange.setNumberFormat("@");
+      targetRange.setValues([physicalRow]);
       SpreadsheetApp.flush();
 
       return {
@@ -811,10 +820,37 @@ function checkEmailInWhitelist(email) {
  */
 function getFirstDayOfMonth(diasAtividade) {
   if (!diasAtividade && diasAtividade !== 0) return "";
-  const primeiro = diasAtividade.toString().split(/[,;]/)[0].replace(/[^0-9]/g, "");
-  if (!primeiro) return "";
-  const numero = parseInt(primeiro, 10);
-  return isNaN(numero) || numero < 1 || numero > 31 ? "" : String(numero);
+
+  // Se o Google Sheets converteu a célula em objeto Date (ex.: "1, 5, 10" interpretado como data)
+  if (diasAtividade instanceof Date && !isNaN(diasAtividade.getTime())) {
+    try {
+      const diaNum = diasAtividade.getDate();
+      return diaNum >= 1 && diaNum <= 31 ? String(diaNum) : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  const str = diasAtividade.toString().trim();
+  if (!str) return "";
+
+  // Se for uma lista de dias separada por vírgula/ponto-e-vírgula ("1, 5, 10", "1, 5, 2010", "5, 12, 19")
+  const primeiro = str.split(/[,;]/)[0].replace(/[^0-9]/g, "");
+  if (primeiro) {
+    const numero = parseInt(primeiro, 10);
+    if (!isNaN(numero) && numero >= 1 && numero <= 31) {
+      return String(numero);
+    }
+  }
+
+  // Se for uma data formatada ("2010-05-01" ou "01/05/2010")
+  const brMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (brMatch) {
+    const d = parseInt(brMatch[1], 10);
+    if (!isNaN(d) && d >= 1 && d <= 31) return String(d);
+  }
+
+  return "";
 }
 
 /**

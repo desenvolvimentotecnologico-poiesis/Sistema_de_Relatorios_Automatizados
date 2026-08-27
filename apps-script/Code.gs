@@ -10,7 +10,7 @@
  * "a regra nova não funciona" é o Apps Script não ter sido reimplantado após colar os arquivos.
  * Incrementar a cada conjunto de mudanças publicado.
  */
-const BACKEND_VERSION = "2026-08-27.7 (dedup por dia + bloqueio de reenvio + data na pasta Bibliotecas/Articulacao)";
+const BACKEND_VERSION = "2026-08-27.8 (formatação de texto simples na coluna de dias + suporte a Date em getFirstDayOfMonth)";
 
 /**
  * Roteador HTTP POST para chamadas vindas do Frontend na Vercel

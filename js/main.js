@@ -560,6 +560,7 @@ function setupCalendarGrid() {
     dayBox.addEventListener("click", () => {
       chk.checked = !chk.checked;
       dayBox.classList.toggle("selected", chk.checked);
+      chk.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
     calendarGrid.appendChild(dayBox);
