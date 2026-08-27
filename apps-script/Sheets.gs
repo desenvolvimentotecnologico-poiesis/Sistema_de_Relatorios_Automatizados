@@ -667,6 +667,7 @@ function findDuplicateActivityRow(sheet, data, layout) {
   const idxData = colOf("Data da Atividade");
   const idxTipo = colOf("Tipo (Trilha/Ateliê/Núcleo)");
   const idxDivisao = colOf("Divisão Regional");
+  const idxDias = colOf("Dia(s) do Mês");
 
   if (idxUnidade === -1 || idxAtividade === -1) return null;
 
@@ -677,6 +678,7 @@ function findDuplicateActivityRow(sheet, data, layout) {
   const searchData = toDateKey(data.dataRelatorio);
   const searchTipo = normalize(data.tipoPedagogico);
   const searchDivisao = normalize(data.divisaoRegional);
+  const searchDia = getFirstDayOfMonth(data.diasAtividade);
 
   if (!searchUnidade || !searchAtividade) return null;
 
@@ -723,6 +725,11 @@ function findDuplicateActivityRow(sheet, data, layout) {
     // a deduplicação nas áreas (e nas linhas legadas) em que a coluna não existe ou está vazia.
     if (idxTipo !== -1 && searchTipo && normalize(row[idxTipo]) !== searchTipo) continue;
     if (idxDivisao !== -1 && searchDivisao && normalize(row[idxDivisao]) !== searchDivisao) continue;
+
+    // Articulação e Difusão: a mesma atividade pode acontecer em dias diferentes do mesmo mês, e
+    // cada ocorrência é um relatório próprio. O dia entra na identidade pelo primeiro dia
+    // selecionado no calendário, que é o mesmo critério usado para nomear o relatório.
+    if (idxDias !== -1 && searchDia && getFirstDayOfMonth(row[idxDias]) !== searchDia) continue;
 
     const rowPeriodo = periodoDaLinha(row);
     if (rowPeriodo && rowPeriodo === searchPeriodo) {
@@ -784,6 +791,23 @@ function checkEmailInWhitelist(email) {
     }
   }
   return null;
+}
+
+/**
+ * Extrai o primeiro dia do mês de uma seleção de dias ("5, 12, 19" -> "5").
+ *
+ * Normaliza para número sem zero à esquerda dos dois lados da comparação, para que "05" e "5"
+ * — formas que aparecem conforme o valor venha do formulário ou de uma célula da planilha —
+ * sejam reconhecidos como o mesmo dia.
+ *
+ * @return {string} O dia, ou "" se não houver dia reconhecível
+ */
+function getFirstDayOfMonth(diasAtividade) {
+  if (!diasAtividade && diasAtividade !== 0) return "";
+  const primeiro = diasAtividade.toString().split(/[,;]/)[0].replace(/[^0-9]/g, "");
+  if (!primeiro) return "";
+  const numero = parseInt(primeiro, 10);
+  return isNaN(numero) || numero < 1 || numero > 31 ? "" : String(numero);
 }
 
 /**

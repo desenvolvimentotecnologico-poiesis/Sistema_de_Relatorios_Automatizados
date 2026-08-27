@@ -135,7 +135,8 @@ function checkReportStatus(params) {
       divisaoRegional: params.divisaoRegional,
       anoReferencia: params.anoReferencia,
       mesReferencia: params.mesReferencia,
-      dataRelatorio: params.dataRelatorio
+      dataRelatorio: params.dataRelatorio,
+      diasAtividade: params.diasAtividade
     });
 
     const info = findExistingSubmission(chave);

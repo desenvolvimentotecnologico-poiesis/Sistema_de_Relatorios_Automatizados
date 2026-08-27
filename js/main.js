@@ -67,11 +67,15 @@ function setupDuplicateCheck() {
   aviso.className = "status-box";
   aviso.style.display = "none";
 
-  const rodape = form.querySelector(".form-footer");
-  if (rodape) {
-    form.insertBefore(aviso, rodape);
+  // O aviso fica ao final da seção de Identificação da Atividade, que é onde estão todos os
+  // campos que compõem a chave. Aparecer só junto ao botão, no fim da página, faria o educador
+  // preencher o relatório inteiro antes de ver que a atividade já estava enviada.
+  const secaoIdentificacao = form.querySelector("fieldset.form-section");
+  if (secaoIdentificacao) {
+    secaoIdentificacao.insertAdjacentElement("afterend", aviso);
   } else {
-    form.appendChild(aviso);
+    const rodape = form.querySelector(".form-footer");
+    if (rodape) form.insertBefore(aviso, rodape); else form.appendChild(aviso);
   }
 
   let debounce = null;
@@ -84,6 +88,30 @@ function setupDuplicateCheck() {
     c.el.addEventListener("change", agendarConsulta);
     if (c.el.tagName === "INPUT") c.el.addEventListener("input", agendarConsulta);
   });
+
+  // Articulação e Difusão: o dia faz parte da identidade da atividade, mas vem de uma grade de
+  // caixas de seleção sem campo próprio, então é observada à parte.
+  const calendario = document.getElementById("calendarGrid");
+  if (calendario) {
+    calendario.addEventListener("change", agendarConsulta);
+    calendario.addEventListener("click", agendarConsulta);
+  }
+}
+
+/**
+ * Primeiro dia marcado na grade do calendário (Articulação e Difusão).
+ * Devolve "" quando a grade não existe no formulário ou nenhum dia foi marcado.
+ */
+function getPrimeiroDiaSelecionado() {
+  const calendario = document.getElementById("calendarGrid");
+  if (!calendario) return "";
+
+  const marcados = Array.from(calendario.querySelectorAll('input[type="checkbox"]:checked'))
+    .map(chk => parseInt(chk.value, 10))
+    .filter(n => !isNaN(n))
+    .sort((a, b) => a - b);
+
+  return marcados.length > 0 ? String(marcados[0]) : "";
 }
 
 function runDuplicateCheck(form, campos, aviso) {
@@ -99,6 +127,16 @@ function runDuplicateCheck(form, campos, aviso) {
       return;
     }
     payload[c.chave] = valor;
+  }
+
+  // Articulação e Difusão: sem nenhum dia marcado a atividade ainda não está identificada.
+  if (document.getElementById("calendarGrid")) {
+    const dia = getPrimeiroDiaSelecionado();
+    if (!dia) {
+      resetDuplicateState(aviso);
+      return;
+    }
+    payload.diasAtividade = dia;
   }
 
   aviso.className = "status-box info";

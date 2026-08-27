@@ -68,7 +68,10 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       const anoStr = data.anoReferencia || new Date().getFullYear().toString();
       const dataFormatada = diaStr + "-" + mesStr + "-" + anoStr;
       documentName = dataFormatada + "_" + unidadeSigla + "_" + cleanAtividade;
-      escopoDoRelatorio = [unidadeSigla, cleanAtividade, mesStr + "-" + anoStr];
+      // A data completa (e não só mês/ano) entra no escopo porque a mesma atividade pode ter
+      // ocorrências em dias diferentes do mesmo mês, e todas dividem a pasta da atividade:
+      // sem o dia, o relatório de uma ocorrência apagaria o da outra.
+      escopoDoRelatorio = [dataFormatada, unidadeSigla, cleanAtividade];
     } else if (setorNorm === "BIBLIOTECA") {
       // Padrão Biblioteca: dataDaAtividade_siglaUnidade_nomeAtividade_nomeResponsavel
       let dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
