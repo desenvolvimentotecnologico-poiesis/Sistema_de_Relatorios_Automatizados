@@ -121,6 +121,30 @@ function submitForm(formData) {
       formData.atividade = formData.atividade.toString().toUpperCase().trim();
     }
 
+    // Validação de segurança dos campos de seleção múltipla obrigatórios (espelha a validação
+    // client-side, protegendo contra chamadas diretas à API). A Fundação CASA declara Impacto,
+    // Pontos Fortes e Pontos Fracos como opcionais no seu formulário e fica de fora desta regra.
+    if (formData.area !== "FUNDAÇÃO CASA") {
+      const camposObrigatorios = [
+        { valor: formData.faixaEtaria, rotulo: "Faixa Etária Predominante" },
+        { valor: formData.perfilPublico, rotulo: "Perfil do Público" },
+        { valor: formData.impactoCultural || formData.impactoTerritorial, rotulo: "Impacto Territorial/Cultural" },
+        { valor: formData.pontosFortes, rotulo: "Pontos Fortes" },
+        { valor: formData.pontosFracos, rotulo: "Pontos Fracos e Desafios" }
+      ];
+
+      if (formData.area === "ARTICULAÇÃO E DIFUSÃO") {
+        camposObrigatorios.push({ valor: formData.diasAtividade, rotulo: "Dia(s) do Mês em que a atividade aconteceu" });
+      }
+
+      for (let i = 0; i < camposObrigatorios.length; i++) {
+        const campo = camposObrigatorios[i];
+        if (!campo.valor || campo.valor.toString().trim() === "") {
+          return Utils.createResponse(false, "Campo obrigatório não preenchido: " + campo.rotulo + ".");
+        }
+      }
+    }
+
     // Validação de segurança das mídias anexadas (espelha as regras já aplicadas no front-end,
     // protegendo contra chamadas diretas à API que ignorem a validação client-side)
     if (formData.area !== "FUNDAÇÃO CASA") {

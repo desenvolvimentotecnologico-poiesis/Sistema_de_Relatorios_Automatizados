@@ -604,6 +604,12 @@ function setupFormSubmission() {
       }
     }
 
+    // Validação dos grupos de seleção múltipla marcados como obrigatórios
+    if (!validateRequiredCheckboxGroups(form)) {
+      hideOverlay();
+      return;
+    }
+
     // Validação estrita de limites de caracteres mínimos/máximos antes do envio
     const minMaxFields = form.querySelectorAll("[data-min-length], [data-max-length]");
     for (let field of minMaxFields) {
@@ -645,6 +651,57 @@ function setupFormSubmission() {
       onStage1Error
     );
   });
+}
+
+/**
+ * Exige ao menos uma opção marcada em cada grupo de seleção múltipla obrigatório
+ * (Faixa Etária, Perfil do Público, Impacto Territorial/Cultural, Pontos Fortes,
+ * Pontos Fracos e Desafios, Dias do Mês).
+ *
+ * O atributo HTML "required" não serve para esses grupos: em um conjunto de checkboxes de mesmo
+ * nome, o navegador passaria a exigir que TODAS as caixas fossem marcadas. Sem uma validação
+ * própria, esses campos exibiam o asterisco de obrigatório mas o formulário era enviado com eles
+ * em branco — era o caso de "Pontos Fracos e Desafios".
+ *
+ * O grupo é reconhecido como obrigatório pelo próprio HTML: um rótulo com <span class="required">
+ * dentro de um .form-group que contenha caixas de seleção. Assim, os grupos que a Fundação CASA
+ * declara sem asterisco continuam opcionais, como previsto para aquela área.
+ *
+ * @param {HTMLFormElement} form Formulário a validar
+ * @returns {boolean} true se todos os grupos obrigatórios estão preenchidos
+ */
+function validateRequiredCheckboxGroups(form) {
+  const groups = form.querySelectorAll(".form-group");
+
+  for (let group of groups) {
+    const labelEl = group.querySelector("label");
+    if (!labelEl || !labelEl.querySelector(".required")) continue;
+
+    const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+    if (checkboxes.length === 0) continue;
+
+    const fieldName = labelEl.textContent.replace("*", "").trim();
+    const marcados = Array.from(checkboxes).filter(chk => chk.checked);
+
+    if (marcados.length === 0) {
+      alert(`Atenção: selecione ao menos uma opção em "${fieldName}".`);
+      group.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    }
+
+    // "Outro" marcado sem descrição gravaria a palavra "Outro" isolada na planilha e no relatório
+    const outroMarcado = marcados.some(chk => chk.value === "Outro");
+    if (outroMarcado) {
+      const outroInput = group.querySelector(".input-inline-outro");
+      if (outroInput && outroInput.value.trim() === "") {
+        alert(`Atenção: você marcou "Outro" em "${fieldName}". Descreva qual, ou desmarque a opção.`);
+        outroInput.focus();
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 function enableFormSubmitBtn() {

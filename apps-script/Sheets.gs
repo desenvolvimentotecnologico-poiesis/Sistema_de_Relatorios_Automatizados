@@ -171,30 +171,123 @@ function getSheetConfigForArea(area) {
   }
 }
 
+/**
+ * Normaliza um cabeçalho de coluna para comparação (maiúsculas, sem acentos, espaços colapsados).
+ */
+function normalizeHeaderKey(header) {
+  return Utils.normalizeText(header);
+}
+
+/**
+ * Lê o cabeçalho físico da aba e devolve a posição real (base 0) de cada coluna.
+ */
+function readHeaderLayout(sheet) {
+  const width = sheet.getLastColumn();
+  const layout = { keys: [], index: {}, width: width };
+  if (width < 1) return layout;
+
+  const row = sheet.getRange(1, 1, 1, width).getValues()[0];
+  for (let i = 0; i < row.length; i++) {
+    const key = normalizeHeaderKey(row[i]);
+    layout.keys.push(key);
+    if (key && layout.index[key] === undefined) {
+      layout.index[key] = i;
+    }
+  }
+  return layout;
+}
+
+/**
+ * Garante que a aba de respostas contenha TODAS as colunas canônicas da área e devolve o layout
+ * físico real do cabeçalho.
+ *
+ * Este é o ponto que corrige o desalinhamento em produção. Antes, o cabeçalho só era escrito
+ * quando a aba era nova ou a célula A1 estava vazia; a linha de dados, por sua vez, era montada
+ * como um array posicional. Quando uma coluna passou a ser inserida no MEIO do array canônico
+ * (ex.: "Responsável pelo Preenchimento", antes de "Responsável"), as abas já existentes
+ * continuaram com o cabeçalho antigo e cada novo envio gravou todos os valores dali em diante
+ * deslocados uma coluna à direita — os dados apareciam sob o rótulo errado e o último campo
+ * ("Pontos Fracos e Desafios") transbordava para fora do cabeçalho, invadindo as colunas de
+ * controle da Área Restrita.
+ *
+ * A coluna ausente é inserida na sua posição canônica com insertColumnBefore, que desloca junto
+ * os dados das linhas já gravadas — assim o histórico permanece alinhado ao seu cabeçalho.
+ * A operação é idempotente: em execuções seguintes a coluna já existe e nada é alterado.
+ */
+function ensureSheetHeaders(sheet, config) {
+  const headers = config.headers;
+  let layout = readHeaderLayout(sheet);
+
+  const isEmptySheet = sheet.getLastRow() === 0 || layout.keys.every(function(k) { return k === ""; });
+  if (isEmptySheet) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+      .setFontWeight("bold").setBackground("#f3f3f3");
+    SpreadsheetApp.flush();
+    return readHeaderLayout(sheet);
+  }
+
+  for (let i = 0; i < headers.length; i++) {
+    const key = normalizeHeaderKey(headers[i]);
+    if (layout.index[key] !== undefined) continue;
+
+    const currentWidth = sheet.getLastColumn();
+    const insertAt = Math.min(i + 1, currentWidth + 1);
+
+    if (insertAt <= currentWidth) {
+      sheet.insertColumnBefore(insertAt);
+    } else {
+      sheet.insertColumnAfter(currentWidth);
+    }
+
+    sheet.getRange(1, insertAt).setValue(headers[i])
+      .setFontWeight("bold").setBackground("#f3f3f3");
+    SpreadsheetApp.flush();
+
+    Logger.log("Coluna ausente '" + headers[i] + "' inserida na posição " + insertAt + " da aba '" + config.sheetName + "'.");
+    layout = readHeaderLayout(sheet);
+  }
+
+  return layout;
+}
+
+/**
+ * Converte a linha canônica (array paralelo a config.headers) em um array na ordem FÍSICA real do
+ * cabeçalho da aba, para que cada valor caia sob o seu próprio rótulo mesmo que a planilha tenha
+ * colunas extras ou em ordem diferente da canônica.
+ *
+ * @param {Object} layout Layout físico devolvido por ensureSheetHeaders
+ * @param {Array} headers Cabeçalhos canônicos da área
+ * @param {Array} values Valores na ordem canônica
+ * @param {Array} [baseRow] Linha existente a preservar (usado na sobrescrita de duplicidade)
+ */
+function buildPhysicalRow(layout, headers, values, baseRow) {
+  const row = new Array(layout.width);
+  for (let c = 0; c < layout.width; c++) {
+    row[c] = baseRow && baseRow[c] !== undefined ? baseRow[c] : "";
+  }
+
+  for (let i = 0; i < headers.length; i++) {
+    const target = layout.index[normalizeHeaderKey(headers[i])];
+    if (target !== undefined) {
+      row[target] = values[i];
+    }
+  }
+  return row;
+}
+
 function saveResponseRow(data) {
   try {
     const ss = getResponsesSpreadsheetConnection(data.area);
     const config = getSheetConfigForArea(data.area);
     let sheet = ss.getSheetByName(config.sheetName);
-    
+
     if (!sheet) {
       sheet = ss.insertSheet(config.sheetName);
-      sheet.appendRow(config.headers);
-      sheet.getRange(1, 1, 1, config.headers.length).setFontWeight("bold").setBackground("#f3f3f3");
-    } else {
-      const lastRow = sheet.getLastRow();
-      if (lastRow === 0) {
-        sheet.appendRow(config.headers);
-        sheet.getRange(1, 1, 1, config.headers.length).setFontWeight("bold").setBackground("#f3f3f3");
-      } else {
-        const firstCellVal = sheet.getRange(1, 1).getValue();
-        if (!firstCellVal || firstCellVal.toString().trim() === "") {
-          sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
-          sheet.getRange(1, 1, 1, config.headers.length).setFontWeight("bold").setBackground("#f3f3f3");
-        }
-      }
+      sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers])
+        .setFontWeight("bold").setBackground("#f3f3f3");
+      SpreadsheetApp.flush();
     }
-    
+
     const timestamp = Utils.getFormattedTimestampBR(new Date());
     let newRow = [];
     const areaNorm = Utils.normalizeAreaName(data.area);
@@ -318,6 +411,9 @@ function saveResponseRow(data) {
     // A checagem + gravação roda dentro de um LockService: sem isso, dois envios quase simultâneos
     // para a mesma atividade poderiam ambos concluir a checagem antes que o primeiro terminasse de
     // gravar, e a proteção acima seria contornada por essa corrida (race condition).
+    //
+    // A normalização do cabeçalho também roda sob o lock: duas execuções concorrentes não podem
+    // inserir a mesma coluna ausente ao mesmo tempo e duplicá-la.
     const lock = LockService.getScriptLock();
     try {
       lock.waitLock(30000);
@@ -326,9 +422,17 @@ function saveResponseRow(data) {
     }
 
     try {
-      const duplicateRowNumber = findDuplicateActivityRow(sheet, data);
+      const layout = ensureSheetHeaders(sheet, config);
+
+      const duplicateRowNumber = findDuplicateActivityRow(sheet, data, layout);
       if (duplicateRowNumber) {
-        sheet.getRange(duplicateRowNumber, 1, 1, newRow.length).setValues([newRow]);
+        // Preserva as colunas que não pertencem ao formulário (ex.: "Inscrição Enviada" e
+        // "Presença Enviada", gravadas pela Área Restrita) ao regravar a linha.
+        const existingRow = sheet.getRange(duplicateRowNumber, 1, 1, layout.width).getValues()[0];
+        const mergedRow = buildPhysicalRow(layout, config.headers, newRow, existingRow);
+        sheet.getRange(duplicateRowNumber, 1, 1, layout.width).setValues([mergedRow]);
+        SpreadsheetApp.flush();
+
         Logger.log("Envio duplicado detectado para a mesma atividade. Linha " + duplicateRowNumber + " sobrescrita com os dados mais recentes.");
         return {
           sheetName: config.sheetName,
@@ -336,11 +440,14 @@ function saveResponseRow(data) {
         };
       }
 
-      sheet.appendRow(newRow);
+      const targetRow = sheet.getLastRow() + 1;
+      const physicalRow = buildPhysicalRow(layout, config.headers, newRow, null);
+      sheet.getRange(targetRow, 1, 1, layout.width).setValues([physicalRow]);
+      SpreadsheetApp.flush();
 
       return {
         sheetName: config.sheetName,
-        rowNumber: sheet.getLastRow()
+        rowNumber: targetRow
       };
     } finally {
       lock.releaseLock();
@@ -352,16 +459,28 @@ function saveResponseRow(data) {
 }
 
 /**
- * Localiza uma linha já existente na planilha de respostas para a mesma Unidade + Atividade
- * + Período de referência (Ano/Mês, ou Data da Atividade quando a área não usa Ano/Mês).
+ * Localiza uma linha já existente na planilha de respostas para a MESMA atividade, considerando
+ * Unidade + Nome da Atividade + Tipo + Divisão Regional + Período de referência (Ano/Mês, ou Data
+ * da Atividade quando a área não usa Ano/Mês).
+ *
  * Usado para impedir o envio duplicado da mesma atividade (ex.: reenvio após timeout de rede).
+ * Como um acerto aqui faz a linha existente ser SOBRESCRITA, a chave precisa identificar a
+ * atividade sem ambiguidade: o Tipo (Trilha / Ateliê / Curso de Férias / Núcleo de Moda) e a
+ * Divisão Regional entram na comparação sempre que a área os utiliza. Sem o Tipo, duas atividades
+ * homônimas de tipos diferentes no Pedagógico eram tratadas como a mesma, e o envio de uma
+ * apagava os dados da outra na planilha.
  */
-function findDuplicateActivityRow(sheet, data) {
+function findDuplicateActivityRow(sheet, data, layout) {
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
   if (lastRow < 2) return null;
 
   const normalize = Utils.normalizeText;
+  const headerIndex = layout && layout.index ? layout.index : readHeaderLayout(sheet).index;
+  const colOf = function(headerName) {
+    const idx = headerIndex[normalizeHeaderKey(headerName)];
+    return idx === undefined ? -1 : idx;
+  };
 
   // O Google Sheets converte automaticamente uma string de data (ex.: "2028-12-15") em um valor
   // de data real na célula quando ela é gravada via appendRow/setValues. Uma comparação de texto
@@ -381,13 +500,15 @@ function findDuplicateActivityRow(sheet, data) {
     return normalize(str);
   };
 
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(normalize);
-
-  const idxUnidade = headers.findIndex(h => h.includes("UNIDADE"));
-  const idxAtividade = headers.findIndex(h => h.includes("NOME DA ATIVIDADE"));
-  const idxAno = headers.findIndex(h => h.includes("ANO DE REFERENCIA"));
-  const idxMes = headers.findIndex(h => h.includes("MES DE REFERENCIA"));
-  const idxData = headers.findIndex(h => h.includes("DATA DA ATIVIDADE"));
+  // Resolução das colunas pelo nome canônico exato (ensureSheetHeaders garante que todas existam),
+  // com recuo para "Centro de Atendimento (Unidade)" no caso da Fundação CASA.
+  const idxUnidade = colOf("Unidade") !== -1 ? colOf("Unidade") : colOf("Centro de Atendimento (Unidade)");
+  const idxAtividade = colOf("Nome da Atividade");
+  const idxAno = colOf("Ano de Referência");
+  const idxMes = colOf("Mês de Referência");
+  const idxData = colOf("Data da Atividade");
+  const idxTipo = colOf("Tipo (Trilha/Ateliê/Núcleo)");
+  const idxDivisao = colOf("Divisão Regional");
 
   if (idxUnidade === -1 || idxAtividade === -1) return null;
 
@@ -396,6 +517,8 @@ function findDuplicateActivityRow(sheet, data) {
   const searchAno = data.anoReferencia ? data.anoReferencia.toString().trim() : "";
   const searchMes = normalizeMonthCode(data.mesReferencia);
   const searchData = toDateKey(data.dataRelatorio);
+  const searchTipo = normalize(data.tipoPedagogico);
+  const searchDivisao = normalize(data.divisaoRegional);
 
   if (!searchUnidade || !searchAtividade) return null;
 
@@ -412,6 +535,11 @@ function findDuplicateActivityRow(sheet, data) {
     const rowUnidade = normalize(row[idxUnidade]);
     const rowAtividade = normalize(row[idxAtividade]);
     if (rowUnidade !== searchUnidade || rowAtividade !== searchAtividade) continue;
+
+    // Discriminadores adicionais: só participam quando a área realmente os usa, para não impedir
+    // a deduplicação nas áreas (e nas linhas legadas) em que a coluna não existe ou está vazia.
+    if (idxTipo !== -1 && searchTipo && normalize(row[idxTipo]) !== searchTipo) continue;
+    if (idxDivisao !== -1 && searchDivisao && normalize(row[idxDivisao]) !== searchDivisao) continue;
 
     if (usesPeriodo) {
       const rowAno = row[idxAno] ? row[idxAno].toString().trim() : "";
@@ -501,8 +629,13 @@ function normalizeMonthCode(mes) {
 }
 
 /**
- * Localiza a atividade na planilha de respostas e verifica presença de documentos
- * Filtra rigorosamente por Unidade, Atividade, Ano de Referência e Mês de Referência
+ * Localiza a atividade na planilha de respostas e verifica presença de documentos.
+ * Filtra rigorosamente por Unidade, Atividade, Tipo, Ano de Referência e Mês de Referência.
+ *
+ * As colunas são resolvidas pelo nome canônico exato. A busca anterior era por "contém", com
+ * recuos fixos de posição (colunas B/E/F/G) quando nada casava — o que, numa planilha cujo
+ * cabeçalho tivesse mudado, apontava para colunas erradas e podia devolver a linha de outra
+ * atividade. O Tipo entra no filtro para não confundir atividades homônimas de tipos diferentes.
  */
 function findActivityRowAndDocs(params) {
   const ss = getResponsesSpreadsheetConnection(params.setor);
@@ -515,50 +648,54 @@ function findActivityRowAndDocs(params) {
   const lastCol = sheet.getLastColumn();
   if (lastRow < 2) return { exists: false };
 
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h ? h.toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "");
-  
-  // Localização dinâmica flexível das colunas pelos cabeçalhos da planilha
-  let idxUnidade = headers.findIndex(h => h.includes("UNIDADE"));
-  let idxAtividade = headers.findIndex(h => h.includes("ATIVIDADE"));
-  let idxAno = headers.findIndex(h => h.includes("ANO"));
-  let idxMes = headers.findIndex(h => h.includes("MES"));
+  const normalize = Utils.normalizeText;
+  const headerIndex = readHeaderLayout(sheet).index;
+  const colOf = function(headerName) {
+    const idx = headerIndex[normalizeHeaderKey(headerName)];
+    return idx === undefined ? -1 : idx;
+  };
 
-  if (idxUnidade === -1) idxUnidade = 1; // Fallback Coluna B
-  if (idxAtividade === -1) idxAtividade = 4; // Fallback Coluna E
-  if (idxAno === -1) idxAno = 5; // Fallback Coluna F
-  if (idxMes === -1) idxMes = 6; // Fallback Coluna G
+  const idxUnidade = colOf("Unidade") !== -1 ? colOf("Unidade") : colOf("Centro de Atendimento (Unidade)");
+  const idxAtividade = colOf("Nome da Atividade");
+  const idxAno = colOf("Ano de Referência");
+  const idxMes = colOf("Mês de Referência");
+  const idxTipo = colOf("Tipo (Trilha/Ateliê/Núcleo)");
+  const idxInscricao = colOf("Inscrição Enviada");
+  const idxPresenca = colOf("Presença Enviada");
 
-  const idxInscricao = headers.findIndex(h => h.includes("INSCRICAO"));
-  const idxPresenca = headers.findIndex(h => h.includes("PRESENCA"));
+  // Sem a coluna que identifica a atividade não há como responder com segurança; devolver
+  // "não existe" é preferível a apontar para a linha errada.
+  if (idxAtividade === -1) return { exists: false };
 
-  const searchUnidade = params.unidade ? params.unidade.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-  const searchAtividade = params.atividade ? params.atividade.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+  const searchUnidade = normalize(params.unidade);
+  const searchAtividade = normalize(params.atividade);
   const searchAno = params.anoReferencia ? params.anoReferencia.toString().trim() : "";
   const searchMesNorm = normalizeMonthCode(params.mesReferencia);
+  const searchTipo = normalize(params.tipoPedagogico);
 
   const values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
   for (let i = 0; i < values.length; i++) {
     const row = values[i];
-    const rowUnidade = idxUnidade !== -1 && row[idxUnidade] ? row[idxUnidade].toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-    const rowAtividade = idxAtividade !== -1 && row[idxAtividade] ? row[idxAtividade].toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+    const rowUnidade = idxUnidade !== -1 ? normalize(row[idxUnidade]) : "";
+    const rowAtividade = normalize(row[idxAtividade]);
     const rowAno = idxAno !== -1 && row[idxAno] ? row[idxAno].toString().trim() : "";
     const rowMesNorm = idxMes !== -1 && row[idxMes] ? normalizeMonthCode(row[idxMes]) : "";
+    const rowTipo = idxTipo !== -1 ? normalize(row[idxTipo]) : "";
 
     const matchUnidade = !searchUnidade || rowUnidade === searchUnidade;
     const matchAtividade = rowAtividade === searchAtividade;
     const matchAno = !searchAno || rowAno === searchAno;
     const matchMes = !searchMesNorm || rowMesNorm === searchMesNorm;
+    // Linhas legadas gravadas sem Tipo continuam elegíveis, para não travar a Área Restrita.
+    const matchTipo = idxTipo === -1 || !searchTipo || !rowTipo || rowTipo === searchTipo;
 
-    if (matchUnidade && matchAtividade && matchAno && matchMes) {
-      const hasInsc = idxInscricao !== -1 ? row[idxInscricao] === "Sim" : (lastCol >= 4 && row[lastCol - 4] === "Sim");
-      const hasPres = idxPresenca !== -1 ? row[idxPresenca] === "Sim" : (lastCol >= 3 && row[lastCol - 3] === "Sim");
-
+    if (matchUnidade && matchAtividade && matchAno && matchMes && matchTipo) {
       return {
         exists: true,
         rowNumber: i + 2,
-        hasInscricao: hasInsc,
-        hasPresenca: hasPres
+        hasInscricao: idxInscricao !== -1 && row[idxInscricao] === "Sim",
+        hasPresenca: idxPresenca !== -1 && row[idxPresenca] === "Sim"
       };
     }
   }
@@ -650,28 +787,36 @@ function saveComplementaryDocsAndRow(payload) {
   const config = getSheetConfigForArea(payload.setor);
   const sheet = ss.getSheetByName(config.sheetName);
 
-  if (sheet) {
-    let lastCol = sheet.getLastColumn();
-    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (sheet && activityInfo.exists) {
+    const controlHeaders = ["Inscrição Enviada", "Presença Enviada", "Atualizado Por (Login)", "Data/Hora Atualização"];
+    let layout = readHeaderLayout(sheet);
 
-    if (!headers.includes("Inscrição Enviada")) {
-      sheet.getRange(1, lastCol + 1, 1, 4).setValues([[
-        "Inscrição Enviada", "Presença Enviada", "Atualizado Por (Login)", "Data/Hora Atualização"
-      ]]).setFontWeight("bold").setBackground("#e2e8f0");
-      lastCol += 4;
+    if (layout.index[normalizeHeaderKey(controlHeaders[0])] === undefined) {
+      sheet.getRange(1, layout.width + 1, 1, controlHeaders.length).setValues([controlHeaders])
+        .setFontWeight("bold").setBackground("#e2e8f0");
+      SpreadsheetApp.flush();
+      layout = readHeaderLayout(sheet);
     }
 
     const timestamp = Utils.getFormattedTimestampBR(new Date());
+    const controlValues = [
+      subiuInscricao === "Sim" ? "Sim" : (activityInfo.hasInscricao ? "Sim" : "Não"),
+      subiuPresenca === "Sim" ? "Sim" : (activityInfo.hasPresenca ? "Sim" : "Não"),
+      payload.userEmail,
+      timestamp
+    ];
 
-    if (activityInfo.exists) {
-      const colStart = sheet.getLastColumn() - 3;
-      sheet.getRange(activityInfo.rowNumber, colStart, 1, 4).setValues([[
-        subiuInscricao === "Sim" ? "Sim" : (activityInfo.hasInscricao ? "Sim" : "Não"),
-        subiuPresenca === "Sim" ? "Sim" : (activityInfo.hasPresenca ? "Sim" : "Não"),
-        payload.userEmail,
-        timestamp
-      ]]);
+    // Cada coluna de controle é gravada na sua própria posição, localizada pelo nome. A gravação
+    // anterior assumia que essas 4 colunas eram sempre as 4 últimas da planilha (getLastColumn - 3);
+    // bastava a planilha ganhar qualquer outra coluna à direita para os quatro valores caírem sobre
+    // dados de outras colunas.
+    for (let c = 0; c < controlHeaders.length; c++) {
+      const colIdx = layout.index[normalizeHeaderKey(controlHeaders[c])];
+      if (colIdx !== undefined) {
+        sheet.getRange(activityInfo.rowNumber, colIdx + 1).setValue(controlValues[c]);
+      }
     }
+    SpreadsheetApp.flush();
   }
 
   return { success: true };

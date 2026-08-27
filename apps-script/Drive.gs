@@ -16,30 +16,45 @@ function getRootFolderConnection() {
 }
 
 function getOrCreateSubFolder(parentFolder, folderName) {
-  const rawKey = "folder_id_" + parentFolder.getId() + "_" + folderName;
+  // A chave do cache precisa distinguir nomes que diferem só por pontuação: sanitizeCacheKey
+  // troca todo caractere especial por "_", então "OFICINA - TEATRO" e "OFICINA _ TEATRO" gerariam
+  // a MESMA chave e a segunda atividade receberia a pasta da primeira vinda do cache. O prefixo
+  // de comprimento abaixo mantém a chave estável e ASCII sem permitir essa colisão.
+  const folderKey = Utils.normalizeFolderKey(folderName);
+  const rawKey = "folder_id_" + parentFolder.getId() + "_" + folderKey.length + "_" + folderKey;
   const cacheKey = Utils.sanitizeCacheKey(rawKey);
   const cache = CacheService.getScriptCache();
   const cachedId = cache.get(cacheKey);
-  
+
   if (cachedId) {
     try {
-      return DriveApp.getFolderById(cachedId);
+      const cachedFolder = DriveApp.getFolderById(cachedId);
+      // Confirma que a pasta em cache ainda é a pasta certa: um ID reaproveitado de uma entrada
+      // antiga (ou uma pasta renomeada no Drive) não pode redirecionar o envio para outra atividade.
+      if (Utils.normalizeFolderKey(cachedFolder.getName()) === folderKey) {
+        return cachedFolder;
+      }
+      Logger.log("Pasta em cache não corresponde mais ao nome esperado: " + folderName);
     } catch (e) {
       Logger.log("Pasta em cache expirou ou foi deletada: " + folderName);
     }
   }
-  
+
   const folders = parentFolder.getFoldersByName(folderName);
   let targetFolder = folders.hasNext() ? folders.next() : null;
-  
-  // Busca insensível a maiúsculas/minúsculas e alfanumérica se o nome exato não for achado
+
+  // Busca tolerante a acentuação, caixa e à troca de espaço por underscore, quando o nome exato
+  // não é achado — o suficiente para reaproveitar pastas criadas antes da padronização de nomes.
+  //
+  // A normalização usada NÃO descarta hífens, parênteses e dígitos. A versão anterior removia todo
+  // caractere não alfanumérico, o que fazia atividades distintas de título parecido (ex.:
+  // "OFICINA - TEATRO" e "OFICINA TEATRO") resolverem para a MESMA pasta, e então o envio de uma
+  // sobrescrevia as evidências e o relatório da outra.
   if (!targetFolder) {
-    const cleanSearch = folderName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const subFolders = parentFolder.getFolders();
     while (subFolders.hasNext()) {
       const sf = subFolders.next();
-      const cleanSubName = sf.getName().toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      if (cleanSubName === cleanSearch) {
+      if (Utils.normalizeFolderKey(sf.getName()) === folderKey) {
         targetFolder = sf;
         break;
       }
@@ -49,7 +64,7 @@ function getOrCreateSubFolder(parentFolder, folderName) {
   if (!targetFolder) {
     targetFolder = parentFolder.createFolder(folderName);
   }
-  
+
   try {
     cache.put(cacheKey, targetFolder.getId(), 21600); // Cache por 6 horas
   } catch (cErr) {
@@ -84,7 +99,7 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
   try {
     const rootFolder = getRootFolderConnection();
     const fabricasFolder = getOrCreateSubFolder(rootFolder, "Fábricas de Cultura");
-    
+
     let anoStr = anoReferencia ? String(anoReferencia).trim() : "";
     let mesNum = mesReferencia ? String(mesReferencia).trim() : "";
 
@@ -112,13 +127,13 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
 
     const setorNorm = Utils.normalizeAreaName(setor);
     const areaFolderName = Utils.getAreaFolderName(setor);
-    const cleanAtividadeName = Utils.sanitizeFileName(atividade ? atividade.trim() : "ATIVIDADE").toUpperCase().replace(/\s+/g, "_");
-    
+    const cleanAtividadeName = Utils.buildActivityFolderName(atividade);
+
     const setorFolder = getOrCreateSubFolder(fabricasFolder, areaFolderName);
     const anoFolder = getOrCreateSubFolder(setorFolder, anoStr);
-    
+
     let parentFolder;
-    
+
     if (setorNorm === "FUNDAÇÃO CASA") {
       const drFolder = getOrCreateSubFolder(anoFolder, divisaoRegional ? divisaoRegional.trim() : "DR INDEFINIDA");
       const drUnidadeFolder = getOrCreateSubFolder(drFolder, unidade ? unidade.trim() : "UNIDADE");
@@ -126,7 +141,7 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     } else {
       const unidadeFolder = getOrCreateSubFolder(anoFolder, unidade ? unidade.trim() : "UNIDADE");
       const mesFolder = getOrCreateSubFolder(unidadeFolder, mesStr);
-      
+
       parentFolder = mesFolder;
       if (setorNorm === "PEDAGÓGICO") {
         const cleanTipo = Utils.normalizeTipoPedagogicoFolderName(tipoPedagogico);
@@ -135,9 +150,9 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
         }
       }
     }
-    
+
     const activityFolder = getOrCreateSubFolder(parentFolder, cleanAtividadeName);
-    
+
     let listaPresencaFolder = null;
     let relacaoInscritosFolder = null;
     let registroFolder = null;
@@ -154,7 +169,7 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
         relacaoInscritosFolder = getOrCreateSubFolder(activityFolder, "Relação de Inscritos");
       }
     }
-    
+
     return {
       activityFolder: activityFolder,
       listaPresencaFolder: listaPresencaFolder,
@@ -175,13 +190,16 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
     if (!files || files.length === 0) {
       return 0;
     }
-    
-    const setorNorm = Utils.normalizeAreaName(metadata.setor);
 
-    // Limpa a pasta antes de gravar o novo lote: garante que um reenvio da mesma atividade
-    // (ex.: retentativa manual após timeout de rede) substitua por completo as mídias do envio
-    // anterior, ao invés de duplicá-las ou deixar sobras de um lote com mais/menos arquivos.
-    Utils.clearFolderFiles(targetFolder);
+    const setorNorm = Utils.normalizeAreaName(metadata.setor);
+    const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
+
+    // Remove o lote de mídias do envio anterior DESTA atividade antes de gravar o novo: garante que
+    // uma retentativa manual (ex.: após timeout de rede) substitua as mídias antigas em vez de
+    // duplicá-las ou deixar sobras de um lote com mais arquivos. A remoção é restrita aos arquivos
+    // cujo nome carrega o nome desta atividade — antes a pasta inteira era esvaziada, o que apagava
+    // as evidências de qualquer outra atividade que tivesse caído na mesma pasta.
+    Utils.removeActivityFiles(targetFolder, cleanAtividade);
 
     for (let i = 0; i < files.length; i++) {
       const fileData = files[i];
@@ -191,30 +209,28 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
       }
       const bytes = Utilities.base64Decode(base64);
       const mime = fileData.mimeType || (setorNorm === "FUNDAÇÃO CASA" ? "application/pdf" : "image/jpeg");
-      
+
       const parts = (fileData.name || "arquivo.jpg").split(".");
       const ext = parts.length > 1 ? parts.pop().toLowerCase() : (mime === "application/pdf" ? "pdf" : "jpg");
-      
+
       let cleanFileName = "";
       if (setorNorm === "FUNDAÇÃO CASA") {
         // Formato Fundação CASA: [MesPorExtenso]_[NomeCentroAtendimento]_[NomeAtividade]_PlanoDeAtividade.pdf
         const mesExt = Utils.getMonthNameExtenso(metadata.mesReferencia);
         const cleanCentro = Utils.sanitizeFileName(metadata.unidade || "").toUpperCase().replace(/\s+/g, "_");
-        const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
         cleanFileName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_PlanoDeAtividade." + ext;
       } else {
         // Formato Demais Áreas: [SiglaUnidade]_[NomeResponsavel]_[NomeAtividade]_[Index].[ext]
         const unidadeSigla = Utils.getUnidadeSigla(metadata.unidade);
         const cleanResponsavel = Utils.sanitizeFileName(metadata.responsavel || "").toUpperCase().replace(/\s+/g, "_");
-        const cleanAtividade = Utils.sanitizeFileName(metadata.atividade || "").toUpperCase().replace(/\s+/g, "_");
         const indexStr = (i + 1).toString().padStart(2, "0");
         cleanFileName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
       }
-      
+
       const blob = Utilities.newBlob(bytes, mime, cleanFileName);
       targetFolder.createFile(blob);
     }
-    
+
     return files.length;
   } catch (error) {
     Logger.log("Erro no uploadFilesToFolder: " + error.toString());

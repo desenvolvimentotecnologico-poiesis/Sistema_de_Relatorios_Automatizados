@@ -72,19 +72,20 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
     }
     
-    // Remove uma eventual versão anterior do relatório (Docs+PDF) desta mesma atividade antes de
-    // gerar a nova cópia, evitando arquivos duplicados quando a compilação é reenviada (ex.:
-    // retentativa manual após timeout de rede). Nas áreas que não são Fundação CASA, a pasta
-    // "Relatório" é dedicada só a esses dois arquivos, então pode ser limpa por completo — isso é
-    // mais robusto que remover só pelo nome exato, que falha se algum campo usado no nome do
-    // arquivo (ex.: Responsável) mudar entre o envio original e o reenvio. Na Fundação CASA essa
-    // mesma pasta também guarda o PDF do Plano de Atividade enviado na Etapa 1, então ali a limpeza
-    // é só pelo nome, para não apagar aquele outro arquivo.
-    if (setorNorm === "FUNDAÇÃO CASA") {
-      Utils.removeExistingFilesByName(targetFolder, documentName);
-    } else {
-      Utils.clearFolderFiles(targetFolder);
-    }
+    // Remove a versão anterior do relatório (Docs+PDF) DESTA atividade antes de gerar a nova cópia,
+    // evitando arquivos duplicados quando a compilação é reenviada (ex.: retentativa manual após
+    // timeout de rede). A remoção é feita pelo nome da atividade, e não pelo nome completo do
+    // arquivo, porque o nome completo inclui campos que podem mudar entre o envio original e o
+    // reenvio (ex.: Responsável) — nesse caso o arquivo antigo não seria encontrado e ficaria
+    // duplicado ao lado do novo.
+    //
+    // A versão anterior esvaziava a pasta "Relatório" inteira fora da Fundação CASA. Isso apagava
+    // também o relatório de qualquer OUTRA atividade que tivesse sido resolvida para a mesma pasta,
+    // que é o que fazia atividades de título parecido "substituírem tudo, até os arquivos".
+    //
+    // Na Fundação CASA a pasta de destino é a própria pasta da atividade, que também guarda o PDF
+    // do Plano de Atividade enviado na Etapa 1 deste mesmo envio — ele é blindado da remoção.
+    Utils.removeActivityFiles(targetFolder, cleanAtividade, ["PlanoDeAtividade"]);
 
     const templateFile = getTemplateFileConnection(data.area || data.setor);
     const copiedFile = templateFile.makeCopy(documentName, targetFolder);
@@ -335,6 +336,12 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
           });
         }
 
+        // Só recorre às fotos já gravadas no Drive quando o payload da Etapa 2 não trouxe nenhuma
+        // imagem em Base64. A condição era avaliada a cada iteração ("imageBlobs.length === 0"),
+        // então, após a primeira foto entrar na lista, ela passava a ser falsa e as demais fotos da
+        // pasta eram ignoradas — o relatório saía com uma única imagem em vez das 3 a 5 enviadas.
+        const usouImagensDoPayload = imageBlobs.length > 0;
+
         if (registroFolder) {
           try {
             const driveFiles = registroFolder.getFiles();
@@ -343,7 +350,7 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
               const mimeType = file.getMimeType();
               if (mimeType && mimeType.startsWith("video/")) {
                 hasVideo = true;
-              } else if (imageBlobs.length === 0 && mimeType && mimeType.startsWith("image/")) {
+              } else if (!usouImagensDoPayload && mimeType && mimeType.startsWith("image/")) {
                 imageBlobs.push(file.getBlob());
               }
             }
@@ -418,12 +425,9 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     Utilities.sleep(1500);
 
     const pdfFileName = documentName + ".pdf";
-    // Fora da Fundação CASA a pasta já foi limpa por completo acima, então não há nada a remover
-    // por nome aqui; na Fundação CASA (pasta compartilhada com o Plano de Atividade) mantém a
-    // remoção pelo nome exato do PDF antigo.
-    if (setorNorm === "FUNDAÇÃO CASA") {
-      Utils.removeExistingFilesByName(targetFolder, pdfFileName);
-    }
+    // A limpeza por atividade feita acima já removeu o PDF da versão anterior; esta remoção pelo
+    // nome exato cobre o caso de um PDF homônimo criado nesta mesma execução.
+    Utils.removeExistingFilesByName(targetFolder, pdfFileName);
 
     const pdfBlob = copiedFile.getAs("application/pdf");
     pdfBlob.setName(pdfFileName);

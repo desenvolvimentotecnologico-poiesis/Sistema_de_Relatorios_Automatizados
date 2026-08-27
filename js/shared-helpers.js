@@ -6,7 +6,9 @@
 
 function normalizeText(str) {
   if (!str) return "";
-  return str.toString().trim().toUpperCase().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
+  return str.toString().trim().toUpperCase().normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+    .replace(/\s+/g, " ");
 }
 
 function isJardimSaoLuis(unidadeName) {

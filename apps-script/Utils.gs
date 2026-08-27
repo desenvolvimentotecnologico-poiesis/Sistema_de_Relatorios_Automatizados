@@ -35,6 +35,20 @@ var Utils = {
   },
 
   /**
+   * Monta o nome padronizado da pasta da atividade no Drive.
+   *
+   * O formato é mantido idêntico ao que o sistema sempre gerou (sanitização + MAIÚSCULAS +
+   * espaços trocados por underscore) para que as pastas já criadas em produção continuem sendo
+   * reaproveitadas. A separação entre atividades de nome parecido é garantida por
+   * normalizeFolderKey (busca) e removeActivityFiles (limpeza), não por mudança de formato.
+   */
+  buildActivityFolderName: function(atividade) {
+    var base = atividade ? String(atividade).trim() : "ATIVIDADE";
+    var clean = this.sanitizeFileName(base).toUpperCase().replace(/\s+/g, "_");
+    return clean || "ATIVIDADE";
+  },
+
+  /**
    * Retorna a sigla padronizada de 3 letras da unidade das Fábricas de Cultura
    */
   getUnidadeSigla: function(unidadeName) {
@@ -190,12 +204,35 @@ var Utils = {
   },
 
   /**
-   * Normaliza texto para comparação (maiúsculas, sem acentos, sem espaços nas pontas).
-   * Usado para comparar nomes de unidades/atividades vindos de fontes distintas (planilhas, payloads).
+   * Normaliza texto para comparação (maiúsculas, sem acentos, sem espaços nas pontas e com
+   * espaços internos colapsados). Usado para comparar nomes de unidades/atividades vindos de
+   * fontes distintas (planilhas, payloads). O colapso de espaços internos evita que a mesma
+   * atividade digitada com espaço duplo seja tratada como uma atividade diferente.
    */
   normalizeText: function(str) {
     if (!str) return "";
-    return str.toString().trim().toUpperCase().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
+    return str.toString().trim().toUpperCase().normalize("NFD")
+      .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+      .replace(/\s+/g, " ");
+  },
+
+  /**
+   * Normaliza o nome de uma pasta do Drive para localizar uma pasta equivalente já existente.
+   *
+   * Só ignora diferenças que NÃO alteram a identidade da pasta: acentuação, caixa e a escolha
+   * entre espaço e underscore como separador (pastas antigas foram criadas com espaço, as novas
+   * usam underscore). Todos os demais caracteres — hífen, parênteses, dígitos — são preservados,
+   * porque são justamente o que distingue duas atividades de nome parecido
+   * (ex.: "OFICINA - TEATRO" x "OFICINA TEATRO"). Achatar esses caracteres faria duas atividades
+   * distintas cairem na mesma pasta e uma sobrescrever as evidências da outra.
+   */
+  normalizeFolderKey: function(name) {
+    if (!name) return "";
+    return String(name).normalize("NFD")
+      .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+      .toUpperCase()
+      .trim()
+      .replace(/[\s_]+/g, "_");
   },
 
   /**
@@ -220,24 +257,54 @@ var Utils = {
   },
 
   /**
-   * Remove todos os arquivos de uma pasta do Drive (preservando subpastas).
-   * Usado para garantir que um reenvio da mesma atividade substitua por completo
-   * o lote de mídias anterior, ao invés de duplicá-lo.
+   * Remove da pasta do Drive apenas os arquivos que pertencem à atividade informada, identificados
+   * pelo nome da atividade embutido no padrão de nomenclatura do sistema
+   * ([SIGLA]_[RESPONSAVEL]_[ATIVIDADE]_[NN].ext e [MES]_[UNIDADE]_[ATIVIDADE]_...).
+   *
+   * Substitui a limpeza total da pasta usada anteriormente. Limpar a pasta inteira garantia que um
+   * reenvio da mesma atividade substituísse o lote anterior (mesmo se o Responsável tivesse mudado
+   * entre os envios, o que altera o nome do arquivo), mas apagava junto as evidências de qualquer
+   * OUTRA atividade que tivesse caído na mesma pasta. Restringir a remoção ao nome da atividade
+   * preserva as duas garantias e elimina o dano colateral entre atividades distintas.
+   *
+   * @param {Folder} folder Pasta do Drive a limpar
+   * @param {string} cleanAtividade Nome da atividade já sanitizado (ex.: "OFICINA_DE_TEATRO")
+   * @param {Array<string>} [preserveTokens] Trechos de nome que blindam um arquivo contra a
+   *   remoção, mesmo pertencendo à atividade (ex.: o Plano de Atividade da Fundação CASA, que
+   *   divide a pasta com o relatório e foi enviado na Etapa 1 do mesmo envio).
    */
-  clearFolderFiles: function(folder) {
+  removeActivityFiles: function(folder, cleanAtividade, preserveTokens) {
     if (!folder) return;
+
+    var activityKey = this.normalizeFolderKey(cleanAtividade);
+    // Sem um nome de atividade confiável não há como delimitar o que pertence a este envio;
+    // nesse caso é mais seguro não remover nada do que arriscar apagar arquivos de terceiros.
+    if (!activityKey) return;
+
+    var self = this;
+    var keep = (preserveTokens || []).map(function(t) { return self.normalizeFolderKey(t); });
+
     try {
       var files = folder.getFiles();
       while (files.hasNext()) {
         var file = files.next();
+        var fileKey = this.normalizeFolderKey(file.getName());
+
+        if (fileKey.indexOf(activityKey) === -1) continue;
+
+        var isProtected = keep.some(function(token) {
+          return token && fileKey.indexOf(token) !== -1;
+        });
+        if (isProtected) continue;
+
         try {
           file.setTrashed(true);
         } catch (e) {
-          Logger.log("Aviso ao limpar pasta antes do reenvio: " + e.message);
+          Logger.log("Aviso ao remover versão anterior da atividade: " + e.message);
         }
       }
     } catch (e) {
-      Logger.log("Erro ao limpar arquivos da pasta: " + e.message);
+      Logger.log("Erro ao remover arquivos anteriores da atividade: " + e.message);
     }
   },
 
