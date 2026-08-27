@@ -86,12 +86,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       escopoDoRelatorio = [unidadeSigla, cleanAtividade];
     }
     
-    // Remove a versão anterior do relatório (Docs+PDF) DESTA atividade antes de gerar a nova cópia,
+    // Remove a versão anterior deste mesmo relatório (Docs+PDF) antes de gerar a nova cópia,
     // evitando arquivos duplicados quando a compilação é reenviada (ex.: retentativa manual após
-    // timeout de rede). A remoção é feita pelo nome da atividade, e não pelo nome completo do
-    // arquivo, porque o nome completo inclui campos que podem mudar entre o envio original e o
-    // reenvio (ex.: Responsável) — nesse caso o arquivo antigo não seria encontrado e ficaria
-    // duplicado ao lado do novo.
+    // timeout de rede). A remoção usa o escopo montado acima em vez do nome completo do arquivo,
+    // porque o nome completo inclui o Responsável, que pode mudar entre o envio original e o
+    // reenvio — nesse caso o arquivo antigo não seria encontrado e ficaria duplicado ao lado do novo.
     //
     // A versão anterior esvaziava a pasta "Relatório" inteira fora da Fundação CASA. Isso apagava
     // também o relatório de qualquer OUTRA atividade que tivesse sido resolvida para a mesma pasta,
