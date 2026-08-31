@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDragAndDrop();
   setupFormSubmission();
   setupOutroFieldsListeners();
+  setupNenhumExclusivity();
   setupCharacterCounters();
   initDynamicPlanoTable();
   setupUnloadGuard();
@@ -563,6 +564,35 @@ function setupOutroFieldsListeners() {
           input.value = "";
         }
       }
+    });
+  });
+}
+
+/* A opção "Nenhum" é exclusiva dentro do seu grupo: ao marcar "Nenhum", as
+   demais opções (inclusive "Outro" e seu campo de texto) são desmarcadas; ao
+   marcar qualquer outra opção, "Nenhum" se desmarca. Evita gravar na planilha
+   uma combinação sem sentido como "Nenhum, Falhas técnicas". */
+function setupNenhumExclusivity() {
+  document.querySelectorAll('input[type="checkbox"][value="Nenhum"]').forEach(nenhum => {
+    const grid = nenhum.closest(".checkbox-grid");
+    if (!grid) return;
+
+    const outros = Array.from(grid.querySelectorAll('input[type="checkbox"]')).filter(chk => chk !== nenhum);
+
+    nenhum.addEventListener("change", () => {
+      if (!nenhum.checked) return;
+      outros.forEach(chk => { chk.checked = false; });
+      const outroInput = grid.querySelector(".input-inline-outro");
+      if (outroInput) {
+        outroInput.disabled = true;
+        outroInput.value = "";
+      }
+    });
+
+    outros.forEach(chk => {
+      chk.addEventListener("change", () => {
+        if (chk.checked) nenhum.checked = false;
+      });
     });
   });
 }
