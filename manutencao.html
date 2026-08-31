@@ -14,9 +14,9 @@
       falhar durante a virada, esta tela continua aparecendo corretamente.
 
       >>> O QUE EDITAR ANTES DE PUBLICAR <<<
-      1. A previsão de retorno: procure por  id="retorno"  mais abaixo.
-      2. A data/turno da manutenção: procure por  id="janela"  mais abaixo.
-      3. (Opcional) O canal de contato no rodapé: procure por  id="contato".
+      1. Previsão de retorno .............. procure por  id="retorno"
+      2. Data / turno da manutenção ...... procure por  id="janela"
+      3. (Opcional) canal de contato ..... procure por  id="contato"
       Não é preciso mexer em mais nada.
     -->
 
@@ -28,16 +28,21 @@
 
     <style>
         :root {
-            --fabrica-purple: #5E17EB;
-            --fabrica-orange: #FF5A09;
-            --fabrica-yellow: #FFD300;
-            --bg-dark-purple: #1C0A35;
-            --bg-app: #F3F4F6;
+            --purple: #5E17EB;
+            --purple-deep: #4300A8;
+            --orange: #FF5A09;
+            --yellow: #FFD300;
+            --ink: #1C0A35;
             --bg-card: #FFFFFF;
-            --txt-main: #111827;
-            --txt-muted: #4B5563;
-            --border-color: #D1D5DB;
-            --error-color: #EF4444;
+            --txt-main: #1F1147;
+            --txt-muted: #6B647E;
+            --line: #ECE7F5;
+            --violet-wash: #F7F3FF;
+            --violet-border: #E7DBFF;
+            --green: #0E9F6E;
+            --green-wash: #ECFDF5;
+            --green-border: #C7F0DE;
+            --error: #DC2626;
             --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
         }
@@ -48,252 +53,381 @@
             box-sizing: border-box;
         }
 
+        html,
         body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-app);
-            color: var(--txt-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
+            min-height: 100%;
         }
 
-        .m-header {
-            background-color: var(--bg-dark-purple);
-            padding: 1.5rem 2rem;
+        body {
+            font-family: var(--font-sans);
+            color: var(--txt-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background:
+                radial-gradient(1100px 520px at 50% -8%, #EFE6FF 0%, rgba(239, 230, 255, 0) 60%),
+                linear-gradient(180deg, #FBFAFF 0%, #F2F0F7 100%);
+        }
+
+        .topbar {
+            background: var(--ink);
+            color: #fff;
+            padding: 1.1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.7rem;
             text-align: center;
         }
 
-        .m-header h1 {
-            color: #fff;
-            font-size: 1.05rem;
+        .topbar strong {
             font-weight: 700;
-            letter-spacing: 0.02em;
+            font-size: 0.95rem;
+            letter-spacing: 0.01em;
         }
 
-        .m-header p {
-            color: rgba(255, 255, 255, 0.65);
+        .topbar span {
+            color: rgba(255, 255, 255, 0.6);
             font-size: 0.8rem;
-            margin-top: 0.15rem;
         }
 
-        .gradient-bar {
-            height: 4px;
-            background: linear-gradient(90deg, var(--fabrica-purple) 0%, var(--fabrica-orange) 55%, var(--fabrica-yellow) 100%);
+        .accent {
+            height: 3px;
+            background: linear-gradient(90deg, var(--purple) 0%, var(--orange) 55%, var(--yellow) 100%);
         }
 
-        .m-main {
+        main {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2.5rem 1.25rem;
+            padding: 3rem 1.25rem;
         }
 
-        .m-card {
+        .card {
             background: var(--bg-card);
-            max-width: 560px;
             width: 100%;
-            border-radius: 14px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 10px 40px rgba(28, 10, 53, 0.10);
-            padding: 2.75rem 2.5rem;
+            max-width: 600px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            box-shadow:
+                0 1px 2px rgba(28, 10, 53, 0.04),
+                0 24px 60px -20px rgba(67, 0, 168, 0.22);
+            padding: 3rem 3rem 2.5rem;
             text-align: center;
         }
 
-        .m-icon {
-            width: 68px;
-            height: 68px;
-            margin: 0 auto 1.5rem auto;
+        .badge {
+            position: relative;
+            width: 76px;
+            height: 76px;
+            margin: 0 auto 1.75rem;
             border-radius: 50%;
-            background: #FAF5FF;
+            background: linear-gradient(160deg, #F0E6FF 0%, #E4D3FF 100%);
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .m-icon svg {
-            width: 34px;
-            height: 34px;
-            stroke: var(--fabrica-purple);
+        .badge svg {
+            width: 36px;
+            height: 36px;
+            stroke: var(--purple-deep);
         }
 
-        .m-card h2 {
+        .badge::before,
+        .badge::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid var(--purple);
+            opacity: 0;
+            animation: pulse 2.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+        }
+
+        .badge::after {
+            animation-delay: 1.4s;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1.7);
+                opacity: 0;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .badge::before,
+            .badge::after {
+                animation: none;
+            }
+        }
+
+        h1 {
             font-family: var(--font-serif);
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             font-weight: 700;
-            margin-bottom: 0.75rem;
+            letter-spacing: -0.01em;
+            margin-bottom: 0.85rem;
         }
 
-        .m-card .lead {
+        .lead {
             color: var(--txt-muted);
-            font-size: 1rem;
-            margin-bottom: 1.75rem;
+            font-size: 1.02rem;
+            max-width: 44ch;
+            margin: 0 auto 2rem;
         }
 
-        .m-info {
-            background: #FAF5FF;
-            border: 1px solid #E9D5FF;
-            border-radius: 10px;
-            padding: 1.1rem 1.25rem;
+        .panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
             text-align: left;
-            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
         }
 
-        .m-info div + div {
-            margin-top: 0.5rem;
+        .panel .item {
+            background: var(--violet-wash);
+            border: 1px solid var(--violet-border);
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
         }
 
-        .m-info .label {
+        .panel .k {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
             color: var(--txt-muted);
-            font-weight: 500;
-        }
-
-        .m-info .value {
-            color: var(--txt-main);
-            font-weight: 700;
-        }
-
-        .m-note {
-            margin-top: 1.5rem;
-            font-size: 0.88rem;
-            color: var(--txt-muted);
-        }
-
-        .m-footer {
-            text-align: center;
-            padding: 1.5rem;
             font-size: 0.8rem;
-            color: #9CA3AF;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.3rem;
         }
 
-        /* Acesso administrativo — discreto, para a equipe técnica durante a janela */
-        .admin-box {
-            margin-top: 2rem;
-            border-top: 1px dashed var(--border-color);
+        .panel .k svg {
+            width: 15px;
+            height: 15px;
+            stroke: var(--purple);
+            flex: none;
+        }
+
+        .panel .v {
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: var(--txt-main);
+        }
+
+        .reassure {
+            display: flex;
+            gap: 0.7rem;
+            align-items: flex-start;
+            text-align: left;
+            background: var(--green-wash);
+            border: 1px solid var(--green-border);
+            border-radius: 14px;
+            padding: 0.95rem 1.1rem;
+            font-size: 0.92rem;
+            color: #256F55;
+        }
+
+        .reassure svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--green);
+            flex: none;
+            margin-top: 2px;
+        }
+
+        .adminwrap {
+            margin-top: 1.75rem;
             padding-top: 1.25rem;
+            border-top: 1px solid var(--line);
         }
 
-        .admin-toggle {
+        .adminwrap > button {
             background: none;
             border: none;
-            color: #9CA3AF;
+            color: #A79FBB;
+            font: inherit;
             font-size: 0.8rem;
-            font-family: inherit;
             cursor: pointer;
+            padding: 0.2rem 0.4rem;
+        }
+
+        .adminwrap > button:hover {
+            color: var(--txt-muted);
             text-decoration: underline;
         }
 
-        .admin-form {
+        form {
             display: none;
-            margin-top: 1rem;
-            gap: 0.5rem;
+            margin-top: 0.9rem;
             justify-content: center;
             flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
-        .admin-form.open {
+        form.open {
             display: flex;
         }
 
-        .admin-form input {
-            font-family: inherit;
+        form input {
+            font: inherit;
             font-size: 0.9rem;
-            padding: 0.55rem 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            min-width: 220px;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #D8D2E6;
+            border-radius: 10px;
+            min-width: 230px;
+            outline: none;
         }
 
-        .admin-form button {
-            font-family: inherit;
+        form input:focus {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(94, 23, 235, 0.12);
+        }
+
+        form button[type="submit"] {
+            font: inherit;
             font-size: 0.9rem;
             font-weight: 600;
-            padding: 0.55rem 1.1rem;
+            padding: 0.6rem 1.2rem;
             border: none;
-            border-radius: 8px;
-            background: var(--fabrica-purple);
+            border-radius: 10px;
+            background: var(--purple);
             color: #fff;
             cursor: pointer;
         }
 
-        .admin-msg {
+        form button[type="submit"]:hover {
+            background: var(--purple-deep);
+        }
+
+        .msg {
             width: 100%;
             font-size: 0.82rem;
-            margin-top: 0.4rem;
             min-height: 1rem;
+            color: var(--txt-muted);
         }
 
-        .admin-msg.err {
-            color: var(--error-color);
+        .msg.err {
+            color: var(--error);
         }
 
-        @media (max-width: 520px) {
-            .m-card {
-                padding: 2rem 1.4rem;
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.8rem;
+            color: #A79FBB;
+        }
+
+        @media (max-width: 560px) {
+            .topbar {
+                flex-direction: column;
+                gap: 0.15rem;
+                padding: 0.9rem 1rem;
             }
 
-            .m-card h2 {
-                font-size: 1.35rem;
+            main {
+                padding: 2rem 1rem;
+            }
+
+            .card {
+                padding: 2.25rem 1.5rem 2rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .panel {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 
 <body>
-    <header class="m-header">
-        <h1>SRA — Sistema de Relatórios Automatizados</h1>
-        <p>Fábricas de Cultura • Instituto Poiesis</p>
-    </header>
-    <div class="gradient-bar"></div>
+    <div class="topbar">
+        <strong>SRA — Sistema de Relatórios Automatizados</strong>
+        <span>Fábricas de Cultura • Instituto Poiesis</span>
+    </div>
+    <div class="accent"></div>
 
-    <main class="m-main">
-        <div class="m-card">
-            <div class="m-icon" aria-hidden="true">
+    <main>
+        <div class="card">
+            <div class="badge" aria-hidden="true">
                 <svg fill="none" viewBox="0 0 24 24" stroke-width="1.7">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
                 </svg>
             </div>
 
-            <h2>Sistema em manutenção programada</h2>
+            <h1>Sistema em manutenção programada</h1>
             <p class="lead">
-                Estamos publicando uma atualização do SRA. Durante este período o envio de
-                relatórios e o acesso à Área Restrita ficam temporariamente indisponíveis.
+                Estamos publicando uma atualização do SRA. Durante este período, o envio
+                de relatórios e o acesso à Área Restrita ficam temporariamente indisponíveis.
             </p>
 
-            <div class="m-info">
-                <div>
-                    <span class="label">Manutenção:</span>
-                    <!-- EDITE A DATA/TURNO AQUI -->
-                    <span class="value" id="janela">hoje, no período da manhã</span>
+            <div class="panel">
+                <div class="item">
+                    <div class="k">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0V11.25A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                        </svg>
+                        Manutenção
+                    </div>
+                    <!-- EDITE A DATA / TURNO AQUI -->
+                    <div class="v" id="janela">hoje, no período da manhã</div>
                 </div>
-                <div>
-                    <span class="label">Previsão de retorno:</span>
-                    <!-- EDITE A PREVISÃO DE RETORNO AQUI (coloque folga sobre a estimativa real) -->
-                    <span class="value" id="retorno">até as 13h</span>
+                <div class="item">
+                    <div class="k">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        Previsão de retorno
+                    </div>
+                    <!-- EDITE A PREVISÃO DE RETORNO AQUI (deixe folga sobre a estimativa real) -->
+                    <div class="v" id="retorno">até as 14h</div>
                 </div>
             </div>
 
-            <p class="m-note">
-                Nenhum relatório é perdido: os envios feitos <strong>antes</strong> da manutenção
-                estão preservados. Pedimos apenas que novos envios sejam feitos <strong>após</strong>
-                o retorno do sistema.
-            </p>
+            <div class="reassure">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.9">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                </svg>
+                <span>
+                    Nenhum relatório é perdido. Os envios feitos <strong>antes</strong> da
+                    manutenção estão preservados — pedimos apenas que novos envios sejam
+                    feitos <strong>depois</strong> do retorno do sistema.
+                </span>
+            </div>
 
-            <div class="admin-box">
-                <button type="button" class="admin-toggle" id="adminToggle">Acesso administrativo</button>
-                <form class="admin-form" id="adminForm" autocomplete="off">
-                    <input type="password" id="adminKey" placeholder="Chave de acesso" aria-label="Chave de acesso administrativo">
+            <div class="adminwrap">
+                <button type="button" id="adminToggle">Acesso administrativo</button>
+                <form id="adminForm" autocomplete="off">
+                    <input type="password" id="adminKey" placeholder="Chave de acesso"
+                        aria-label="Chave de acesso administrativo">
                     <button type="submit">Entrar</button>
-                    <div class="admin-msg" id="adminMsg" role="status"></div>
+                    <div class="msg" id="adminMsg" role="status"></div>
                 </form>
             </div>
         </div>
     </main>
 
-    <footer class="m-footer">
+    <footer>
         <!-- (Opcional) canal de contato durante a janela -->
         <span id="contato">Em caso de urgência, contate a equipe responsável pelo sistema.</span>
     </footer>
@@ -307,8 +441,8 @@
 
           A chave NÃO fica escrita nesta página — guardamos apenas o hash SHA-256.
           Para trocar a chave: gere um valor aleatório, calcule o SHA-256 dele e
-          substitua a constante ADMIN_KEY_SHA256 abaixo. A MESMA chave precisa
-          estar na propriedade de script  SRA_ADMIN_TOKEN  do Apps Script.
+          substitua ADMIN_KEY_SHA256 abaixo. A MESMA chave precisa estar na
+          propriedade de script SRA_ADMIN_TOKEN do Apps Script.
         */
         var ADMIN_KEY_SHA256 = "85ecb6d0f88c6412cfa37f4080073d0c848e1eaf561e9d382c6f72b76c139429";
 
@@ -347,7 +481,6 @@
 
             sha256Hex(value).then(function (hex) {
                 if (hex === ADMIN_KEY_SHA256) {
-                    // Cookie lido pela regra de roteamento da Vercel; sessão lida pela aplicação.
                     document.cookie = "sra_admin=" + encodeURIComponent(value) + ";path=/;max-age=43200;samesite=lax";
                     try { sessionStorage.setItem("sra_admin", value); } catch (err) { }
                     msg.textContent = "Acesso liberado. Redirecionando…";
