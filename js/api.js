@@ -27,6 +27,26 @@ function getActiveBackendUrl() {
 const GAS_API_URL = getActiveBackendUrl();
 
 /**
+ * Chave de acesso administrativo usada apenas durante janelas de manutenção programada.
+ * Fora da manutenção não existe e nada é anexado às requisições. É lida de:
+ *   1. ?admin=... na URL (e persistida na sessão para as próximas telas);
+ *   2. sessionStorage (definido pela tela de manutenção após validar a chave).
+ * O backend só libera a gravação se este valor for igual à propriedade SRA_ADMIN_TOKEN.
+ */
+function getAdminToken() {
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("admin");
+    if (fromUrl) {
+      sessionStorage.setItem("sra_admin", fromUrl);
+      return fromUrl;
+    }
+    return sessionStorage.getItem("sra_admin") || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+/**
  * Utilitário global para sanitizar strings e prevenir injeções de HTML/XSS no DOM
  * @param {string} str String a ser sanitizada
  * @returns {string} String com entidades HTML codificadas com segurança
@@ -65,10 +85,16 @@ function callBackendAPI(action, payload, onSuccess, onError, retryCount = 0) {
     controller.abort();
   }, timeoutMs);
 
+  // Durante manutenção programada, anexa a chave de admin (quando presente) para
+  // liberar os testes controlados da equipe técnica. Vazio em operação normal.
+  const adminToken = getAdminToken();
+  const requestBody = { action: action, ...payload };
+  if (adminToken) requestBody.adminToken = adminToken;
+
   fetch(GAS_API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: action, ...payload }),
+    body: JSON.stringify(requestBody),
     signal: controller.signal
   })
     .then(response => {

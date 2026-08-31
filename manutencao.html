@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>SRA — Sistema em manutenção</title>
+
+    <!--
+      TELA DE MANUTENÇÃO PROGRAMADA
+      Página 100% autossuficiente: todo o CSS está embutido e ela NÃO depende
+      de css/styles.css nem de js/main.js. Se qualquer outro arquivo do site
+      falhar durante a virada, esta tela continua aparecendo corretamente.
+
+      >>> O QUE EDITAR ANTES DE PUBLICAR <<<
+      1. A previsão de retorno: procure por  id="retorno"  mais abaixo.
+      2. A data/turno da manutenção: procure por  id="janela"  mais abaixo.
+      3. (Opcional) O canal de contato no rodapé: procure por  id="contato".
+      Não é preciso mexer em mais nada.
+    -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --fabrica-purple: #5E17EB;
+            --fabrica-orange: #FF5A09;
+            --fabrica-yellow: #FFD300;
+            --bg-dark-purple: #1C0A35;
+            --bg-app: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --txt-main: #111827;
+            --txt-muted: #4B5563;
+            --border-color: #D1D5DB;
+            --error-color: #EF4444;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-app);
+            color: var(--txt-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .m-header {
+            background-color: var(--bg-dark-purple);
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+
+        .m-header h1 {
+            color: #fff;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .m-header p {
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.8rem;
+            margin-top: 0.15rem;
+        }
+
+        .gradient-bar {
+            height: 4px;
+            background: linear-gradient(90deg, var(--fabrica-purple) 0%, var(--fabrica-orange) 55%, var(--fabrica-yellow) 100%);
+        }
+
+        .m-main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 1.25rem;
+        }
+
+        .m-card {
+            background: var(--bg-card);
+            max-width: 560px;
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 40px rgba(28, 10, 53, 0.10);
+            padding: 2.75rem 2.5rem;
+            text-align: center;
+        }
+
+        .m-icon {
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 1.5rem auto;
+            border-radius: 50%;
+            background: #FAF5FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .m-icon svg {
+            width: 34px;
+            height: 34px;
+            stroke: var(--fabrica-purple);
+        }
+
+        .m-card h2 {
+            font-family: var(--font-serif);
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .m-card .lead {
+            color: var(--txt-muted);
+            font-size: 1rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .m-info {
+            background: #FAF5FF;
+            border: 1px solid #E9D5FF;
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .m-info div + div {
+            margin-top: 0.5rem;
+        }
+
+        .m-info .label {
+            color: var(--txt-muted);
+            font-weight: 500;
+        }
+
+        .m-info .value {
+            color: var(--txt-main);
+            font-weight: 700;
+        }
+
+        .m-note {
+            margin-top: 1.5rem;
+            font-size: 0.88rem;
+            color: var(--txt-muted);
+        }
+
+        .m-footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.8rem;
+            color: #9CA3AF;
+        }
+
+        /* Acesso administrativo — discreto, para a equipe técnica durante a janela */
+        .admin-box {
+            margin-top: 2rem;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 1.25rem;
+        }
+
+        .admin-toggle {
+            background: none;
+            border: none;
+            color: #9CA3AF;
+            font-size: 0.8rem;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .admin-form {
+            display: none;
+            margin-top: 1rem;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .admin-form.open {
+            display: flex;
+        }
+
+        .admin-form input {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 0.55rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 220px;
+        }
+
+        .admin-form button {
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.55rem 1.1rem;
+            border: none;
+            border-radius: 8px;
+            background: var(--fabrica-purple);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .admin-msg {
+            width: 100%;
+            font-size: 0.82rem;
+            margin-top: 0.4rem;
+            min-height: 1rem;
+        }
+
+        .admin-msg.err {
+            color: var(--error-color);
+        }
+
+        @media (max-width: 520px) {
+            .m-card {
+                padding: 2rem 1.4rem;
+            }
+
+            .m-card h2 {
+                font-size: 1.35rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="m-header">
+        <h1>SRA — Sistema de Relatórios Automatizados</h1>
+        <p>Fábricas de Cultura • Instituto Poiesis</p>
+    </header>
+    <div class="gradient-bar"></div>
+
+    <main class="m-main">
+        <div class="m-card">
+            <div class="m-icon" aria-hidden="true">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.7">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
+                </svg>
+            </div>
+
+            <h2>Sistema em manutenção programada</h2>
+            <p class="lead">
+                Estamos publicando uma atualização do SRA. Durante este período o envio de
+                relatórios e o acesso à Área Restrita ficam temporariamente indisponíveis.
+            </p>
+
+            <div class="m-info">
+                <div>
+                    <span class="label">Manutenção:</span>
+                    <!-- EDITE A DATA/TURNO AQUI -->
+                    <span class="value" id="janela">hoje, no período da manhã</span>
+                </div>
+                <div>
+                    <span class="label">Previsão de retorno:</span>
+                    <!-- EDITE A PREVISÃO DE RETORNO AQUI (coloque folga sobre a estimativa real) -->
+                    <span class="value" id="retorno">até as 13h</span>
+                </div>
+            </div>
+
+            <p class="m-note">
+                Nenhum relatório é perdido: os envios feitos <strong>antes</strong> da manutenção
+                estão preservados. Pedimos apenas que novos envios sejam feitos <strong>após</strong>
+                o retorno do sistema.
+            </p>
+
+            <div class="admin-box">
+                <button type="button" class="admin-toggle" id="adminToggle">Acesso administrativo</button>
+                <form class="admin-form" id="adminForm" autocomplete="off">
+                    <input type="password" id="adminKey" placeholder="Chave de acesso" aria-label="Chave de acesso administrativo">
+                    <button type="submit">Entrar</button>
+                    <div class="admin-msg" id="adminMsg" role="status"></div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer class="m-footer">
+        <!-- (Opcional) canal de contato durante a janela -->
+        <span id="contato">Em caso de urgência, contate a equipe responsável pelo sistema.</span>
+    </footer>
+
+    <script>
+        /*
+          Acesso administrativo (somente para a equipe técnica durante a janela).
+          A validação real acontece no BACKEND: nenhum relatório é gravado sem a
+          chave correta, mesmo que alguém abra a aplicação por aqui. Este campo
+          apenas evita que usuários comuns cheguem à aplicação durante a manutenção.
+
+          A chave NÃO fica escrita nesta página — guardamos apenas o hash SHA-256.
+          Para trocar a chave: gere um valor aleatório, calcule o SHA-256 dele e
+          substitua a constante ADMIN_KEY_SHA256 abaixo. A MESMA chave precisa
+          estar na propriedade de script  SRA_ADMIN_TOKEN  do Apps Script.
+        */
+        var ADMIN_KEY_SHA256 = "85ecb6d0f88c6412cfa37f4080073d0c848e1eaf561e9d382c6f72b76c139429";
+
+        var toggle = document.getElementById("adminToggle");
+        var form = document.getElementById("adminForm");
+        var input = document.getElementById("adminKey");
+        var msg = document.getElementById("adminMsg");
+
+        toggle.addEventListener("click", function () {
+            form.classList.toggle("open");
+            if (form.classList.contains("open")) input.focus();
+        });
+
+        function sha256Hex(text) {
+            var enc = new TextEncoder().encode(text);
+            return crypto.subtle.digest("SHA-256", enc).then(function (buf) {
+                return Array.from(new Uint8Array(buf))
+                    .map(function (b) { return b.toString(16).padStart(2, "0"); })
+                    .join("");
+            });
+        }
+
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            msg.textContent = "";
+            msg.classList.remove("err");
+
+            var value = (input.value || "").trim();
+            if (!value) return;
+
+            if (!window.crypto || !crypto.subtle) {
+                msg.textContent = "Navegador sem suporte a verificação segura. Use o método da URL de pré-visualização.";
+                msg.classList.add("err");
+                return;
+            }
+
+            sha256Hex(value).then(function (hex) {
+                if (hex === ADMIN_KEY_SHA256) {
+                    // Cookie lido pela regra de roteamento da Vercel; sessão lida pela aplicação.
+                    document.cookie = "sra_admin=" + encodeURIComponent(value) + ";path=/;max-age=43200;samesite=lax";
+                    try { sessionStorage.setItem("sra_admin", value); } catch (err) { }
+                    msg.textContent = "Acesso liberado. Redirecionando…";
+                    setTimeout(function () { window.location.href = "/index.html"; }, 400);
+                } else {
+                    msg.textContent = "Chave incorreta.";
+                    msg.classList.add("err");
+                }
+            }).catch(function () {
+                msg.textContent = "Não foi possível validar a chave. Tente novamente.";
+                msg.classList.add("err");
+            });
+        });
+    </script>
+</body>
+
+</html>

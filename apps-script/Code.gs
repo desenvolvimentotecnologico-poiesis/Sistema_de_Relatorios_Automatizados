@@ -10,7 +10,50 @@
  * "a regra nova não funciona" é o Apps Script não ter sido reimplantado após colar os arquivos.
  * Incrementar a cada conjunto de mudanças publicado.
  */
-const BACKEND_VERSION = "2026-08-27.8 (formatação de texto simples na coluna de dias + suporte a Date em getFirstDayOfMonth)";
+const BACKEND_VERSION = "2026-08-27.9 (interruptor de manutenção programada para a virada de produção)";
+
+/**
+ * MANUTENÇÃO PROGRAMADA
+ *
+ * Enquanto a propriedade de script SRA_MAINTENANCE valer "ON", toda ação que GRAVA
+ * dados (envio de formulário, geração de PDF, upload da Área Restrita) é recusada
+ * de imediato, ANTES de tocar em qualquer planilha, pasta ou arquivo. As ações de
+ * leitura (carregar listas, consultas de status, login) seguem funcionando.
+ *
+ * A equipe técnica libera o próprio acesso enviando "adminToken" igual à
+ * propriedade de script SRA_ADMIN_TOKEN — assim é possível rodar os testes
+ * controlados em produção com o restante dos usuários bloqueado.
+ *
+ * Como ligar:  Configurações do projeto > Propriedades do script > SRA_MAINTENANCE = ON
+ * Como desligar: apague a propriedade ou troque o valor para OFF (não precisa reimplantar).
+ */
+const MAINTENANCE_WRITE_ACTIONS = ["submitForm", "generatePdfReportAsync", "uploadComplementaryDocs"];
+
+function isMaintenanceOn() {
+  try {
+    const v = PropertiesService.getScriptProperties().getProperty("SRA_MAINTENANCE");
+    return !!v && v.toString().trim().toUpperCase() === "ON";
+  } catch (err) {
+    // Na dúvida (falha ao ler a propriedade), o sistema opera normalmente.
+    return false;
+  }
+}
+
+function hasAdminBypass(payload) {
+  try {
+    const token = PropertiesService.getScriptProperties().getProperty("SRA_ADMIN_TOKEN");
+    return !!token && !!payload && payload.adminToken === token;
+  } catch (err) {
+    return false;
+  }
+}
+
+function maintenanceResponse() {
+  return Utils.createResponse(false, "O sistema está em manutenção programada no momento. "
+    + "Os relatórios já enviados estão preservados. Por favor, faça novos envios após o retorno do sistema.", {
+    maintenance: true
+  });
+}
 
 /**
  * Roteador HTTP POST para chamadas vindas do Frontend na Vercel
@@ -28,6 +71,11 @@ function doPost(e) {
 
     const action = payload.action;
     let result;
+
+    // Manutenção programada: recusa qualquer gravação antes de tocar em planilha/pasta/arquivo.
+    if (MAINTENANCE_WRITE_ACTIONS.indexOf(action) !== -1 && isMaintenanceOn() && !hasAdminBypass(payload)) {
+      return responseJSON(maintenanceResponse());
+    }
 
     if (action === "getDropdownData") {
       const force = payload && (payload.forceRefresh || payload.nocache);
@@ -83,6 +131,7 @@ function doGet(e) {
     return responseJSON(Utils.createResponse(true, "API Headless Google Apps Script ativa e operacional.", {
       system: CONFIG.SYSTEM_NAME,
       backendVersion: BACKEND_VERSION,
+      maintenance: isMaintenanceOn(),
       timestamp: new Date().toISOString()
     }));
   } catch (error) {
