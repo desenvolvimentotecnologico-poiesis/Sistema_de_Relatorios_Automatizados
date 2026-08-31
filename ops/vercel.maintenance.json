@@ -2,11 +2,12 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
-  "rewrites": [
-    { "source": "/(css|js)/(.*)", "destination": "/$1/$2" },
-    { "source": "/logo-fabricas.png", "destination": "/logo-fabricas.png" },
-    { "source": "/manutencao.html", "destination": "/manutencao.html" },
-    { "source": "/(.*)", "has": [{ "type": "cookie", "key": "sra_admin" }], "destination": "/$1" },
-    { "source": "/(.*)", "destination": "/manutencao.html" }
+  "redirects": [
+    {
+      "source": "/((?!manutencao|css/|js/|logo-fabricas).*)",
+      "missing": [{ "type": "cookie", "key": "sra_admin" }],
+      "destination": "/manutencao",
+      "permanent": false
+    }
   ]
 }
