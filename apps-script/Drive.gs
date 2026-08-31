@@ -29,12 +29,32 @@ function getOrCreateSubFolder(parentFolder, folderName) {
   if (cachedId) {
     try {
       const cachedFolder = DriveApp.getFolderById(cachedId);
-      // Confirma que a pasta em cache ainda é a pasta certa: um ID reaproveitado de uma entrada
-      // antiga (ou uma pasta renomeada no Drive) não pode redirecionar o envio para outra atividade.
-      if (Utils.normalizeFolderKey(cachedFolder.getName()) === folderKey) {
+
+      // A pasta em cache só é confiável se (1) o nome ainda confere E (2) ela AINDA é filha da
+      // parentFolder esperada. Sem a checagem de parentesco, uma entrada cujo alvo foi movido
+      // para fora da árvore — ou criado solto na conta que executa o script — redireciona em
+      // silêncio TODOS os envios daquela ramificação para o lugar errado, e o desvio persiste
+      // pelas 6h de vida do cache. Foi exatamente o que aconteceu com a unidade Capão.
+      const nomeConfere = Utils.normalizeFolderKey(cachedFolder.getName()) === folderKey;
+
+      let filhaDaParent = false;
+      if (nomeConfere) {
+        const pais = cachedFolder.getParents();
+        while (pais.hasNext()) {
+          if (pais.next().getId() === parentFolder.getId()) {
+            filhaDaParent = true;
+            break;
+          }
+        }
+      }
+
+      if (nomeConfere && filhaDaParent) {
         return cachedFolder;
       }
-      Logger.log("Pasta em cache não corresponde mais ao nome esperado: " + folderName);
+
+      // Entrada furada: descarta agora em vez de esperar expirar, e segue para a resolução normal.
+      Logger.log("Pasta em cache descartada (nome ou parentesco não confere): " + folderName);
+      cache.remove(cacheKey);
     } catch (e) {
       Logger.log("Pasta em cache expirou ou foi deletada: " + folderName);
     }
