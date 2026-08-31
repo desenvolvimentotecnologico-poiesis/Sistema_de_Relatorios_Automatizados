@@ -1,13 +1,5 @@
 {
   "version": 2,
   "cleanUrls": true,
-  "trailingSlash": false,
-  "redirects": [
-    {
-      "source": "/((?!manutencao|css/|js/|logo-fabricas).*)",
-      "missing": [{ "type": "cookie", "key": "sra_admin" }],
-      "destination": "/manutencao",
-      "permanent": false
-    }
-  ]
+  "trailingSlash": false
 }
