@@ -1,255 +1,251 @@
 # SRA — Sistema de Relatórios Automatizados
 
-Documentação técnica oficial de arquitetura, desenvolvimento e operação do **SRA (Sistema de Relatórios Automatizados)** para o **Instituto Poiesis** e as **Fábricas de Cultura**.
+Documentação técnica de arquitetura, desenvolvimento e operação do **SRA (Sistema de Relatórios Automatizados)** — Instituto Poiesis, Fábricas de Cultura e unidades da Fundação CASA.
+
+> Para a explicação didática e operacional (uso dos formulários, trava anti-duplicidade, Área Restrita, pastas do Drive, manutenção programada, reconciliação, guia para gestores), veja **[`DOCUMENTACAO_SISTEMA.md`](DOCUMENTACAO_SISTEMA.md)**. Este README é o material técnico para quem desenvolve e opera o backend.
 
 ---
 
-## 1. Visão Geral (Overview)
+## 1. Visão Geral
 
-O **SRA (Sistema de Relatórios Automatizados)** é uma plataforma web Serverless/Headless projetada para padronizar, validar e automatizar a coleta de indicadores operacionais e a emissão documental de relatórios mensais de prestação de contas das Fábricas de Cultura. 
+Plataforma web *serverless/headless* que padroniza, valida e automatiza a coleta de indicadores e a emissão dos relatórios mensais de prestação de contas. Substitui a compilação manual de arquivos por um fluxo desacoplado:
 
-O sistema substitui o fluxo legado de compilação manual de arquivos por um ecossistema desacoplado que executa triagem de dados client-side, compressores de mídia nativos via Canvas API, registro estruturado em banco de dados no Google Sheets, governança hierárquica de arquivos no Google Drive e geração determinística de relatórios documentais em Google Docs e PDF.
+- triagem e validação de dados no navegador (client-side);
+- compressão de mídia nativa via Canvas API;
+- registro estruturado em Google Sheets (uma aba por área);
+- organização hierárquica de arquivos no Google Drive;
+- geração do relatório em Google Docs e exportação em PDF.
+
+**Quatro frentes**, cada uma com formulário e modelo de relatório próprios: **Pedagógico**, **Articulação & Difusão**, **Bibliotecas** e **Fundação CASA**. O Pedagógico ainda tem uma **Área Restrita** para anexo de Inscrição e Presença em PDF.
 
 ---
 
 ## 2. Arquitetura e Decisões Técnicas
 
-O projeto foi construído sob uma **arquitetura Serverless Jamstack desacoplada**, dividida estritamente em duas camadas: **Frontend Estático (Edge CDN)** e **Backend Headless (Google Workspace REST Adapter)**.
+Arquitetura *Serverless Jamstack* em duas camadas: **Frontend estático (Vercel Edge CDN)** e **Backend headless (Google Apps Script como adaptador REST do Google Workspace)**.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              FRONTEND ESTÁTICO (Jamstack)               │
-│        Hosted on Vercel Edge Global Network (CDN)        │
-│                                                         │
-│   HTML5 / CSS3 Tokens  ──►  Client-Side Compression      │
-│                              (Canvas API Web Worker)    │
+│              FRONTEND ESTÁTICO (Jamstack)                │
+│                 Hospedado na Vercel (CDN)                │
+│   HTML5 / CSS3  ──►  Compressão client-side (Canvas API) │
 └────────────────────────────┬────────────────────────────┘
-                             │
-                  HTTP POST / GET (JSON payload)
-                             │
+                             │  HTTP POST (JSON, action-based)
                              ▼
 ┌─────────────────────────────────────────────────────────┐
-│            BACKEND HEADLESS (Apps Script API)           │
-│             Execution Context: America/Sao_Paulo        │
+│            BACKEND HEADLESS (Apps Script /exec)          │
+│              Fuso de execução: America/Sao_Paulo         │
 │                                                         │
-│  Code.gs (HTTP Router) ──►  Sheets.gs (Google Sheets)   │
-│                        ├──► Drive.gs (Google Drive)     │
-│                        └──► Report.gs (Docs ➔ PDF)      │
+│  Code.gs (roteador HTTP)  ──►  Sheets.gs                 │
+│                           ├──►  Drive.gs                 │
+│                           ├──►  Report.gs (Docs ➔ PDF)   │
+│                           └──►  Reconciliacao.gs         │
 └────────────────────────────┬────────────────────────────┘
-                             │
                              ▼
  ┌───────────────────────────────────────────────────────┐
- │               GOOGLE WORKSPACE STORAGE                │
- │  Google Sheets (Aba de Registros + _LOGS Auditoria)  │
- │  Google Drive  (Estrutura de Pastas e PDFs de Envio)  │
- │  Google Docs   (Templates Dinâmicos de Impressão)    │
+ │                 GOOGLE WORKSPACE                       │
+ │  Sheets  — respostas por área + aba _LOGS de auditoria │
+ │  Drive   — estrutura de pastas, fotos e PDFs           │
+ │  Docs    — um template por área                        │
  └───────────────────────────────────────────────────────┘
 ```
 
-### Justificativas Arquiteturais:
+### Justificativas
 
-- **Zero Lock-in de Servidores Pagos (Custo Zero de Infraestrutura):** A utilização da Vercel Edge Network combinada ao runtime Serverless do Google Apps Script elimina custos fixos com máquinas virtuais, bancos de dados relacionais e serviços de storage.
-- **Processamento de Mídia Client-Side (Offloading):** A compressão de imagens via Canvas API (`ImageCompressor.compressFile`) é realizada diretamente no navegador do usuário antes da transmissão HTTP. Isso reduz em até 85% o payload transferido e contorna o limite nativo de requisição HTTP (50MB) do Google Apps Script.
-- **Substituição Segura de Placeholders (`safeReplaceText`):** Proteção contra falhas de parsing ao enviar caracteres reservados de regex (como `$`, ex: "R$ 500,00").
-- **Sanitização de Chaves no CacheService (`sanitizeCacheKey`):** Conformidade estrita com o limite de 250 caracteres ASCII do Google Apps Script para cache de subpastas do Drive por até 6 horas.
-- **Fuso Horário Brasília (`America/Sao_Paulo`):** Todas as operações de timestamp e formatação de datas utilizam explicitamente o fuso horário oficial `America/Sao_Paulo` para garantir auditoria temporal sem divergências de servidor.
+- **Custo zero de infraestrutura:** Vercel Edge + runtime do Apps Script eliminam VMs, banco relacional e storage pago.
+- **Compressão client-side:** `ImageCompressor` reduz o payload antes do POST, contornando limites de requisição do Apps Script e acelerando o envio em redes lentas.
+- **Envio em 2 etapas:** `submitForm` (Etapa 1, rápida — grava a linha e sobe as fotos) e `generatePdfReportAsync` (Etapa 2, lenta — diagrama o Docs e exporta o PDF). Separar as etapas mantém o backend abaixo do teto de ~6 min por execução. Se a Etapa 2 falhar, a linha fica gravada sem PDF — situação tratada pela **reconciliação manual** (`Reconciliacao.gs`).
+- **Trava anti-duplicidade:** a mesma atividade não pode ter dois relatórios no mesmo período. Verificada na consulta prévia (`checkReportStatus`) e revalidada sob `LockService` no momento de gravar (`Sheets.gs`). A chave de identidade varia por área (ver `DOCUMENTACAO_SISTEMA.md`, seção 4).
+- **`safeReplaceText`:** substituição de placeholders `{{CAMPO}}` protegida contra caracteres reservados de regex (ex.: `R$`).
+- **Fuso `America/Sao_Paulo`:** todo timestamp e formatação de data usam o fuso oficial, explicitamente.
+- **Marcador `BACKEND_VERSION`** (`Code.gs`): devolvido pelo `doGet`; serve para confirmar, sem abrir o editor, se a implantação `/exec` já serve o código atual. **Deve ser incrementado a cada publicação do backend.**
 
-### 2.1 Módulo de Autenticação e Controle de Acesso Restrito (Firebase + Lista Branca)
+### 2.1 Autenticação e Acesso Restrito (Firebase + Lista Branca)
 
-Para o envio de documentos complementares de prestação de contas (Lista de Presença e Registro de Inscrição por atividade), o sistema conta com uma camada de segurança baseada em **Firebase Authentication (Google Identity Provider)** integrada a uma **Lista Branca no Google Sheets**.
+A **Área Restrita** (anexo de Lista de Presença e Registro de Inscrição por atividade do Pedagógico) usa **Firebase Authentication (login Google)** + uma **Lista Branca no Google Sheets**.
 
-#### Fluxo Operacional de Autenticação:
-1. **Autenticação:** O responsável da fábrica realiza login via Google Auth Provider (`@poiesis.org.br`).
-2. **Autorização (Lista Branca):** O frontend envia a credencial para a API do Google Apps Script (`verifyUserAccess`), que realiza a consulta server-side na aba `Responsaveis_Autorizados` da Planilha Institucional.
-3. **Validação de Registro:** O sistema verifica se o formulário primário da atividade já foi gravado no Sheets e se a pasta da atividade existe no Drive (`checkActivityStatus`).
-4. **Governança de Documentos:** Os arquivos de Inscrição e Presença são destinados automaticamente às subpastas `📁 Relação de Inscritos` e `📁 Lista de Presença` no Drive, e as colunas auditáveis (`Inscrição Enviada`, `Presença Enviada`, `Atualizado Por`, `Data/Hora Atualização`) são gravadas na planilha (`uploadComplementaryDocs`).
+1. **Autenticação:** login via Google (`prompt: select_account`). O sistema **não** força domínio no código — a lista de domínios autorizados fica no Firebase Console e o gate efetivo de autorização é a Lista Branca.
+2. **Autorização:** o frontend chama `verifyUserAccess`, que consulta *server-side* a aba `Responsaveis_Autorizados`. A tela só oferece as unidades liberadas para aquele e-mail (uma, várias separadas por vírgula/ponto-e-vírgula, ou `Todas`). A consulta **nunca usa cache**.
+3. **Status da atividade:** `checkActivityStatus` verifica na planilha se a atividade já tem registro e se os anexos (`Inscrição Enviada` / `Presença Enviada`) já foram enviados.
+4. **Gravação auditável:** `uploadComplementaryDocs` salva os PDFs nas subpastas `Relação de Inscritos` e `Lista de Presença` e grava as colunas `Inscrição Enviada`, `Presença Enviada`, `Atualizado Por (Login)` e `Data/Hora Atualização`. O backend **revalida** e-mail na Lista Branca e permissão de unidade antes de gravar; reenvio é recusado se a atividade já tem os dois documentos.
+
+### 2.2 Operação
+
+- **Manutenção programada:** a propriedade de script `SRA_MAINTENANCE = ON` faz o backend recusar toda ação de gravação antes de tocar em planilha/pasta/arquivo (leituras continuam). A tela pública `manutencao.html` é ativada por roteamento na Vercel (`ops/vercel.maintenance.json` × `ops/vercel.normal.json`). A equipe libera o próprio acesso com `adminToken` igual a `SRA_ADMIN_TOKEN`. Passo a passo em `ops/CUTOVER-PRODUCAO.md`.
+- **Reconciliação de relatórios pendentes:** `reconciliarRelatoriosPendentes` (`Reconciliacao.gs`), executada **manualmente** no editor quando o `_LOGS` registra falha de Etapa 2. Remonta o `formData` a partir da linha, recupera as pastas (idempotente) e compila só os relatórios ausentes.
+- **Diagnóstico de integridade:** `diagnosticarPlanilhas` (`Diagnostico.gs`), somente leitura, aponta linhas gravadas com o cabeçalho desalinhado.
 
 ---
 
 ## 3. Pré-requisitos
 
-Para ambiente de desenvolvimento local e manutenção do projeto, são recomendadas as seguintes ferramentas:
-
-| Ferramenta / Dependência | Versão Recomendada | Finalidade |
+| Ferramenta | Versão | Finalidade |
 | :--- | :--- | :--- |
-| **Node.js** | `>= 18.x.x` | Gerenciamento de runtime e execução de ferramentas de CLI |
-| **npm / pnpm** | `>= 9.x.x` | Gerenciador de pacotes local |
-| **Vercel CLI** | `>= 33.x.x` | Simulação de ambiente de produção e deploy local |
-| **Navegador Web** | Chrome `>= 115`, Firefox `>= 115`, Safari `>= 16.5` | Suporte nativo a ES6+, CSS Grid `:has()` e Canvas API |
-| **Conta Google Workspace** | Institucional | Acesso às APIs do Google Sheets, Drive e Docs |
-| **Firebase Console** | Projeto Ativo | Autenticação Google OAuth para Responsáveis de Fábrica |
+| **Node.js** | `>= 18` | Executar as ferramentas de CLI (servidor estático, Vercel CLI) |
+| **npm / pnpm** | `>= 9` | Gerenciador de pacotes |
+| **Vercel CLI** | `>= 33` | Simular produção e publicar o frontend |
+| **Navegador** | Chrome `>= 115`, Firefox `>= 115`, Safari `>= 16.5` | Suporte a ES6+, CSS Grid e Canvas API |
+| **Conta Google Workspace** | Institucional, com escrita no Drive | APIs de Sheets, Drive e Docs (o Apps Script roda "como" essa conta) |
+| **Firebase Console** | Projeto `sra-acessos` ativo | Login Google da Área Restrita |
 
 ---
 
-## 4. Variáveis de Ambiente e Configuração
+## 4. Configuração
 
-O backend em Google Apps Script centraliza suas constantes e variáveis institucionais de ambiente no arquivo `apps-script/Config.gs`.
+### Backend — `apps-script/Config.gs` (objeto `CONFIG`)
 
-### Variáveis do Backend (`apps-script/Config.gs`)
+| Chave | Descrição |
+| :--- | :--- |
+| `SPREADSHEET_LISTS_ID` | Planilha das listas suspensas (cada aba é uma unidade/setor) |
+| `SPREADSHEET_USERS_ID` | Planilha de usuários / Lista Branca. Se ficar com o placeholder, o backend usa a planilha de listas como fallback |
+| `SPREADSHEET_RESPONSES_ID` | Planilha de respostas padrão (fallback quando a da área não está configurada) |
+| `SPREADSHEET_RESPONSES_PEDAGOGICO_ID` / `_ARTICULACAO_ID` / `_FUNDACAO_CASA_ID` / `_BIBLIOTECA_ID` | Planilha de respostas de cada área |
+| `SHEET_RESPONSES_PEDAGOGICO` / `_ARTICULACAO` / `_FUNDACAO_CASA` / `_BIBLIOTECA` | Nome da aba dentro da planilha de respostas de cada área |
+| `DRIVE_ROOT_FOLDER_ID` | Pasta raiz no Drive para toda a árvore de pastas |
+| `DOC_TEMPLATE_PEDAGOGICO_ID` / `_ARTICULACAO_ID` / `_FUNDACAO_CASA_ID` / `_BIBLIOTECA_ID` | Modelo do Google Docs de cada área |
+| `SYSTEM_NAME` | Nome institucional usado em títulos |
 
-| Variável | Tipo | Descrição | Exemplo de Valor / Pattern |
+Propriedades de script (Configurações do projeto → Propriedades do script), não versionadas:
+
+| Propriedade | Uso |
+| :--- | :--- |
+| `SRA_MAINTENANCE` | `ON` ativa a manutenção programada (recusa gravações) |
+| `SRA_ADMIN_TOKEN` | Token que libera o acesso da equipe durante a manutenção |
+
+### Frontend — `js/api.js` e `js/auth.js`
+
+| Constante | Onde | Descrição |
+| :--- | :--- | :--- |
+| `GAS_API_URL_HOMOLOG` | `js/api.js` | `/exec` do Apps Script de homologação (usado em `localhost`, IP local ou domínio contendo `homolog`) |
+| `GAS_API_URL_PROD` | `js/api.js` | `/exec` do Apps Script de produção (demais domínios) |
+| `firebaseConfig` | `js/auth.js` | `apiKey`, `authDomain`, `projectId`, etc. do projeto `sra-acessos` (identificadores públicos do Firebase Web) |
+
+---
+
+## 5. API (Google Apps Script)
+
+Todas as chamadas são `POST` para a URL `/exec`, com corpo JSON contendo `action`. O `doGet` responde apenas um *health check* com `BACKEND_VERSION` e o estado de manutenção. Toda resposta tem a forma `{ success, message, ...dados }`.
+
+Durante a manutenção programada, as ações de gravação (`submitForm`, `generatePdfReportAsync`, `uploadComplementaryDocs`) retornam `{ success: false, maintenance: true }` — a menos que o corpo inclua `adminToken` válido.
+
+| Ação | Descrição | Campos principais do payload | Retorno |
 | :--- | :--- | :--- | :--- |
-| `SPREADSHEET_LISTS_ID` | `String` | ID da planilha que contém as listas suspensas institucionais | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `SPREADSHEET_USERS_ID` | `String` | ID da planilha de lista branca de usuários autorizados | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `SPREADSHEET_RESPONSES_ID` | `String` | ID padrão da planilha de respostas (fallback) | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `SPREADSHEET_RESPONSES_PEDAGOGICO_ID` | `String` | ID da planilha de respostas do Pedagógico | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `SPREADSHEET_RESPONSES_ARTICULACAO_ID`| `String` | ID da planilha de respostas de Articulação | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `SPREADSHEET_RESPONSES_FUNDACAO_CASA_ID`| `String` | ID da planilha de respostas da Fundação CASA | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `SPREADSHEET_RESPONSES_BIBLIOTECA_ID` | `String` | ID da planilha de respostas da Biblioteca | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `DRIVE_ROOT_FOLDER_ID` | `String` | ID da Pasta Raiz no Google Drive para armazenamento institucional | `'1A2b3C4d5E6f7G8h9I0j'` |
-| `DOC_TEMPLATE_PEDAGOGICO_ID` | `String` | ID do arquivo modelo (Template) no Google Docs para Pedagógico | `'1Nnh4ptK6znL1CX3rMOJJQha-sample'` |
-| `DOC_TEMPLATE_ARTICULACAO_ID`| `String` | ID do arquivo modelo (Template) no Google Docs para Articulação | `'1Nnh4ptK6znL1CX3rMOJJQha-sample'` |
-| `DOC_TEMPLATE_FUNDACAO_CASA_ID`| `String` | ID do arquivo modelo (Template) no Google Docs para Fundação CASA | `'1Nnh4ptK6znL1CX3rMOJJQha-sample'` |
-| `DOC_TEMPLATE_BIBLIOTECA_ID` | `String` | ID do arquivo modelo (Template) no Google Docs para Biblioteca | `'1Nnh4ptK6znL1CX3rMOJJQha-sample'` |
+| `getDropdownData` | Hierarquia das listas suspensas (unidades, tipos, atividades, DRs). | `forceRefresh?` | `{ hierarchy }` |
+| `checkReportStatus` | Consulta prévia da trava: a atividade já tem relatório no período? | `setor`, `unidade`, `atividade`, `divisaoRegional?`, `tipoPedagogico?`, `anoReferencia?`, `mesReferencia?`, `dataRelatorio?`, `diasAtividade?`, `diasSemana?`, `horarioInicio?`, `horarioTermino?` | `{ alreadySubmitted, submittedAt, submittedBy, detail }` |
+| `submitForm` (Etapa 1) | Cria/reaproveita pastas, sobe fotos e grava a linha (sob `LockService`). | `formData` (todos os campos da área + `files[]`) | `{ sheetName, rowNumber, relatorioFolderId, registroFolderId, area }` ou `{ success:false, duplicate:true, ... }` |
+| `generatePdfReportAsync` (Etapa 2) | Clona o Docs, substitui `{{CAMPO}}`, insere as fotos, monta a tabela do Plano (CASA) e exporta o PDF. | `sheetName`, `rowNumber`, `relatorioFolderId`, `registroFolderId`, `area`, `formData` | `{ pdfUrl, docUrl }` |
+| `verifyUserAccess` | Valida o e-mail contra `Responsaveis_Autorizados`. | `email` | `{ authorized, user }` |
+| `checkActivityStatus` | Estado da atividade e dos anexos complementares (Área Restrita). | `setor`, `unidade`, `atividade`, `anoReferencia`, `mesReferencia`, `tipoPedagogico` | `{ exists, rowNumber, hasInscricao, hasPresenca }` |
+| `uploadComplementaryDocs` | Salva os PDFs de Inscrição/Presença e grava as colunas auditáveis. | `userEmail`, `userName`, `setor`, `unidade`, `atividade`, `anoReferencia`, `mesReferencia`, `tipoPedagogico`, `files[]` | `{ success }` |
 
-### Variáveis do Frontend (`js/api.js` e `js/auth.js`)
-
-| Constant | Tipo | Descrição | Exemplo / Placeholder |
-| :--- | :--- | :--- | :--- |
-| `GAS_API_URL_HOMOLOG` | `String` | Endpoint público do Apps Script para ambiente de Homologação / Localhost | `'https://script.google.com/macros/s/AKfycb.../exec'` |
-| `GAS_API_URL_PROD` | `String` | Endpoint público do Apps Script para ambiente de Produção | `'https://script.google.com/macros/s/AKfycb.../exec'` |
-| `firebaseConfig.apiKey` | `String` | Chave de API pública do Firebase Auth | `'AIzaSy...'` |
-| `firebaseConfig.authDomain` | `String` | Domínio do app Firebase | `'sra-acessos.firebaseapp.com'` |
-| `firebaseConfig.projectId` | `String` | ID do projeto no Firebase Console | `'sra-acessos'` |
+> As ações de formulário (`submitForm`, `generatePdfReportAsync`, `checkReportStatus`, `getDropdownData`) **não têm autenticação** — a URL `/exec` é pública e de acesso "Anyone". Só a Área Restrita (`verifyUserAccess` / `uploadComplementaryDocs`) e a manutenção (`adminToken`) são protegidas. É uma escolha da arquitetura; ver seção 9 do review em `DOCUMENTACAO_SISTEMA.md`.
 
 ---
 
-## 5. Documentação da API REST (Google Apps Script)
+## 6. Instalação e Execução Local
 
-Todas as requisições utilizam o método `POST` enviando um payload JSON estruturado com a propriedade `action`.
-
-### 5.1 Endpoints e Ações Suportadas
-
-#### 1. `action: "getDropdownData"`
-- **Descrição:** Obtém a hierarquia completa de listas suspensas (Unidades, Cursos, Divisões Regionais) a partir do Google Sheets.
-- **Payload:** `{ "action": "getDropdownData", "forceRefresh": false }`
-- **Retorno:** `{ "success": true, "message": "Listas obtidas com sucesso", "hierarchy": { ... } }`
-
-#### 2. `action: "submitForm"` (Etapa 1)
-- **Descrição:** Cria a estrutura de pastas no Drive, realiza o upload dos anexos comprimidos e salva os dados na planilha correspondente à área.
-- **Payload:** `{ "action": "submitForm", "formData": { "unidade": "...", "atividade": "...", "setor": "...", ... } }`
-- **Retorno:** `{ "success": true, "sheetName": "...", "rowNumber": 10, "relatorioFolderId": "...", "registroFolderId": "..." }`
-
-#### 3. `action: "generatePdfReportAsync"` (Etapa 2)
-- **Descrição:** Clona o modelo do Google Docs, realiza a substituição dos placeholders (`safeReplaceText`), insere as evidências em grade 2 colunas e compila o PDF.
-- **Payload:** `{ "action": "generatePdfReportAsync", "relatorioFolderId": "...", "registroFolderId": "...", "area": "...", "formData": { ... } }`
-- **Retorno:** `{ "success": true, "pdfUrl": "https://drive.google.com/...", "docUrl": "https://docs.google.com/..." }`
-
-#### 4. `action: "verifyUserAccess"`
-- **Descrição:** Valida o e-mail do usuário autenticado no Firebase contra a lista branca da aba `Responsaveis_Autorizados`.
-- **Payload:** `{ "action": "verifyUserAccess", "email": "usuario@poiesis.org.br" }`
-- **Retorno:** `{ "success": true, "authorized": true, "user": { "nome": "...", "unidade": "..." } }`
-
-#### 5. `action: "checkActivityStatus"`
-- **Descrição:** Consulta se a atividade pedagógica já possui registro inicial e se os anexos complementares (Inscrição/Presença) foram submetidos.
-- **Payload:** `{ "action": "checkActivityStatus", "setor": "Pedagógico", "anoReferencia": "2026", "mesReferencia": "05", "unidade": "...", "atividade": "..." }`
-- **Retorno:** `{ "success": true, "exists": true, "hasInscricao": false, "hasPresenca": false }`
-
-#### 6. `action: "uploadComplementaryDocs"`
-- **Descrição:** Salva os arquivos PDF de Inscrição e Presença nas subpastas apropriadas do Google Drive e atualiza a planilha auditável.
-- **Payload:** `{ "action": "uploadComplementaryDocs", "userEmail": "...", "userName": "...", "setor": "Pedagógico", "files": [ ... ] }`
-- **Retorno:** `{ "success": true }`
-
----
-
-## 6. Guia de Instalação e Execução Local
-
-### Passo 1: Clonar o Repositório
+### Frontend
 
 ```bash
-git clone https://github.com/gigifs/relatorio-poiesis.git
-cd relatorio-poiesis
-```
+git clone https://github.com/desenvolvimentotecnologico-poiesis/Sistema_de_Relatorios_Automatizados.git
+cd Sistema_de_Relatorios_Automatizados
 
-### Passo 2: Execução do Frontend Localmente
-
-O frontend consiste em arquivos estáticos (HTML/CSS/JS) e pode ser servido utilizando qualquer servidor HTTP estático ou a **Vercel CLI**:
-
-```bash
-# Opção A: Executar usando Vercel CLI (Recomendado)
+# Opção A — Vercel CLI (simula produção)
 npx vercel dev
 
-# Opção B: Executar usando um servidor estático leve (Node.js http-server)
-npx http-server ./ -p 3000
+# Opção B — servidor estático leve
+npx http-server ./ -p 3000 -c-1
 ```
 
-Acesse o aplicativo em `http://localhost:3000`.
+Acesse `http://localhost:3000`. Em `localhost` o frontend aponta automaticamente para o backend de **homologação**.
 
-### Passo 3: Implantação e Publicação do Backend (Google Apps Script)
+### Backend (Google Apps Script)
 
-1. Acesse o [Google Apps Script Dashboard](https://script.google.com/).
-2. Crie um novo projeto ou selecione o projeto vinculado ao Google Workspace institucional.
-3. Transfira o código-fonte localizado no diretório local `apps-script/` para o editor web:
-   - `Code.gs`
-   - `Config.gs`
-   - `Drive.gs`
-   - `Report.gs`
-   - `Sheets.gs`
-   - `Utils.gs`
-4. No arquivo `Config.gs`, atualize os IDs de pastas, planilhas e templates.
-5. Clique em **Implantar** ➔ **Nova implantação**:
-   - **Tipo de implantação:** App da Web
-   - **Executar como:** *Eu (Sua conta com permissão de escrita no Drive)*
-   - **Quem tem acesso:** *Qualquer pessoa (Anyone)*
-6. Copie a **URL do App da Web** emitida e cole nos arquivos `js/api.js` nas constantes `GAS_API_URL_HOMOLOG` e `GAS_API_URL_PROD`.
+O diretório `apps-script/` é um **espelho manual** do projeto no Apps Script — não há `clasp` nem CI. Para publicar:
+
+1. Abra o projeto em [script.google.com](https://script.google.com/) vinculado à conta institucional.
+2. Cole o conteúdo de cada arquivo `.gs` de `apps-script/`:
+   `Code.gs`, `Config.gs`, `Sheets.gs`, `Drive.gs`, `Report.gs`, `Reconciliacao.gs`, `Utils.gs`, `Diagnostico.gs`.
+3. Em `Config.gs`, preencha os IDs de planilhas, pasta raiz e templates.
+4. **Incremente `BACKEND_VERSION`** em `Code.gs`.
+5. **Implantar → Gerenciar implantações → Editar → Versão: Nova versão → Implantar.**
+   - Tipo: *App da Web* · Executar como: *eu* · Quem tem acesso: *Qualquer pessoa*.
+6. Se a URL `/exec` mudar, atualize `GAS_API_URL_HOMOLOG` / `GAS_API_URL_PROD` em `js/api.js`.
+7. Confirme no `doGet` que o `backendVersion` retornado é o novo.
 
 ---
 
-## 7. Estrutura de Diretórios
+## 7. Estrutura do Projeto
 
 ```
-relatorio-poiesis/
-├── .gitignore                       # Regras de ignorar dependências locais e temporários
-├── apps-script/                    # Código-fonte Backend (Google Apps Script REST API)
-│   ├── Code.gs                     # API Router HTTP (doPost e doGet)
-│   ├── Config.gs                   # Definição de IDs, constantes e tabelas
-│   ├── Drive.gs                    # Gestão da árvore de pastas no Drive (suporte a Curso de Férias)
-│   ├── Report.gs                   # Leitura do Docs, interpolação de dados e conversão PDF
-│   ├── Sheets.gs                   # Leitura de dropdowns institucionais e inserção no Sheets
-│   └── Utils.gs                    # Helpers globais (Siglas como IGC/IGP, safe replace, normalização)
+Sistema_de_Relatorios_Automatizados/
+├── .gitignore
+├── README.md                       # Este documento (técnico)
+├── DOCUMENTACAO_SISTEMA.md          # Documentação didática/operacional
+├── index.html                      # Landing page — seletor de frente
+├── apresentacao.html               # Deck de apresentação/treinamento
+├── manutencao.html                 # Tela pública de manutenção programada
+├── logo-fabricas.png
+├── vercel.json                     # Config da Vercel (cleanUrls, trailingSlash)
 ├── css/
-│   └── styles.css                  # Design System corporativo, grid e regras de responsividade
-├── forms/                          # Formulários Modulares por Área Operacional
-│   ├── articulacao.html            # Módulo Articulação e Difusão
-│   ├── biblioteca.html             # Módulo Bibliotecas
-│   ├── fundacao-casa.html          # Módulo Fundação CASA (Cards de Encontros da Seção 03)
-│   ├── pedagogico.html             # Módulo Pedagógico (Meta 'Cursos de Férias' e Tipo 'Curso de Férias')
-│   └── area-restrita.html          # Módulo de Acesso Restrito (Firebase Auth + Cursos de Férias)
+│   └── styles.css                  # Design System, grid e responsividade
+├── forms/
+│   ├── pedagogico.html
+│   ├── articulacao.html            # Calendário de dias do mês
+│   ├── biblioteca.html
+│   ├── fundacao-casa.html          # Plano de Atividades + dias da semana + horário
+│   └── area-restrita.html          # Firebase Auth + anexo de Inscrição/Presença
 ├── js/
-│   ├── api.js                      # HTTP Client (Fetch API Wrapper com tratamento de erros, escapeHtml e retentativas)
-│   ├── auth.js                     # Gerenciador de Autenticação Firebase e Lista Branca
-│   ├── image-compressor.js         # Compressor client-side de imagem via Canvas API
-│   └── main.js                     # Controlador de DOM, dinâmicas de formulário e preview de mídias sanitizadas
-├── apresentacao.html               # Deck interativo de apresentação e treinamento institucional
-├── index.html                      # Landing page e seletor de módulo operacional
-├── logo-fabricas.png               # Asset institucional de marca
-├── vercel.json                     # Roteamento e regras de servidor estático para a Vercel
-└── README.md                       # Documentação técnica oficial do projeto
+│   ├── api.js                      # Cliente HTTP + detecção de ambiente + retentativas
+│   ├── auth.js                     # Firebase Auth + regras da Área Restrita
+│   ├── main.js                     # Formulários, calendário, dias da semana, consulta
+│   │                               #   prévia de duplicidade, envio em 2 etapas
+│   ├── image-compressor.js         # Compressão de imagem via Canvas API
+│   └── shared-helpers.js           # Regras compartilhadas entre main.js e auth.js
+├── apps-script/
+│   ├── Code.gs                     # Roteador HTTP, Etapa 1/2, manutenção, chave de identidade
+│   ├── Config.gs                   # IDs de planilhas, abas e templates
+│   ├── Sheets.gs                   # Cabeçalhos por área, gravação da linha, trava anti-duplicidade
+│   ├── Drive.gs                    # Árvore de pastas e nomes de arquivos
+│   ├── Report.gs                   # Google Docs → PDF (nome + escopo do relatório)
+│   ├── Reconciliacao.gs            # Reconciliação manual de relatórios pendentes
+│   ├── Utils.gs                    # Helpers (datas, textos, dias/horário, siglas, respostas)
+│   └── Diagnostico.gs              # Auditoria de integridade das planilhas (somente leitura)
+└── ops/
+    ├── CUTOVER-PRODUCAO.md          # Passo a passo da virada de produção / manutenção
+    ├── vercel.maintenance.json      # vercel.json com o roteamento de manutenção
+    └── vercel.normal.json           # vercel.json com o roteamento normal
 ```
 
 ---
 
 ## 8. Padrões e Boas Práticas
 
-### Convenções de Commits (Conventional Commits)
-Este repositório adota o padrão de commits convencionais para rastreabilidade de alterações:
+### Commits (Conventional Commits, com escopo opcional)
 
-- `feat:` Adição de nova funcionalidade ou módulo.
-- `fix:` Correção de bug ou falha de comportamento.
-- `style:` Alterações de formatação, layout CSS ou ajustes visuais.
-- `refactor:` Reestruturação de código sem alteração de funcionalidade.
-- `docs:` Alterações em arquivos de documentação (`README.md`, `DOCUMENTACAO_SISTEMA.md`).
+`feat:` nova funcionalidade · `fix:` correção de bug · `docs:` documentação · `style:` formatação/CSS · `refactor:` reestruturação sem mudança de comportamento · `ops:` operação/infra (manutenção, roteamento, virada).
 
-### Padrão de Codificação e Estilo
-- **JavaScript Client-Side:** Utiliza ES6+ nativo sem dependências de compilação pesadas (Webpack/Babel). Manter escopos isolados e manipulação de DOM baseada em seletores declarativos.
-- **Validação de Formulários:** Todos os formulários realizam sanitização e verificação de campos obrigatórios client-side antes da emissão da requisição HTTP POST.
-- **Fuso Horário e Datas:** Formatar sempre timestamps e datas utilizando o locale `pt-BR` e o fuso horário `America/Sao_Paulo`.
+Exemplos do histórico: `feat(fundacao-casa): ...`, `fix(drive): ...`, `ops: encerra manutencao programada`.
+
+Mensagens de commit terminam com:
+
+```
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+```
+
+### Código
+
+- **JavaScript client-side:** ES6+ nativo, sem build (Webpack/Babel). Escopos isolados, manipulação de DOM por seletores.
+- **Apps Script:** ES6+ (runtime V8). Funções são globais entre arquivos `.gs` — um arquivo pode chamar funções de outro sem `import`.
+- **Validação:** cada formulário sanitiza e valida os campos obrigatórios no cliente antes do POST; o backend **revalida** as regras críticas (obrigatórios, permissões da Área Restrita, trava anti-duplicidade), pois a API é pública.
+- **Datas e fuso:** sempre `pt-BR` e `America/Sao_Paulo`.
+- **Colunas novas na planilha:** basta adicionar ao array de `headers` da área em `Sheets.gs`; `ensureSheetHeaders` insere a coluna na posição canônica e realinha o histórico na primeira gravação seguinte.
 
 ---
 
 ## 9. Fluxo de Solicitação de Alterações
 
-Toda alteração no SRA (novo campo, nova atividade, mudança de regra ou de layout) segue, obrigatoriamente, este caminho de aprovação antes de chegar ao Setor de Sistemas:
+Toda alteração no SRA (novo campo, nova atividade, mudança de regra ou de layout) segue este caminho de aprovação antes de chegar ao Setor de Sistemas:
 
 1. **Supervisão da unidade** — origina a solicitação (ou dá o aval a quem pediu).
 2. **Coordenação de área (Sede)** — analisa necessidade e viabilidade.
