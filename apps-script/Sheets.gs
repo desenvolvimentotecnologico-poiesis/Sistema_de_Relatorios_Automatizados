@@ -152,7 +152,7 @@ function getSheetConfigForArea(area) {
         "Razão Social (Responsável)", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
         "Carga Horária Realizada", "Data de Eventual Reposição", "Destaque da Ação", "Objetivos da Atividade",
         "Impacto Territorial / Cultural", "Descrição das Ações e Metodologia", "Engajamento e Participação",
-        "Pontos Fortes", "Pontos Fracos e Desafios"
+        "Pontos Fortes", "Pontos Fracos e Desafios", "Plano de Atividades (JSON)"
       ]
     };
   } else if (areaNorm === "BIBLIOTECA") {
@@ -318,7 +318,7 @@ function ensureSheetHeaders(sheet, config) {
 
   // Garante que colunas de texto livre que o Google Sheets tenderia a converter em data/número
   // ("1, 5, 10" -> data; "14:15 às 15:45" -> hora) usem formatação de texto simples (@).
-  ["Dia(s) do Mês", "Dias da Semana", "Horário"].forEach(function(nomeColuna) {
+  ["Dia(s) do Mês", "Dias da Semana", "Horário", "Plano de Atividades (JSON)"].forEach(function(nomeColuna) {
     const idxCol = layout.index[normalizeHeaderKey(nomeColuna)];
     if (idxCol !== undefined) {
       sheet.getRange(1, idxCol + 1, sheet.getMaxRows(), 1).setNumberFormat("@");
@@ -543,7 +543,10 @@ function saveResponseRow(data) {
         Utils.formatField(data.descricaoMetodologia),
         Utils.formatField(data.engajamentoParticipacao),
         Utils.formatField(data.pontosFortes),
-        Utils.formatField(data.pontosFracos)
+        Utils.formatField(data.pontosFracos),
+        // Snapshot do Plano de Atividades para a reconciliação: a tabela de encontros só existe no
+        // payload do navegador; sem isso, um relatório reconciliado da CASA sairia sem ela.
+        (data.planoTabela && data.planoTabela.length ? JSON.stringify(data.planoTabela) : "")
       ];
     } else if (areaNorm === "BIBLIOTECA") {
       newRow = [

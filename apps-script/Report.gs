@@ -38,63 +38,81 @@ function getTemplateFileConnection(area) {
   }
 }
 
+/**
+ * Monta o nome do arquivo do relatório e o "escopo" (trechos que identificam ESTE relatório dentro
+ * da pasta) para cada área. Fonte única desses dois valores: usada tanto na geração do relatório
+ * quanto na reconciliação (que confere se a pasta já tem o relatório de uma linha).
+ *
+ * O Responsável fica de fora do escopo de propósito: pode mudar entre o envio original e o
+ * reenvio, e a versão antiga precisa sair mesmo assim. A data/mês entra sempre que a pasta é
+ * compartilhada por vários períodos/turmas.
+ *
+ * @return {{documentName: string, escopoDoRelatorio: Array<string>}}
+ */
+function montarNomeEEscopoRelatorio_(data) {
+  const setorNorm = Utils.normalizeAreaName(data.area || data.setor);
+  const unidadeSigla = Utils.getUnidadeSigla(data.unidade);
+  const cleanResponsavel = Utils.sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
+  const cleanAtividade = Utils.sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
+
+  if (setorNorm === "PEDAGÓGICO") {
+    // Padrão Pedagógico: siglaUnidade_nomeResponsavel_nomeAtividade. A pasta já é única por
+    // Ano/Unidade/Mês/Tipo/Atividade.
+    return {
+      documentName: unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade,
+      escopoDoRelatorio: [unidadeSigla, cleanAtividade]
+    };
+  }
+  if (setorNorm === "ARTICULAÇÃO E DIFUSÃO") {
+    // Padrão Articulação: dataDoPrimeiroDia_siglaUnidade_nomeDoEvento. A data completa entra no
+    // escopo porque a mesma atividade pode ter ocorrências em dias diferentes do mesmo mês
+    // dividindo a pasta.
+    const dataFormatada = Utils.buildArticulacaoDateKey(data.diasAtividade, data.mesReferencia, data.anoReferencia);
+    return {
+      documentName: dataFormatada + "_" + unidadeSigla + "_" + cleanAtividade,
+      escopoDoRelatorio: [dataFormatada, unidadeSigla, cleanAtividade]
+    };
+  }
+  if (setorNorm === "BIBLIOTECA") {
+    // Padrão Biblioteca: dataDaAtividade_siglaUnidade_nomeAtividade_nomeResponsavel. Várias
+    // atividades dividem a pasta do mês, então a data entra no escopo.
+    const dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
+    return {
+      documentName: dataAtiv + "_" + unidadeSigla + "_" + cleanAtividade + "_" + cleanResponsavel,
+      escopoDoRelatorio: [dataAtiv, unidadeSigla, cleanAtividade]
+    };
+  }
+  if (setorNorm === "FUNDAÇÃO CASA") {
+    // Padrão Fundação CASA: "RELATORIO - [razão social] - [unidade] - [mês] - [dias+horário]".
+    // O trecho de dias da semana + horário ("SEG-QUA 1415-1545") diferencia a 1ª da 2ª turma da
+    // mesma atividade no mesmo mês — as duas dividem a MESMA pasta, só o nome do arquivo muda —,
+    // então entra no escopo da limpeza para a recompilação de uma turma nunca apagar a outra.
+    const mesExtCasa = Utils.getMonthNameExtenso(data.mesReferencia).toUpperCase();
+    const razaoDisplay = Utils.sanitizeFileName(data.responsavel || "").toUpperCase();
+    const centroDisplay = Utils.sanitizeFileName(data.unidade || "").toUpperCase();
+    const turmaFragment = Utils.buildCasaTurmaFragment(data.diasSemana, data.horarioInicio, data.horarioTermino);
+    return {
+      documentName: ["RELATORIO", razaoDisplay, centroDisplay, mesExtCasa]
+        .concat(turmaFragment ? [turmaFragment] : [])
+        .join(" - "),
+      escopoDoRelatorio: [centroDisplay, mesExtCasa, turmaFragment].filter(function(p) { return p; })
+    };
+  }
+  return {
+    documentName: unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade,
+    escopoDoRelatorio: [unidadeSigla, cleanAtividade]
+  };
+}
+
 function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
   try {
     if (!data) data = {};
     const setorNorm = Utils.normalizeAreaName(data.area || data.setor);
-    const unidadeSigla = Utils.getUnidadeSigla(data.unidade);
-    const cleanCentro = Utils.sanitizeFileName(data.unidade || "").toUpperCase().replace(/\s+/g, "_");
-    const cleanResponsavel = Utils.sanitizeFileName(data.responsavel || "").toUpperCase().replace(/\s+/g, "_");
-    const cleanAtividade = Utils.sanitizeFileName(data.atividade || "").toUpperCase().replace(/\s+/g, "_");
-    
-    let documentName = "";
-    // Trechos que identificam ESTE relatório dentro da pasta, usados para remover a versão
-    // anterior sem tocar nos relatórios vizinhos. O Responsável fica de fora de propósito: é o
-    // campo que pode mudar entre o envio original e o reenvio, e a versão antiga precisa sair
-    // mesmo assim. Já a data/mês entra sempre que a pasta é compartilhada por vários períodos —
-    // é o que impede o relatório de uma data apagar o de outra data da mesma atividade.
-    let escopoDoRelatorio = [];
 
-    if (setorNorm === "PEDAGÓGICO") {
-      // Padrão Pedagógico: siglaUnidade_nomeResponsavel_nomeAtividade
-      documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
-      // A pasta do Pedagógico já é única por Ano/Unidade/Mês/Tipo/Atividade.
-      escopoDoRelatorio = [unidadeSigla, cleanAtividade];
-    } else if (setorNorm === "ARTICULAÇÃO E DIFUSÃO") {
-      // Padrão Articulação: dataDoPrimeiroDiaDaAtividade_siglaUnidade_nomeDoEvento
-      const dataFormatada = Utils.buildArticulacaoDateKey(data.diasAtividade, data.mesReferencia, data.anoReferencia);
-      documentName = dataFormatada + "_" + unidadeSigla + "_" + cleanAtividade;
-      // A data completa (e não só mês/ano) entra no escopo porque a mesma atividade pode ter
-      // ocorrências em dias diferentes do mesmo mês, e todas dividem a pasta da atividade:
-      // sem o dia, o relatório de uma ocorrência apagaria o da outra.
-      escopoDoRelatorio = [dataFormatada, unidadeSigla, cleanAtividade];
-    } else if (setorNorm === "BIBLIOTECA") {
-      // Padrão Biblioteca: dataDaAtividade_siglaUnidade_nomeAtividade_nomeResponsavel
-      let dataAtiv = data.dataRelatorio ? Utils.formatDateToBR(data.dataRelatorio).replace(/\//g, "-") : "DATA";
-      documentName = dataAtiv + "_" + unidadeSigla + "_" + cleanAtividade + "_" + cleanResponsavel;
-      // Bibliotecas registram várias atividades no mesmo mês, e todas dividem a mesma pasta da
-      // atividade. Sem a data no escopo, o relatório de uma data apagaria o de outra.
-      escopoDoRelatorio = [dataAtiv, unidadeSigla, cleanAtividade];
-    } else if (setorNorm === "FUNDAÇÃO CASA") {
-      // Padrão Fundação CASA: "RELATORIO - [razão social] - [unidade] - [mês] - [dias+horário]".
-      // O trecho de dias da semana + horário ("SEG-QUA 1415-1545") é o que diferencia a 1ª da 2ª
-      // turma da mesma atividade no mesmo mês — as duas dividem a MESMA pasta da atividade, só o
-      // nome do arquivo muda. Por isso esse trecho também entra no escopo da limpeza: sem ele, a
-      // recompilação de uma turma apagaria o relatório da outra.
-      const mesExtCasa = Utils.getMonthNameExtenso(data.mesReferencia).toUpperCase();
-      const razaoDisplay = Utils.sanitizeFileName(data.responsavel || "").toUpperCase();
-      const centroDisplay = Utils.sanitizeFileName(data.unidade || "").toUpperCase();
-      const turmaFragment = Utils.buildCasaTurmaFragment(data.diasSemana, data.horarioInicio, data.horarioTermino);
+    const nomeEEscopo = montarNomeEEscopoRelatorio_(data);
+    let documentName = nomeEEscopo.documentName;
+    let escopoDoRelatorio = nomeEEscopo.escopoDoRelatorio;
 
-      documentName = ["RELATORIO", razaoDisplay, centroDisplay, mesExtCasa]
-        .concat(turmaFragment ? [turmaFragment] : [])
-        .join(" - ");
-      escopoDoRelatorio = [centroDisplay, mesExtCasa, turmaFragment].filter(function(p) { return p; });
-    } else {
-      documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
-      escopoDoRelatorio = [unidadeSigla, cleanAtividade];
-    }
-    
     // Remove a versão anterior deste mesmo relatório (Docs+PDF) antes de gerar a nova cópia,
     // evitando arquivos duplicados quando a compilação é reenviada (ex.: retentativa manual após
     // timeout de rede). A remoção usa o escopo montado acima em vez do nome completo do arquivo,
