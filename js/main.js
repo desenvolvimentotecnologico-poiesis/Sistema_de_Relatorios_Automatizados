@@ -16,6 +16,7 @@ let duplicateCheckMessage = "";
 document.addEventListener("DOMContentLoaded", () => {
   initializeDropdowns();
   setupCalendarGrid();
+  setupWeekdayGrid();
   setupDragAndDrop();
   setupFormSubmission();
   setupOutroFieldsListeners();
@@ -98,6 +99,20 @@ function setupDuplicateCheck() {
     calendario.addEventListener("change", agendarConsulta);
     calendario.addEventListener("click", agendarConsulta);
   }
+
+  // Fundação CASA: dias da semana + horário também compõem a identidade da atividade (é o que
+  // separa a 1ª da 2ª turma), e ficam fora da lista de campos-chave por não terem um <select>.
+  const gradeDiasSemana = document.getElementById("diasSemanaGrid");
+  if (gradeDiasSemana) {
+    gradeDiasSemana.addEventListener("change", agendarConsulta);
+  }
+  ["horarioInicio", "horarioTermino"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("change", agendarConsulta);
+      el.addEventListener("input", agendarConsulta);
+    }
+  });
 }
 
 /**
@@ -113,8 +128,10 @@ function setupDuplicateCheck() {
 function findDuplicateNoticeAnchor(form, campos) {
   const candidatos = campos.map(c => c.el);
 
-  const calendario = document.getElementById("calendarGrid");
-  if (calendario) candidatos.push(calendario);
+  ["calendarGrid", "diasSemanaGrid", "horarioTermino"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) candidatos.push(el);
+  });
 
   let ultimo = null;
   candidatos.forEach(el => {
@@ -171,6 +188,21 @@ function runDuplicateCheck(form, campos, aviso) {
       return;
     }
     payload.diasAtividade = dia;
+  }
+
+  // Fundação CASA: dias da semana + horário completam a identidade. Enquanto não houver ao menos
+  // um dia marcado e os dois horários preenchidos, a turma ainda não está identificada.
+  if (document.getElementById("diasSemanaGrid")) {
+    const diasSemana = getDiasSemanaSelecionados();
+    const horarioInicio = (document.getElementById("horarioInicio") || {}).value || "";
+    const horarioTermino = (document.getElementById("horarioTermino") || {}).value || "";
+    if (!diasSemana || !horarioInicio || !horarioTermino) {
+      resetDuplicateState(aviso);
+      return;
+    }
+    payload.diasSemana = diasSemana;
+    payload.horarioInicio = horarioInicio;
+    payload.horarioTermino = horarioTermino;
   }
 
   aviso.className = "status-box info";
@@ -681,6 +713,57 @@ function setupCalendarGrid() {
   }
 }
 
+/* 3b. DIAS DA SEMANA (FUNDAÇÃO CASA) */
+const DIAS_SEMANA_UTEIS = [
+  { valor: "Segunda", sigla: "SEG" },
+  { valor: "Terça", sigla: "TER" },
+  { valor: "Quarta", sigla: "QUA" },
+  { valor: "Quinta", sigla: "QUI" },
+  { valor: "Sexta", sigla: "SEX" }
+];
+
+function setupWeekdayGrid() {
+  const grid = document.getElementById("diasSemanaGrid");
+  if (!grid) return;
+
+  grid.innerHTML = "";
+  DIAS_SEMANA_UTEIS.forEach(dia => {
+    const box = document.createElement("label");
+    box.className = "weekday-box";
+
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.name = "diasSemana";
+    chk.value = dia.valor;
+
+    const txt = document.createElement("span");
+    txt.textContent = dia.sigla;
+
+    box.appendChild(chk);
+    box.appendChild(txt);
+
+    // O <label> já alterna o checkbox por associação; aqui só reflete o estado no visual e
+    // propaga um "change" para a consulta prévia de duplicidade.
+    chk.addEventListener("change", () => {
+      box.classList.toggle("selected", chk.checked);
+      chk.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    grid.appendChild(box);
+  });
+}
+
+/**
+ * Dias da semana marcados, na ordem Segunda -> Sexta, como "Segunda, Quarta".
+ */
+function getDiasSemanaSelecionados() {
+  const grid = document.getElementById("diasSemanaGrid");
+  if (!grid) return "";
+  return Array.from(grid.querySelectorAll('input[type="checkbox"]:checked'))
+    .map(chk => chk.value)
+    .join(", ");
+}
+
 /* 4. DRAG & DROP E COMPRESSÃO DE FOTOS */
 function setupDragAndDrop() {
   const dropzone = document.getElementById("fileDropzone");
@@ -905,6 +988,22 @@ function setupFormSubmission() {
 
     // Validação estrita da Seção de Evidências (Arquivos / Tabela)
     if (isCasaForm) {
+      // Dias da semana e horário são obrigatórios e fazem parte da identidade da atividade.
+      if (!getDiasSemanaSelecionados()) {
+        alert("Atenção: selecione ao menos um dia da semana em que a atividade acontece.");
+        document.getElementById("diasSemanaGrid").scrollIntoView({ behavior: "smooth", block: "center" });
+        hideOverlay();
+        return;
+      }
+      const hInicio = (document.getElementById("horarioInicio") || {}).value || "";
+      const hTermino = (document.getElementById("horarioTermino") || {}).value || "";
+      if (!hInicio || !hTermino) {
+        alert("Atenção: preencha o horário de início e de término da atividade.");
+        document.getElementById("horarioInicio").scrollIntoView({ behavior: "smooth", block: "center" });
+        hideOverlay();
+        return;
+      }
+
       // Validação dos Cards do Plano de Atividades: um encontro com qualquer campo preenchido
       // precisa ter Data, Horário de Início, Horário de Término e Descrição todos preenchidos,
       // para não gerar linhas incompletas ("---") no relatório final. Cards totalmente vazios
@@ -1140,6 +1239,16 @@ function extractFormData(form) {
 
     data.planoTabela = planoTabela;
     data.files = [];
+
+    // Dias da semana + horário da turma: parte da identidade da atividade na Fundação CASA. O
+    // backend renormaliza tudo em normalizeSubmissionKey (fonte única da chave), aqui só entrega
+    // em forma legível. FormData já traz horarioInicio/horarioTermino pelos name= dos inputs.
+    data.diasSemana = Array.isArray(data.diasSemana) ? data.diasSemana.join(", ") : (data.diasSemana || "");
+    if (data.horarioInicio && data.horarioTermino) {
+      data.horarioAtividade = `${data.horarioInicio} às ${data.horarioTermino}`;
+    } else {
+      data.horarioAtividade = data.horarioInicio || data.horarioTermino || "";
+    }
   }
 
   // Normaliza aliases de contrato
@@ -1287,12 +1396,43 @@ function updatePlanoUnidades() {
   });
 }
 
+// Horário mestre da atividade (campo "Horário da atividade") aplicado como padrão aos encontros
+// do Plano de Atividades. Guardado aqui para saber quais encontros ainda espelham o valor mestre
+// anterior e podem ser reescritos sem sobrepor um ajuste manual.
+let planoHorarioMestre = { inicio: "", fim: "" };
+
+/**
+ * Copia o horário mestre para os encontros do Plano de Atividades. Só reescreve um campo de
+ * encontro que esteja vazio ou que ainda contenha o valor mestre anterior — um horário editado à
+ * mão no encontro é preservado. Não faz nada quando o campo mestre correspondente está vazio.
+ */
+function syncPlanoHorarioComMestre() {
+  const novoInicio = (document.getElementById("horarioInicio") || {}).value || "";
+  const novoFim = (document.getElementById("horarioTermino") || {}).value || "";
+  const cards = document.querySelectorAll("#tabelaEncontrosBody .encontro-card");
+
+  cards.forEach(card => {
+    const inicioEl = card.querySelector(".input-plano-inicio");
+    const fimEl = card.querySelector(".input-plano-fim");
+    if (novoInicio && inicioEl && (inicioEl.value === "" || inicioEl.value === planoHorarioMestre.inicio)) {
+      inicioEl.value = novoInicio;
+    }
+    if (novoFim && fimEl && (fimEl.value === "" || fimEl.value === planoHorarioMestre.fim)) {
+      fimEl.value = novoFim;
+    }
+  });
+
+  if (novoInicio) planoHorarioMestre.inicio = novoInicio;
+  if (novoFim) planoHorarioMestre.fim = novoFim;
+}
+
 function initDynamicPlanoTable() {
   const tbody = document.getElementById("tabelaEncontrosBody");
   const btnAdd = document.getElementById("btnAddEncontro");
   if (!tbody) return;
 
   tbody.innerHTML = "";
+  planoHorarioMestre = { inicio: "", fim: "" };
 
   const selUnidades = [
     document.getElementById("centroCasaSelect"),
@@ -1310,6 +1450,11 @@ function initDynamicPlanoTable() {
     }
   });
 
+  ["horarioInicio", "horarioTermino"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", syncPlanoHorarioComMestre);
+  });
+
   // Cria 3 encontros padrão iniciais
   for (let i = 1; i <= 3; i++) {
     addEncontroRow("", "", "", "");
@@ -1325,6 +1470,10 @@ function initDynamicPlanoTable() {
 function addEncontroRow(dataVal, inicioVal, fimVal, descVal) {
   const container = document.getElementById("tabelaEncontrosBody");
   if (!container) return;
+
+  // Um encontro novo já nasce com o horário mestre da atividade (ajustável depois).
+  inicioVal = inicioVal || planoHorarioMestre.inicio || "";
+  fimVal = fimVal || planoHorarioMestre.fim || "";
 
   const nomeUnidade = getSelectedUnidadeName();
 

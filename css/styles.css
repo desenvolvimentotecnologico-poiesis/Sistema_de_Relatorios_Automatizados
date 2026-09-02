@@ -759,6 +759,59 @@ select:disabled {
     font-weight: 700;
 }
 
+/* Dias da semana (Fundação CASA) */
+.weekday-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    background-color: #F9FAFB;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.weekday-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    background-color: #FFFFFF;
+    border-radius: var(--radius-sm);
+    height: 42px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.weekday-box:hover {
+    border-color: var(--fabrica-purple);
+    background-color: rgba(94, 23, 235, 0.03);
+}
+
+.weekday-box.selected {
+    background-color: var(--fabrica-purple);
+    border-color: var(--fabrica-purple);
+    color: #FFFFFF;
+}
+
+.weekday-box input[type="checkbox"] {
+    display: none;
+}
+
+@media (max-width: 480px) {
+    .weekday-grid {
+        gap: 6px;
+        padding: 0.75rem;
+    }
+    .weekday-box {
+        height: 38px;
+        font-size: 0.78rem;
+    }
+}
+
 .radio-group-vertical {
     display: flex;
     flex-direction: column;

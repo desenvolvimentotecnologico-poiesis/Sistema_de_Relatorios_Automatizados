@@ -190,6 +190,22 @@
               </div>
             </div>
 
+            <div class="form-group form-group-full">
+              <label>Dias da semana da atividade <span class="required">*</span></label>
+              <p class="input-subtitle">Selecione todos os dias em que a turma acontece.</p>
+              <div id="diasSemanaGrid" class="weekday-grid"></div>
+            </div>
+
+            <div class="form-group form-group-full">
+              <label for="horarioInicio">Horário da atividade <span class="required">*</span></label>
+              <p class="input-subtitle">Início e término. Preenche automaticamente o horário dos encontros do Plano de Atividades — você ainda pode ajustar cada encontro.</p>
+              <div class="horario-inputs-inline">
+                <input type="time" id="horarioInicio" name="horarioInicio" title="Horário de Início" required>
+                <span class="horario-divisor">às</span>
+                <input type="time" id="horarioTermino" name="horarioTermino" title="Horário de Término" required>
+              </div>
+            </div>
+
             <div class="form-group">
               <label for="encontrosPrevistos">Quantidade de encontros previstos no período <span
                   class="required">*</span></label>

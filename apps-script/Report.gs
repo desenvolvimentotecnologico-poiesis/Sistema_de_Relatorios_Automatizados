@@ -76,10 +76,20 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       // atividade. Sem a data no escopo, o relatório de uma data apagaria o de outra.
       escopoDoRelatorio = [dataAtiv, unidadeSigla, cleanAtividade];
     } else if (setorNorm === "FUNDAÇÃO CASA") {
-      // Padrão Fundação CASA: mesPorExtenso_nomeCentroAtendimento_nomeAtividade_nomeResponsavel
-      const mesExt = Utils.getMonthNameExtenso(data.mesReferencia);
-      documentName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_" + cleanResponsavel;
-      escopoDoRelatorio = [mesExt, cleanCentro, cleanAtividade];
+      // Padrão Fundação CASA: "RELATORIO - [razão social] - [unidade] - [mês] - [dias+horário]".
+      // O trecho de dias da semana + horário ("SEG-QUA 1415-1545") é o que diferencia a 1ª da 2ª
+      // turma da mesma atividade no mesmo mês — as duas dividem a MESMA pasta da atividade, só o
+      // nome do arquivo muda. Por isso esse trecho também entra no escopo da limpeza: sem ele, a
+      // recompilação de uma turma apagaria o relatório da outra.
+      const mesExtCasa = Utils.getMonthNameExtenso(data.mesReferencia).toUpperCase();
+      const razaoDisplay = Utils.sanitizeFileName(data.responsavel || "").toUpperCase();
+      const centroDisplay = Utils.sanitizeFileName(data.unidade || "").toUpperCase();
+      const turmaFragment = Utils.buildCasaTurmaFragment(data.diasSemana, data.horarioInicio, data.horarioTermino);
+
+      documentName = ["RELATORIO", razaoDisplay, centroDisplay, mesExtCasa]
+        .concat(turmaFragment ? [turmaFragment] : [])
+        .join(" - ");
+      escopoDoRelatorio = [centroDisplay, mesExtCasa, turmaFragment].filter(function(p) { return p; });
     } else {
       documentName = unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade;
       escopoDoRelatorio = [unidadeSigla, cleanAtividade];
@@ -95,9 +105,10 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     // também o relatório de qualquer OUTRA atividade que tivesse sido resolvida para a mesma pasta,
     // que é o que fazia atividades de título parecido "substituírem tudo, até os arquivos".
     //
-    // Na Fundação CASA a pasta de destino é a própria pasta da atividade, que também guarda o PDF
-    // do Plano de Atividade enviado na Etapa 1 deste mesmo envio — ele é blindado da remoção.
-    Utils.removeFilesMatching(targetFolder, escopoDoRelatorio, ["PlanoDeAtividade"]);
+    // Na Fundação CASA a pasta de destino é a própria pasta da atividade. Como duas turmas da mesma
+    // atividade dividem essa pasta, o escopo montado acima inclui o trecho de dias+horário, para a
+    // limpeza da recompilação de uma turma nunca alcançar o relatório da outra.
+    Utils.removeFilesMatching(targetFolder, escopoDoRelatorio);
 
     const templateFile = getTemplateFileConnection(data.area || data.setor);
     const copiedFile = templateFile.makeCopy(documentName, targetFolder);
@@ -119,6 +130,10 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     Utils.safeReplaceText(body, "\\{\\{ANO_REFERENCIA\\}\\}", data.anoReferencia);
     Utils.safeReplaceText(body, "\\{\\{MES_REFERENCIA\\}\\}", data.mesReferencia);
     Utils.safeReplaceText(body, "\\{\\{DIAS_ATIVIDADE\\}\\}", data.diasAtividade);
+    // Fundação CASA: dias da semana e horário da turma. Genérico: sem efeito nos templates que não
+    // tiverem as marcações.
+    Utils.safeReplaceText(body, "\\{\\{DIAS_SEMANA\\}\\}", data.diasSemana);
+    Utils.safeReplaceText(body, "\\{\\{HORARIO\\}\\}", data.horarioAtividade || Utils.formatHorarioExtenso(data.horarioInicio, data.horarioTermino));
     Utils.safeReplaceText(body, "\\{\\{RESPONSAVEL\\}\\}", String(data.responsavel || "").toUpperCase());
     Utils.safeReplaceText(body, "\\{\\{RAZAO_SOCIAL\\}\\}", String(data.responsavel || "").toUpperCase());
     // Pedagógico, Articulação e Difusão e Bibliotecas: tags independentes para Responsável pelo

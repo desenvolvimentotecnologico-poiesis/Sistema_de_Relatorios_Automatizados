@@ -148,6 +148,7 @@ function getSheetConfigForArea(area) {
       headers: [
         "Carimbo de Data/Hora", "Divisão Regional", "Centro de Atendimento (Unidade)", "Número do Contrato",
         "Meta de Referência", "Nome da Atividade", "Ano de Referência", "Mês de Referência",
+        "Dias da Semana", "Horário",
         "Razão Social (Responsável)", "Encontros Previstos", "Encontros Realizados", "Carga Horária Prevista",
         "Carga Horária Realizada", "Data de Eventual Reposição", "Destaque da Ação", "Objetivos da Atividade",
         "Impacto Territorial / Cultural", "Descrição das Ações e Metodologia", "Engajamento e Participação",
@@ -315,12 +316,14 @@ function ensureSheetHeaders(sheet, config) {
     layout = readHeaderLayout(sheet);
   }
 
-  // Garante que a coluna 'Dia(s) do Mês' use formatação de texto simples (@) para impedir
-  // que o Google Sheets converta seleções de dias múltiplos (ex.: "1, 5, 10") em data (ex.: "1, 5, 2010").
-  const idxDiasCol = layout.index[normalizeHeaderKey("Dia(s) do Mês")];
-  if (idxDiasCol !== undefined) {
-    sheet.getRange(1, idxDiasCol + 1, sheet.getMaxRows(), 1).setNumberFormat("@");
-  }
+  // Garante que colunas de texto livre que o Google Sheets tenderia a converter em data/número
+  // ("1, 5, 10" -> data; "14:15 às 15:45" -> hora) usem formatação de texto simples (@).
+  ["Dia(s) do Mês", "Dias da Semana", "Horário"].forEach(function(nomeColuna) {
+    const idxCol = layout.index[normalizeHeaderKey(nomeColuna)];
+    if (idxCol !== undefined) {
+      sheet.getRange(1, idxCol + 1, sheet.getMaxRows(), 1).setNumberFormat("@");
+    }
+  });
 
   return layout;
 }
@@ -526,6 +529,8 @@ function saveResponseRow(data) {
         Utils.formatField(data.atividade),
         Utils.formatField(data.anoReferencia),
         Utils.formatField(data.mesReferencia),
+        Utils.formatField(data.diasSemana),
+        Utils.formatField(data.horarioAtividade),
         Utils.formatField(data.responsavel),
         Utils.formatField(data.encontrosPrevistos),
         Utils.formatField(data.encontrosRealizados),
@@ -677,6 +682,8 @@ function findDuplicateActivityRow(sheet, data, layout) {
   const idxTipo = colOf("Tipo (Trilha/Ateliê/Núcleo)");
   const idxDivisao = colOf("Divisão Regional");
   const idxDias = colOf("Dia(s) do Mês");
+  const idxDiasSemana = colOf("Dias da Semana");
+  const idxHorario = colOf("Horário");
 
   if (idxUnidade === -1 || idxAtividade === -1) return null;
 
@@ -688,6 +695,8 @@ function findDuplicateActivityRow(sheet, data, layout) {
   const searchTipo = normalize(data.tipoPedagogico);
   const searchDivisao = normalize(data.divisaoRegional);
   const searchDia = getFirstDayOfMonth(data.diasAtividade);
+  const searchDiasSemana = Utils.weekdaySetKey(data.diasSemana);
+  const searchHorario = Utils.horarioKey(data.horarioAtividade || Utils.formatHorarioExtenso(data.horarioInicio, data.horarioTermino));
 
   if (!searchUnidade || !searchAtividade) return null;
 
@@ -745,6 +754,19 @@ function findDuplicateActivityRow(sheet, data, layout) {
     if (idxDias !== -1) {
       const rowDia = getFirstDayOfMonth(row[idxDias]);
       if (!searchDia || !rowDia || rowDia !== searchDia) continue;
+    }
+
+    // Fundação CASA: a mesma atividade pode ter duas turmas no mesmo centro/mês, diferenciadas por
+    // dias da semana + horário — os dois entram na identidade. A comparação é TOLERANTE com o
+    // legado: uma linha antiga gravada antes dessas colunas existirem continua bloqueando um novo
+    // envio do mesmo mês. Só há divergência quando os dois lados têm valor e eles não conferem.
+    if (idxDiasSemana !== -1 && searchDiasSemana) {
+      const rowDiasSemana = Utils.weekdaySetKey(row[idxDiasSemana]);
+      if (rowDiasSemana && rowDiasSemana !== searchDiasSemana) continue;
+    }
+    if (idxHorario !== -1 && searchHorario) {
+      const rowHorario = Utils.horarioKey(row[idxHorario]);
+      if (rowHorario && rowHorario !== searchHorario) continue;
     }
 
     const rowPeriodo = periodoDaLinha(row);

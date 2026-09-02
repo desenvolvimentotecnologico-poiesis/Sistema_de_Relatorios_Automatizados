@@ -169,6 +169,17 @@ function normalizeSubmissionKey(formData) {
     formData.atividade = formData.atividade.toString().toUpperCase().trim();
   }
 
+  // Fundação CASA: a mesma atividade pode ter duas turmas no mesmo centro/mês (mesmos dias,
+  // horários diferentes). Dias da semana + horário entram na identidade da atividade — por isso
+  // são consolidados aqui, no mesmo ponto que a consulta prévia e o envio compartilham, para que
+  // as duas rotas nunca montem a chave de forma diferente.
+  if (formData.area === "FUNDAÇÃO CASA") {
+    formData.diasSemana = Utils.formatWeekdaysExtenso(formData.diasSemana);
+    formData.horarioInicio = Utils.normalizeTime(formData.horarioInicio);
+    formData.horarioTermino = Utils.normalizeTime(formData.horarioTermino);
+    formData.horarioAtividade = Utils.formatHorarioExtenso(formData.horarioInicio, formData.horarioTermino);
+  }
+
   return formData;
 }
 
@@ -194,7 +205,10 @@ function checkReportStatus(params) {
       anoReferencia: params.anoReferencia,
       mesReferencia: params.mesReferencia,
       dataRelatorio: params.dataRelatorio,
-      diasAtividade: params.diasAtividade
+      diasAtividade: params.diasAtividade,
+      diasSemana: params.diasSemana,
+      horarioInicio: params.horarioInicio,
+      horarioTermino: params.horarioTermino
     });
 
     const info = findExistingSubmission(chave);
@@ -297,6 +311,16 @@ function submitForm(formData) {
         return Utils.createResponse(false, "É permitido anexar no máximo " + MAX_VIDEOS_PER_SUBMISSION + " vídeo(s) por envio (recebido: " + videoCount + "). As demais evidências devem ser fotos.");
       }
     } else {
+      // Dias da semana e horário fazem parte da identidade da atividade na Fundação CASA (é o que
+      // separa a 1ª da 2ª turma da mesma atividade no mesmo mês). Sem eles a chave de duplicidade
+      // fica ambígua, então o envio é recusado — espelha a obrigatoriedade do formulário.
+      if (!formData.diasSemana || formData.diasSemana.toString().trim() === "") {
+        return Utils.createResponse(false, "Campo obrigatório não preenchido: Dias da semana.");
+      }
+      if (!formData.horarioInicio || !formData.horarioTermino) {
+        return Utils.createResponse(false, "Campo obrigatório não preenchido: Horário de início e término da atividade.");
+      }
+
       // Validação de segurança do Plano de Atividades da Fundação CASA (espelha a validação do
       // front-end, protegendo contra chamadas diretas à API): cada encontro enviado precisa ter
       // Data, Horário e Descrição preenchidos, para não gerar linhas incompletas ("---") no relatório.

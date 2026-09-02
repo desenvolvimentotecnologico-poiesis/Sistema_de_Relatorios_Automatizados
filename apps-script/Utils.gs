@@ -103,6 +103,130 @@ var Utils = {
     return dia + "-" + mes + "-" + ano;
   },
 
+  // Ordem canônica dos dias úteis. Base única para exibição na planilha, abreviação no nome do
+  // arquivo e comparação de duplicidade da Fundação CASA (onde a mesma atividade pode ter duas
+  // turmas no mesmo mês, diferenciadas por dias da semana + horário).
+  WEEKDAY_ORDER: ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA"],
+  WEEKDAY_LABELS: { SEGUNDA: "Segunda", TERCA: "Terça", QUARTA: "Quarta", QUINTA: "Quinta", SEXTA: "Sexta" },
+  WEEKDAY_ABBR: { SEGUNDA: "SEG", TERCA: "TER", QUARTA: "QUA", QUINTA: "QUI", SEXTA: "SEX" },
+
+  /**
+   * Converte qualquer representação de dias da semana (array, "Segunda, Quarta", "SEG;QUA",
+   * "segunda-feira") no conjunto canônico ordenado de Segunda a Sexta, sem repetição.
+   *
+   * @return {Array<string>} chaves ("SEGUNDA".."SEXTA") na ordem da semana
+   */
+  parseWeekdaySet: function(value) {
+    if (value === null || value === undefined || value === "") return [];
+    var raw = Array.isArray(value) ? value.join(",") : String(value);
+    var tokens = raw.split(/[,;/|]+/);
+    var found = {};
+    for (var i = 0; i < tokens.length; i++) {
+      var t = tokens[i].normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+        .toUpperCase().replace(/[^A-Z]/g, "");
+      if (!t) continue;
+      if (t.indexOf("SEGUNDA") === 0 || t === "SEG") found.SEGUNDA = true;
+      else if (t.indexOf("TERCA") === 0 || t === "TER") found.TERCA = true;
+      else if (t.indexOf("QUARTA") === 0 || t === "QUA") found.QUARTA = true;
+      else if (t.indexOf("QUINTA") === 0 || t === "QUI") found.QUINTA = true;
+      else if (t.indexOf("SEXTA") === 0 || t === "SEX") found.SEXTA = true;
+    }
+    var out = [];
+    for (var k = 0; k < this.WEEKDAY_ORDER.length; k++) {
+      if (found[this.WEEKDAY_ORDER[k]]) out.push(this.WEEKDAY_ORDER[k]);
+    }
+    return out;
+  },
+
+  /** Dias da semana por extenso para a planilha: "Segunda, Quarta". */
+  formatWeekdaysExtenso: function(value) {
+    var self = this;
+    return this.parseWeekdaySet(value).map(function(k) { return self.WEEKDAY_LABELS[k]; }).join(", ");
+  },
+
+  /** Dias da semana abreviados para o nome do arquivo: "SEG-QUA". */
+  abbreviateWeekdays: function(value) {
+    var self = this;
+    return this.parseWeekdaySet(value).map(function(k) { return self.WEEKDAY_ABBR[k]; }).join("-");
+  },
+
+  /** Chave de comparação do conjunto de dias (ordem canônica). "" quando vazio. */
+  weekdaySetKey: function(value) {
+    return this.parseWeekdaySet(value).join("|");
+  },
+
+  /**
+   * Normaliza um horário isolado para "HH:MM" em 24h. Aceita "14:15", "1415", "14h15", "14h",
+   * "2:15 PM". Devolve "" quando não reconhece.
+   */
+  normalizeTime: function(value) {
+    if (value === null || value === undefined) return "";
+    var s = String(value).trim().toLowerCase();
+    if (!s) return "";
+    var pm = /p\.?\s*m\.?/.test(s);
+    var am = /a\.?\s*m\.?/.test(s);
+    var h, m;
+    if (s.indexOf(":") !== -1) {
+      var parts = s.replace(/[^0-9:]/g, "").split(":");
+      h = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+    } else {
+      var digits = s.replace(/[^0-9]/g, "");
+      if (digits.length === 3) { h = parseInt(digits.slice(0, 1), 10); m = parseInt(digits.slice(1), 10); }
+      else if (digits.length === 4) { h = parseInt(digits.slice(0, 2), 10); m = parseInt(digits.slice(2), 10); }
+      else if (digits.length >= 1 && digits.length <= 2) { h = parseInt(digits, 10); m = 0; }
+      else return "";
+    }
+    if (isNaN(h) || isNaN(m)) return "";
+    if (pm && h < 12) h += 12;
+    if (am && h === 12) h = 0;
+    if (h < 0 || h > 23 || m < 0 || m > 59) return "";
+    return (h < 10 ? "0" + h : "" + h) + ":" + (m < 10 ? "0" + m : "" + m);
+  },
+
+  /** Horário por extenso para a planilha: "14:15 às 15:45". */
+  formatHorarioExtenso: function(inicio, fim) {
+    var hi = this.normalizeTime(inicio);
+    var hf = this.normalizeTime(fim);
+    if (hi && hf) return hi + " às " + hf;
+    return hi || hf || "";
+  },
+
+  /** Horário abreviado para o nome do arquivo: "1415-1545". */
+  abbreviateHorario: function(inicio, fim) {
+    var hi = this.normalizeTime(inicio).replace(":", "");
+    var hf = this.normalizeTime(fim).replace(":", "");
+    if (hi && hf) return hi + "-" + hf;
+    return hi || hf || "";
+  },
+
+  /**
+   * Chave de comparação do horário a partir de qualquer forma ("14:15 às 15:45", "1415-1545",
+   * "14:15"). Usada para casar o valor gravado na planilha com o do novo envio. "" quando vazio.
+   */
+  horarioKey: function(value) {
+    if (value === null || value === undefined) return "";
+    var s = String(value).trim();
+    if (!s) return "";
+    var parts = s.split(new RegExp("\\s*(?:\u00e0s|as|-|\u2013|\u2014)\\s*", "i"))
+      .filter(function(p) { return p.trim() !== ""; });
+    var hi = this.normalizeTime(parts[0] || "");
+    var hf = this.normalizeTime(parts[1] || "");
+    if (!hi && !hf) return "";
+    return hi + "~" + hf;
+  },
+
+  /**
+   * Trecho que diferencia as turmas da Fundação CASA no nome do arquivo do relatório:
+   * "SEG-QUA 1415-1545". É o único ponto que separa dois relatórios da mesma atividade/mês na
+   * mesma pasta, então também entra no escopo da limpeza da versão anterior.
+   */
+  buildCasaTurmaFragment: function(diasSemana, horarioInicio, horarioFim) {
+    var dias = this.abbreviateWeekdays(diasSemana);
+    var hora = this.abbreviateHorario(horarioInicio, horarioFim);
+    return [dias, hora].filter(function(p) { return p; }).join(" ");
+  },
+
   /**
    * Retorna a sigla padronizada de 3 letras da unidade das Fábricas de Cultura
    */

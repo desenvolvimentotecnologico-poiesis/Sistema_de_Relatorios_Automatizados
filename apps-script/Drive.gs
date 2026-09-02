@@ -264,26 +264,20 @@ function uploadFilesToFolder(files, targetFolder, metadata = {}) {
         base64 = base64.split(",")[1];
       }
       const bytes = Utilities.base64Decode(base64);
-      const mime = fileData.mimeType || (setorNorm === "FUNDAÇÃO CASA" ? "application/pdf" : "image/jpeg");
+      const mime = fileData.mimeType || "image/jpeg";
 
       const parts = (fileData.name || "arquivo.jpg").split(".");
       const ext = parts.length > 1 ? parts.pop().toLowerCase() : (mime === "application/pdf" ? "pdf" : "jpg");
 
-      let cleanFileName = "";
-      if (setorNorm === "FUNDAÇÃO CASA") {
-        // Formato Fundação CASA: [MesPorExtenso]_[NomeCentroAtendimento]_[NomeAtividade]_PlanoDeAtividade.pdf
-        const mesExt = Utils.getMonthNameExtenso(metadata.mesReferencia);
-        const cleanCentro = Utils.sanitizeFileName(metadata.unidade || "").toUpperCase().replace(/\s+/g, "_");
-        cleanFileName = mesExt + "_" + cleanCentro + "_" + cleanAtividade + "_PlanoDeAtividade." + ext;
-      } else {
-        // Formato Demais Áreas: [SiglaUnidade]_[NomeResponsavel]_[NomeAtividade]_[Index].[ext]
-        // Bibliotecas: prefixado pela data da atividade ([DD-MM-AAAA]_...), como o relatório.
-        const unidadeSigla = Utils.getUnidadeSigla(metadata.unidade);
-        const cleanResponsavel = Utils.sanitizeFileName(metadata.responsavel || "").toUpperCase().replace(/\s+/g, "_");
-        const indexStr = (i + 1).toString().padStart(2, "0");
-        cleanFileName = (prefixoData ? prefixoData + "_" : "") +
-          unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
-      }
+      // A Fundação CASA não anexa arquivos (o Plano de Atividades é digitado no formulário e vira
+      // tabela direto no relatório), então esta rotina só nomeia mídias das demais áreas:
+      // [SiglaUnidade]_[NomeResponsavel]_[NomeAtividade]_[Index].[ext]. Bibliotecas e Articulação
+      // recebem o prefixo de data ([DD-MM-AAAA]_...), como o relatório.
+      const unidadeSigla = Utils.getUnidadeSigla(metadata.unidade);
+      const cleanResponsavel = Utils.sanitizeFileName(metadata.responsavel || "").toUpperCase().replace(/\s+/g, "_");
+      const indexStr = (i + 1).toString().padStart(2, "0");
+      const cleanFileName = (prefixoData ? prefixoData + "_" : "") +
+        unidadeSigla + "_" + cleanResponsavel + "_" + cleanAtividade + "_" + indexStr + "." + ext;
 
       const blob = Utilities.newBlob(bytes, mime, cleanFileName);
       targetFolder.createFile(blob);
