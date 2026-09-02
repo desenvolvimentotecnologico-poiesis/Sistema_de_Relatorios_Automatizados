@@ -244,3 +244,23 @@ Este repositório adota o padrão de commits convencionais para rastreabilidade 
 - **JavaScript Client-Side:** Utiliza ES6+ nativo sem dependências de compilação pesadas (Webpack/Babel). Manter escopos isolados e manipulação de DOM baseada em seletores declarativos.
 - **Validação de Formulários:** Todos os formulários realizam sanitização e verificação de campos obrigatórios client-side antes da emissão da requisição HTTP POST.
 - **Fuso Horário e Datas:** Formatar sempre timestamps e datas utilizando o locale `pt-BR` e o fuso horário `America/Sao_Paulo`.
+
+---
+
+## 9. Fluxo de Solicitação de Alterações
+
+Toda alteração no SRA (novo campo, nova atividade, mudança de regra ou de layout) segue, obrigatoriamente, este caminho de aprovação antes de chegar ao Setor de Sistemas:
+
+1. **Supervisão da unidade** — origina a solicitação (ou dá o aval a quem pediu).
+2. **Coordenação de área (Sede)** — analisa necessidade e viabilidade.
+3. **Júnior** (assessor da superintendência e solicitante do projeto) — aprovação final.
+4. **Setor de Sistemas** — implementa e publica.
+
+### Divisão de responsabilidades
+
+| Responsável | Escopo |
+| :--- | :--- |
+| **Coordenação de Área / Gestores** | Planilha de atividades (listas suspensas), planilha de respostas e verificação dos relatórios já preenchidos. Inclusões/ajustes de atividade partem da coordenação da área. |
+| **Setor de Sistemas** | Código, lógica, segurança e design; Lista Branca da Área Restrita; modelo do relatório (Google Docs); publicação do backend; manutenção programada; reconciliação de relatórios pendentes. |
+
+Detalhamento completo em [`DOCUMENTACAO_SISTEMA.md`](DOCUMENTACAO_SISTEMA.md), seções 10 e 11.

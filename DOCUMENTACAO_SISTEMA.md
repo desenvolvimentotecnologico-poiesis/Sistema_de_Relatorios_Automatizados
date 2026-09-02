@@ -229,21 +229,39 @@ O passo a passo completo da virada está em `ops/CUTOVER-PRODUCAO.md`.
 
 ---
 
-## 🧭 10. Guia Prático de Manutenção (para Gestores)
+## 🧭 10. Fluxo de Aprovação de Alterações no SRA
 
-### A. Atualizar as listas suspensas (Unidades, Tipos, Atividades)
+Toda solicitação de alteração no sistema — novo campo, nova atividade, mudança de regra, ajuste de layout — segue **obrigatoriamente** este caminho, para manter o padrão, preservar a integridade do sistema e garantir que a mudança é realmente necessária:
+
+1. **Supervisão da unidade** — a solicitação nasce na supervisão da unidade, ou tem o aval do supervisor de quem pediu.
+2. **Coordenação de área (Sede)** — a coordenação da área na Sede analisa a necessidade e a viabilidade.
+3. **Aprovação do Júnior** — Júnior (assessor da superintendência e solicitante do projeto) dá o aval final.
+4. **Setor de Sistemas** — só então a demanda é encaminhada para Sistemas, que implementa e publica.
+
+### Divisão de responsabilidades
+
+| Responsável | O que faz |
+| :--- | :--- |
+| **Coordenação de Área / Gestores** | Gerir a **planilha de atividades** (listas suspensas de unidades, tipos e atividades); acompanhar a **planilha de respostas**; **verificar os relatórios já preenchidos**. Inclusões e ajustes de atividade partem da coordenação da área. |
+| **Setor de Sistemas** | Código, lógica, segurança e design; **gestão da Lista Branca** da Área Restrita; **manutenção do modelo do relatório** (Google Docs); publicação do backend; manutenção programada; reconciliação de relatórios pendentes. |
+
+---
+
+## 🛠️ 11. Guia Prático de Manutenção
+
+### A. Atualizar as listas suspensas (Unidades, Tipos, Atividades) — *Coordenação de Área / Gestores*
 Não precisa mexer em código. Abra a **Planilha de Listas Institucionais**; cada aba representa uma unidade/setor. Adicione ou edite os nomes nas colunas correspondentes — o formulário se atualiza sozinho no próximo carregamento.
 
-### B. Alterar o layout do relatório (PDF)
+### B. Alterar o layout do relatório (PDF) — *Setor de Sistemas*
 Abra o **Google Docs** modelo da área. Pode mudar logotipos, cores de cabeçalho, ordem de parágrafos. **Mantenha as marcações entre chaves duplas** (`{{UNIDADE}}`, `{{RESPONSAVEL}}`, `{{ATIVIDADE}}`, `{{ANEXOS}}`, e — na Fundação CASA — `{{DIAS_SEMANA}}` e `{{HORARIO}}`), pois é onde o sistema insere os dados.
 
-### C. Liberar / remover acesso na Área Restrita (Lista Branca)
+### C. Liberar / remover acesso na Área Restrita (Lista Branca) — *Setor de Sistemas*
 Abra a **Planilha de Usuários**, aba **`Responsaveis_Autorizados`**:
 - **Incluir**: e‑mail corporativo (coluna A), Nome (B), Unidade (C), Setor (D).
 - **Coluna C (Unidade)**: uma unidade (`Diadema`); várias separadas por vírgula/ponto‑e‑vírgula (`Diadema, Heliópolis, Osasco`); ou `Todas` para acesso irrestrito.
 - **Remover**: apague a linha do e‑mail. Efeito imediato no próximo login (sem cache).
 
-### D. Publicar alterações no Google Apps Script
+### D. Publicar alterações no Google Apps Script — *Setor de Sistemas*
 Depois de editar qualquer arquivo `.gs` (`Code.gs`, `Report.gs`, `Drive.gs`, `Sheets.gs`, `Utils.gs`, `Reconciliacao.gs`) no editor:
 1. Botão **Implantar (Deploy)** → **Gerenciar implantações**.
 2. Ícone de lápis (Editar) → **Versão: Nova versão**.
@@ -254,7 +272,7 @@ Não é preciso criar as colunas à mão. Ao publicar o backend, o sistema inser
 
 ---
 
-## 🗂️ 11. Estrutura de Arquivos do Projeto
+## 🗂️ 12. Estrutura de Arquivos do Projeto
 
 ```
 index.html                     Página inicial (escolha da frente de trabalho)
@@ -288,7 +306,7 @@ ops/CUTOVER-PRODUCAO.md         Passo a passo da virada de produção / manuten�
 
 ---
 
-## ❓ 12. Perguntas Frequentes (FAQ)
+## ❓ 13. Perguntas Frequentes (FAQ)
 
 **1. Por que o envio leva de 20 a 60 segundos?**
 São 2 etapas: a Etapa 1 (~2 s) grava a linha e sobe as fotos; a Etapa 2 (~20–40 s) clona o Google Docs, substitui dezenas de marcações, ajusta as imagens e exporta o PDF.

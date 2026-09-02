@@ -506,7 +506,7 @@
             </div>
 
             <div class="controls-area">
-                <span class="slide-indicator" id="slideNum">1 / 14</span>
+                <span class="slide-indicator" id="slideNum">1 / 15</span>
                 <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)" title="Anterior (Seta Esquerda)">
                     <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </button>
@@ -811,23 +811,57 @@
                         <h3>💻 Setor de Sistemas</h3>
                         <ul class="bullet-list">
                             <li>Código-fonte, lógica, segurança e design.</li>
+                            <li>Gerir a <strong>Lista Branca</strong> da Área Restrita.</li>
+                            <li>Manter o <strong>modelo do relatório</strong> (Google Docs) e suas marcações <code>{{CAMPO}}</code>.</li>
                             <li><strong>Manutenção programada:</strong> interruptor no backend que recusa gravações durante a janela, com tela pública de aviso.</li>
                             <li><strong>Reconciliação manual:</strong> se a Etapa 2 falhar, uma função no editor recompila o relatório faltante a partir da linha já gravada.</li>
                         </ul>
                     </div>
                     <div class="user-box">
-                        <h3>🟢 Gestores e Equipes</h3>
+                        <h3>🟢 Coordenação de Área e Gestores</h3>
                         <ul class="bullet-list">
-                            <li>Incluir/remover atividades, modalidades e unidades <strong>nas Planilhas do Google</strong>.</li>
-                            <li>Gerir a Lista Branca da Área Restrita.</li>
-                            <li>Ajustar o modelo do relatório no Google Docs, mantendo as marcações <code>{{CAMPO}}</code>.</li>
+                            <li>Gerir a <strong>planilha de atividades</strong> (listas suspensas de unidades, tipos e atividades).</li>
+                            <li>Acompanhar a <strong>planilha de respostas</strong> e <strong>verificar os relatórios já preenchidos</strong>.</li>
+                            <li>Inclusões e ajustes de atividade partem da <strong>coordenação da área</strong>, não do Setor de Sistemas.</li>
                         </ul>
                     </div>
                 </div>
             </section>
 
-            <!-- SLIDE 14: Boas práticas e encerramento -->
+            <!-- SLIDE 14: Fluxo de aprovação de novas solicitações -->
             <section class="slide" id="slide-14">
+                <span class="slide-badge">🧭 Fluxo de Aprovação</span>
+                <h2 class="slide-title">Como pedir uma alteração no SRA</h2>
+                <p class="slide-description">
+                    Para manter o padrão, garantir a integridade do sistema e assegurar que cada mudança é realmente necessária, toda solicitação de alteração do SRA segue este caminho:
+                </p>
+
+                <div class="grid-4">
+                    <div class="info-card" style="border-left: 6px solid var(--color-pedagogico);">
+                        <span class="step-number">1</span>
+                        <h3>Supervisão da unidade</h3>
+                        <p>A solicitação nasce na supervisão da unidade — ou tem o aval do supervisor de quem pediu.</p>
+                    </div>
+                    <div class="info-card" style="border-left: 6px solid var(--color-articulacao);">
+                        <span class="step-number">2</span>
+                        <h3>Coordenação de área (Sede)</h3>
+                        <p>A coordenação da área na Sede analisa a necessidade e a viabilidade da mudança.</p>
+                    </div>
+                    <div class="info-card" style="border-left: 6px solid var(--color-biblioteca);">
+                        <span class="step-number">3</span>
+                        <h3>Aprovação do Júnior</h3>
+                        <p>Júnior — assessor da superintendência e solicitante do projeto — dá o aval final.</p>
+                    </div>
+                    <div class="info-card" style="border-left: 6px solid var(--color-casa);">
+                        <span class="step-number">4</span>
+                        <h3>Setor de Sistemas</h3>
+                        <p>Só então a demanda é encaminhada para Sistemas, que implementa e publica.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 15: Boas práticas e encerramento -->
+            <section class="slide" id="slide-15">
                 <span class="slide-badge">💡 Recomendações Finais</span>
                 <h2 class="slide-title">Boas práticas de uso</h2>
                 <p class="slide-description">
