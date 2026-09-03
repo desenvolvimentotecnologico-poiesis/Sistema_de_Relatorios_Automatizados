@@ -126,7 +126,11 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
     // Na Fundação CASA a pasta de destino é a própria pasta da atividade. Como duas turmas da mesma
     // atividade dividem essa pasta, o escopo montado acima inclui o trecho de dias+horário, para a
     // limpeza da recompilação de uma turma nunca alcançar o relatório da outra.
-    Utils.removeFilesMatching(targetFolder, escopoDoRelatorio);
+    //
+    // "PlanoDeAtividade" segue blindado: o formulário atual não anexa mais esse PDF, mas pastas de
+    // envios antigos da CASA ainda podem tê-lo — e a reconciliação de uma linha legada (dias/horário
+    // vazios → escopo só com centro+mês) não pode alcançá-lo.
+    Utils.removeFilesMatching(targetFolder, escopoDoRelatorio, ["PlanoDeAtividade"]);
 
     const templateFile = getTemplateFileConnection(data.area || data.setor);
     const copiedFile = templateFile.makeCopy(documentName, targetFolder);
