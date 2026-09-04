@@ -340,8 +340,15 @@ function submitForm(formData) {
     // Recusa o reenvio ANTES de tocar no Drive. A checagem precisa vir antes da criação de pastas
     // e do upload porque o upload substitui as mídias do envio anterior desta atividade: recusar
     // só na hora de gravar a planilha já teria apagado as fotos do relatório original.
+    //
+    // Exceção: a Fundação CASA não anexa mídias (o Plano de Atividades é só texto/tabela) e pode
+    // reenviar por cima de um relatório já existente, mediante confirmação explícita do usuário no
+    // front (formData.confirmarSubstituicao) — generatePdfReportAsync já limpa e regera o relatório
+    // anterior da mesma atividade, então a substituição não deixa arquivo órfão nesta área.
+    const podeSubstituir = formData.area === "FUNDAÇÃO CASA" && formData.confirmarSubstituicao === true;
+
     const envioAnterior = findExistingSubmission(formData);
-    if (envioAnterior.exists) {
+    if (envioAnterior.exists && !podeSubstituir) {
       return Utils.createResponse(false, buildDuplicateMessage(envioAnterior), {
         duplicate: true,
         submittedAt: envioAnterior.dataHora,

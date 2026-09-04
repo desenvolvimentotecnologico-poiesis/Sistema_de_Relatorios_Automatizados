@@ -598,22 +598,42 @@ function saveResponseRow(data) {
       // envio pode ficar desatualizada se outro envio da mesma atividade for gravado enquanto
       // este ainda estava em andamento, e sem esta segunda checagem os dois passariam.
       const duplicateRowNumber = findDuplicateActivityRow(sheet, data, layout);
+
+      // Fundação CASA, com confirmação explícita do usuário (ver Code.submitForm): em vez de
+      // recusar, sobrescreve a linha já existente. Continua recusando sem exceção quando a
+      // confirmação não veio junto — inclusive nesta mesma área — para que só o envio que passou
+      // pelo aviso no front chegue a substituir algo.
+      const podeSubstituir = areaNorm === "FUNDAÇÃO CASA" && data.confirmarSubstituicao === true;
+
       if (duplicateRowNumber) {
         const info = describeExistingSubmission(sheet, layout, duplicateRowNumber);
-        const rastro = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
+
+        if (!podeSubstituir) {
+          const rastro = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
+            " | Unidade: " + (data.unidade || "N/D") +
+            " | Atividade: " + (data.atividade || "N/D") +
+            " | Tipo: " + (data.tipoPedagogico || "-") +
+            " | Período: " + (data.anoReferencia || data.dataRelatorio || "N/D") + "/" + (data.mesReferencia || "-") +
+            " | Envio original: " + (info.dataHora || "N/D") + " por " + (info.responsavel || "N/D");
+
+          Logger.log("Reenvio recusado: a atividade já possui relatório enviado. " + rastro);
+          Utils.logInfo("Sheets.saveResponseRow (reenvio recusado)", rastro);
+
+          return { duplicate: true, info: info };
+        }
+
+        // A gravação abaixo sobrescreve esta linha por inteiro (dado descartado sem chance de
+        // recuperação), então fica um rastro em _LOGS mesmo no caminho permitido.
+        const rastroSubstituicao = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
           " | Unidade: " + (data.unidade || "N/D") +
           " | Atividade: " + (data.atividade || "N/D") +
-          " | Tipo: " + (data.tipoPedagogico || "-") +
-          " | Período: " + (data.anoReferencia || data.dataRelatorio || "N/D") + "/" + (data.mesReferencia || "-") +
-          " | Envio original: " + (info.dataHora || "N/D") + " por " + (info.responsavel || "N/D");
-
-        Logger.log("Reenvio recusado: a atividade já possui relatório enviado. " + rastro);
-        Utils.logInfo("Sheets.saveResponseRow (reenvio recusado)", rastro);
-
-        return { duplicate: true, info: info };
+          " | Envio original: " + (info.dataHora || "N/D") + " por " + (info.responsavel || "N/D") +
+          " | Substituído agora por: " + (data.responsavel || "N/D");
+        Logger.log("Reenvio substituiu relatório existente (Fundação CASA, confirmado). " + rastroSubstituicao);
+        Utils.logInfo("Sheets.saveResponseRow (reenvio substituiu relatorio - Fundacao CASA)", rastroSubstituicao);
       }
 
-      const targetRow = sheet.getLastRow() + 1;
+      const targetRow = duplicateRowNumber || (sheet.getLastRow() + 1);
       const physicalRow = buildPhysicalRow(layout, config.headers, newRow);
       const targetRange = sheet.getRange(targetRow, 1, 1, layout.width);
       targetRange.setNumberFormat("@");

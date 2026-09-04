@@ -13,6 +13,12 @@ let isSubmitting = false;
 let reportAlreadySubmitted = false;
 let duplicateCheckMessage = "";
 
+// Fundação CASA: reenvio da mesma atividade não é bloqueado, mas SUBSTITUI o relatório anterior
+// (linha da planilha + PDF/Doc). Por ser destrutivo, exige confirmação explícita no envio em vez
+// de desabilitar o botão como nas demais áreas (ver runDuplicateCheck e setupFormSubmission).
+let reenvioCasaPendente = false;
+let reenvioCasaAvisoTexto = "";
+
 document.addEventListener("DOMContentLoaded", () => {
   initializeDropdowns();
   setupCalendarGrid();
@@ -218,17 +224,35 @@ function runDuplicateCheck(form, campos, aviso) {
     }
 
     if (response.alreadySubmitted) {
+      let texto = "Esta atividade já teve o relatório enviado";
+      if (response.submittedAt) texto += " em " + response.submittedAt;
+      if (response.submittedBy) texto += " por " + response.submittedBy;
+
+      const isCasaForm = form.getAttribute("data-theme") === "fundacaocasa";
+
+      if (isCasaForm) {
+        // A CASA não bloqueia o botão: o reenvio é permitido, mas substitui o relatório anterior.
+        // A confirmação de fato acontece em setupFormSubmission, no momento do envio.
+        const jaAvisado = reenvioCasaPendente;
+        reenvioCasaPendente = true;
+        reenvioCasaAvisoTexto = texto;
+
+        aviso.className = "status-box warning";
+        aviso.textContent = texto + ". Enviar novamente vai SUBSTITUIR o relatório anterior (planilha e PDF).";
+        aviso.style.display = "block";
+
+        if (!jaAvisado) {
+          aviso.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
       const jaEstavaBloqueado = reportAlreadySubmitted;
       reportAlreadySubmitted = true;
       duplicateCheckMessage = response.detail || "Esta atividade já possui relatório enviado.";
 
-      let texto = "Esta atividade já teve o relatório enviado";
-      if (response.submittedAt) texto += " em " + response.submittedAt;
-      if (response.submittedBy) texto += " por " + response.submittedBy;
-      texto += ". Não é permitido enviar o relatório da mesma atividade duas vezes no mesmo período.";
-
       aviso.className = "status-box warning";
-      aviso.textContent = texto;
+      aviso.textContent = texto + ". Não é permitido enviar o relatório da mesma atividade duas vezes no mesmo período.";
       aviso.style.display = "block";
       setSubmitBlocked(form, true);
 
@@ -242,6 +266,8 @@ function runDuplicateCheck(form, campos, aviso) {
 
     reportAlreadySubmitted = false;
     duplicateCheckMessage = "";
+    reenvioCasaPendente = false;
+    reenvioCasaAvisoTexto = "";
     aviso.className = "status-box success";
     aviso.textContent = "Atividade liberada: ainda não há relatório enviado para este período.";
     aviso.style.display = "block";
@@ -254,6 +280,8 @@ function runDuplicateCheck(form, campos, aviso) {
 function resetDuplicateState(aviso) {
   reportAlreadySubmitted = false;
   duplicateCheckMessage = "";
+  reenvioCasaPendente = false;
+  reenvioCasaAvisoTexto = "";
   aviso.style.display = "none";
   aviso.textContent = "";
   const form = document.getElementById("reportForm");
@@ -993,6 +1021,21 @@ function setupFormSubmission() {
       return;
     }
 
+    // Fundação CASA: reenvio da mesma atividade é permitido, mas SUBSTITUI o relatório anterior
+    // (linha da planilha + PDF/Doc, que generatePdfReportAsync regera por cima do antigo) — por
+    // ser destrutivo e irreversível, a confirmação é obrigatória aqui, no momento do envio.
+    let confirmarSubstituicaoCasa = false;
+    if (reenvioCasaPendente) {
+      const confirmMsg = (reenvioCasaAvisoTexto || "Esta atividade já teve relatório enviado") +
+        ".\n\nEnviar agora vai SUBSTITUIR o relatório anterior: a linha da planilha e o relatório " +
+        "(Doc/PDF) já gerados serão sobrescritos e não poderão ser recuperados." +
+        "\n\nDeseja continuar e substituir o relatório anterior?";
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+      confirmarSubstituicaoCasa = true;
+    }
+
     isSubmitting = true;
 
     const submitBtns = form.querySelectorAll('button[type="submit"]');
@@ -1116,6 +1159,9 @@ function setupFormSubmission() {
 
     const formDataObj = extractFormData(form);
     formDataObj.files = uploadedFiles;
+    if (confirmarSubstituicaoCasa) {
+      formDataObj.confirmarSubstituicao = true;
+    }
     currentSubmittedData = formDataObj;
 
     const submitBtn = form.querySelector('button[type="submit"]');
