@@ -336,11 +336,17 @@ function ensureSheetHeaders(sheet, config) {
  * @param {Object} layout Layout físico devolvido por ensureSheetHeaders
  * @param {Array} headers Cabeçalhos canônicos da área
  * @param {Array} values Valores na ordem canônica
+ * @param {Array} [baseRow] Valores físicos atuais da linha, quando esta gravação SOBRESCREVE uma
+ *   linha já existente (reenvio confirmado da Fundação CASA). Sem isso, qualquer coluna fora dos
+ *   cabeçalhos canônicos (ex.: uma coluna extra que alguém tenha acrescentado à mão na planilha)
+ *   seria apagada nessa sobrescrita — antes disso nunca acontecia, porque a gravação só ocorria em
+ *   linha nova (já em branco). Omitir este parâmetro mantém o comportamento de sempre (linha em
+ *   branco fora dos cabeçalhos canônicos).
  */
-function buildPhysicalRow(layout, headers, values) {
+function buildPhysicalRow(layout, headers, values, baseRow) {
   const row = new Array(layout.width);
   for (let c = 0; c < layout.width; c++) {
-    row[c] = "";
+    row[c] = baseRow ? baseRow[c] : "";
   }
 
   for (let i = 0; i < headers.length; i++) {
@@ -600,21 +606,32 @@ function saveResponseRow(data) {
       const duplicateRowNumber = findDuplicateActivityRow(sheet, data, layout);
 
       // Fundação CASA, com confirmação explícita do usuário (ver Code.submitForm): em vez de
-      // recusar, sobrescreve a linha já existente. Continua recusando sem exceção quando a
-      // confirmação não veio junto — inclusive nesta mesma área — para que só o envio que passou
-      // pelo aviso no front chegue a substituir algo.
-      const podeSubstituir = areaNorm === "FUNDAÇÃO CASA" && data.confirmarSubstituicao === true;
+      // recusar, sobrescreve a linha já existente — mas só quando a turma (Dias da Semana +
+      // Horário) da linha encontrada está de fato registrada e bate com a do envio atual.
+      // findDuplicateActivityRow tolera essas colunas vazias numa linha LEGADA para continuar
+      // recusando um envio novo (ver o comentário lá); aceitar esse mesmo match "por tolerância"
+      // como alvo de sobrescrita arriscaria destruir o relatório de uma turma que pode nem ser a
+      // mesma. Continua recusando sem exceção quando a confirmação não veio junto — inclusive
+      // nesta mesma área — para que só o envio que passou pelo aviso no front chegue a substituir
+      // algo.
+      const substituicaoSolicitada = areaNorm === "FUNDAÇÃO CASA" && data.confirmarSubstituicao === true;
+      const baseRow = (duplicateRowNumber && substituicaoSolicitada)
+        ? sheet.getRange(duplicateRowNumber, 1, 1, layout.width).getValues()[0]
+        : null;
+      const podeSubstituir = !!duplicateRowNumber && substituicaoSolicitada &&
+        casaTurmaConfirmadaParaSubstituir_(layout, data, baseRow);
 
       if (duplicateRowNumber) {
         const info = describeExistingSubmission(sheet, layout, duplicateRowNumber);
+        const rastroComum = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
+          " | Unidade: " + (data.unidade || "N/D") +
+          " | Atividade: " + (data.atividade || "N/D") +
+          " | Envio original: " + (info.dataHora || "N/D") + " por " + (info.responsavel || "N/D");
 
         if (!podeSubstituir) {
-          const rastro = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
-            " | Unidade: " + (data.unidade || "N/D") +
-            " | Atividade: " + (data.atividade || "N/D") +
+          const rastro = rastroComum +
             " | Tipo: " + (data.tipoPedagogico || "-") +
-            " | Período: " + (data.anoReferencia || data.dataRelatorio || "N/D") + "/" + (data.mesReferencia || "-") +
-            " | Envio original: " + (info.dataHora || "N/D") + " por " + (info.responsavel || "N/D");
+            " | Período: " + (data.anoReferencia || data.dataRelatorio || "N/D") + "/" + (data.mesReferencia || "-");
 
           Logger.log("Reenvio recusado: a atividade já possui relatório enviado. " + rastro);
           Utils.logInfo("Sheets.saveResponseRow (reenvio recusado)", rastro);
@@ -622,19 +639,16 @@ function saveResponseRow(data) {
           return { duplicate: true, info: info };
         }
 
-        // A gravação abaixo sobrescreve esta linha por inteiro (dado descartado sem chance de
-        // recuperação), então fica um rastro em _LOGS mesmo no caminho permitido.
-        const rastroSubstituicao = "Aba: " + config.sheetName + " | Linha: " + duplicateRowNumber +
-          " | Unidade: " + (data.unidade || "N/D") +
-          " | Atividade: " + (data.atividade || "N/D") +
-          " | Envio original: " + (info.dataHora || "N/D") + " por " + (info.responsavel || "N/D") +
-          " | Substituído agora por: " + (data.responsavel || "N/D");
+        // A gravação abaixo sobrescreve os campos canônicos desta linha (dado descartado sem
+        // chance de recuperação — colunas fora dos cabeçalhos canônicos são preservadas via
+        // baseRow em buildPhysicalRow), então fica um rastro em _LOGS mesmo no caminho permitido.
+        const rastroSubstituicao = rastroComum + " | Substituído agora por: " + (data.responsavel || "N/D");
         Logger.log("Reenvio substituiu relatório existente (Fundação CASA, confirmado). " + rastroSubstituicao);
         Utils.logInfo("Sheets.saveResponseRow (reenvio substituiu relatorio - Fundacao CASA)", rastroSubstituicao);
       }
 
       const targetRow = duplicateRowNumber || (sheet.getLastRow() + 1);
-      const physicalRow = buildPhysicalRow(layout, config.headers, newRow);
+      const physicalRow = buildPhysicalRow(layout, config.headers, newRow, baseRow);
       const targetRange = sheet.getRange(targetRow, 1, 1, layout.width);
       targetRange.setNumberFormat("@");
       targetRange.setValues([physicalRow]);
@@ -654,16 +668,54 @@ function saveResponseRow(data) {
 }
 
 /**
+ * Fundação CASA: confirma que a turma (Dias da Semana + Horário) da linha já localizada por
+ * findDuplicateActivityRow está de fato registrada e bate com a do envio atual, antes de permitir
+ * que o reenvio confirmado sobrescreva essa linha.
+ *
+ * findDuplicateActivityRow tolera Dias da Semana/Horário vazios numa linha LEGADA (gravada antes
+ * dessas colunas existirem) só para continuar RECUSANDO um envio novo naquele mês — nunca para
+ * decidir o que sobrescrever. Sem esta função, o reenvio confirmado de uma turma X poderia
+ * encontrar (por essa mesma tolerância) a linha legada de uma turma Y qualquer da mesma
+ * atividade/mês e apagar o relatório de Y no lugar do de X.
+ *
+ * Função pura (recebe a linha já lida, não acessa a planilha) para poder ser testada isoladamente.
+ *
+ * @param {Object} layout Layout físico devolvido por ensureSheetHeaders/readHeaderLayout
+ * @param {Object} data formData do envio atual
+ * @param {Array} baseRow Valores físicos atuais da linha candidata (ou null/undefined)
+ * @return {boolean} true somente quando os dois lados têm Dias da Semana E Horário preenchidos e
+ *   iguais
+ */
+function casaTurmaConfirmadaParaSubstituir_(layout, data, baseRow) {
+  if (!baseRow) return false;
+
+  const idxDiasSemana = layout.index[normalizeHeaderKey("Dias da Semana")];
+  const idxHorario = layout.index[normalizeHeaderKey("Horário")];
+  if (idxDiasSemana === undefined || idxHorario === undefined) return false;
+
+  const searchDiasSemana = Utils.weekdaySetKey(data.diasSemana);
+  const searchHorario = Utils.horarioKey(data.horarioAtividade || Utils.formatHorarioExtenso(data.horarioInicio, data.horarioTermino));
+  if (!searchDiasSemana || !searchHorario) return false;
+
+  const rowDiasSemana = Utils.weekdaySetKey(baseRow[idxDiasSemana]);
+  const rowHorario = Utils.horarioKey(baseRow[idxHorario]);
+
+  return !!rowDiasSemana && !!rowHorario && rowDiasSemana === searchDiasSemana && rowHorario === searchHorario;
+}
+
+/**
  * Localiza uma linha já existente na planilha de respostas para a MESMA atividade, considerando
  * Unidade + Nome da Atividade + Tipo + Divisão Regional + Período de referência (Ano/Mês, ou Data
  * da Atividade quando a área não usa Ano/Mês).
  *
- * Usado para impedir o envio duplicado da mesma atividade (ex.: reenvio após timeout de rede).
- * Como um acerto aqui faz a linha existente ser SOBRESCRITA, a chave precisa identificar a
- * atividade sem ambiguidade: o Tipo (Trilha / Ateliê / Curso de Férias / Núcleo de Moda) e a
- * Divisão Regional entram na comparação sempre que a área os utiliza. Sem o Tipo, duas atividades
- * homônimas de tipos diferentes no Pedagógico eram tratadas como a mesma, e o envio de uma
- * apagava os dados da outra na planilha.
+ * Por padrão, um acerto aqui faz o envio ser recusado (ver saveResponseRow) — é o que impede o
+ * reenvio duplicado da mesma atividade (ex.: reenvio após timeout de rede). Na Fundação CASA, com
+ * confirmação do usuário (data.confirmarSubstituicao), um acerto faz a linha existente ser
+ * SOBRESCRITA em vez de recusada. Em ambos os casos a chave precisa identificar a atividade sem
+ * ambiguidade: o Tipo (Trilha / Ateliê / Curso de Férias / Núcleo de Moda) e a Divisão Regional
+ * entram na comparação sempre que a área os utiliza. Sem o Tipo, duas atividades homônimas de
+ * tipos diferentes no Pedagógico eram tratadas como a mesma, e o envio de uma apagava os dados da
+ * outra na planilha.
  */
 function findDuplicateActivityRow(sheet, data, layout) {
   const lastRow = sheet.getLastRow();

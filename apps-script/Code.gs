@@ -311,6 +311,15 @@ function submitForm(formData) {
         return Utils.createResponse(false, "É permitido anexar no máximo " + MAX_VIDEOS_PER_SUBMISSION + " vídeo(s) por envio (recebido: " + videoCount + "). As demais evidências devem ser fotos.");
       }
     } else {
+      // A Fundação CASA não anexa mídias (o Plano de Atividades é texto/tabela) — nenhum
+      // formulário oferece esse campo para esta área. Uma chamada direta à API com arquivos aqui
+      // acionaria uploadFilesToFolder/removeFilesMatching na pasta do relatório sem necessidade
+      // (e, num reenvio confirmado, mexeria em arquivos da atividade sem ter passado pela
+      // validação de tamanho/quantidade acima), então a validação recusa antes disso.
+      if (formData.files && formData.files.length > 0) {
+        return Utils.createResponse(false, "A Fundação CASA não aceita anexo de fotos/vídeos neste envio.");
+      }
+
       // Dias da semana e horário fazem parte da identidade da atividade na Fundação CASA (é o que
       // separa a 1ª da 2ª turma da mesma atividade no mesmo mês). Sem eles a chave de duplicidade
       // fica ambígua, então o envio é recusado — espelha a obrigatoriedade do formulário.

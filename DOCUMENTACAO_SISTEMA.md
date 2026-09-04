@@ -21,7 +21,7 @@ Com o SRA:
 
 ### O que o sistema NÃO faz
 - Não substitui a conferência humana do conteúdo: quem preenche é responsável pela veracidade dos dados.
-- Não permite **corrigir/reenviar** um relatório já enviado pela própria tela. Correções passam pela equipe de Sistemas (`sistemasdegestao@poiesis.org.br`).
+- Não permite **corrigir/reenviar** um relatório já enviado pela própria tela — exceto na **Fundação CASA**, que permite reenviar por cima do relatório anterior mediante confirmação (ver seção 4). Nas demais frentes, correções passam pela equipe de Sistemas (`sistemasdegestao@poiesis.org.br`).
 
 ---
 
@@ -31,7 +31,7 @@ O SRA é dividido em 4 frentes operacionais, cada uma com **cor, formulário e m
 
 | Frente | Cor | O que registra | Particularidades do formulário |
 | :--- | :---: | :--- | :--- |
-| **Pedagógico** | 🟣 Roxo | Trilhas, ateliês, cursos de férias, mediações e formações artísticas. | Campo **Tipo** (Trilha / Ateliê / Núcleo / Curso de Férias). Possui **Área Restrita** para anexar Inscrição e Presença em PDF. |
+| **Pedagógico** | 🟣 Roxo | Trilhas, ateliês, cursos de férias, mediações e formações artísticas. | Campo **Tipo de Atividade** (Trilha / Ateliê / Curso de Férias — em Jardim São Luís, também Núcleo de Moda; em Vila Nova Cachoeirinha, também Folia 25 / Folia 26). Possui **Área Restrita** para anexar Inscrição e Presença em PDF. |
 | **Articulação & Difusão** | 🟠 Laranja | Festivais, eventos, espetáculos, apresentações, saraus e uso de espaço. | **Calendário interativo**: o educador marca os **dias do mês** em que a atividade aconteceu. Cada dia é um relatório próprio. Campos de **Horário de Início/Término**, sessões e público por sessão. |
 | **Bibliotecas** | 🟢 Verde‑água | Rodas de leitura, mediação literária, contação de histórias, saraus. | Campo **Data da Atividade** (uma data por relatório). A mesma atividade pode ter vários relatórios no mês, um por data. |
 | **Fundação CASA** | 🔵 Azul | Oficinas e atividades nas unidades do atendimento socioeducativo. | Campo **Divisão Regional (DR)**. **Plano de Atividades**: tabela de encontros (data, horário e descrição) digitada no próprio formulário. **Dias da semana** + **Horário da atividade** (ver seção 4). Não anexa fotos. |
@@ -103,6 +103,16 @@ Os dois campos **entram na chave de identidade**: turmas com horário diferente 
 
 - **Liberar** um novo envio da mesma atividade: apagar a **linha** correspondente na planilha da área.
 - **Bloquear**: basta a linha existir. Mesmo sem pasta/PDF, a trava recusa.
+
+### Exceção: reenvio com substituição na Fundação CASA
+
+Nas demais frentes a recusa é sempre definitiva. Só na **Fundação CASA**, ao detectar que a atividade já tem relatório enviado, a tela **não desabilita** o botão de envio — em vez disso, mostra o aviso de duplicidade e, no momento de clicar em Enviar, pede uma **confirmação explícita** ("Enviar agora vai SUBSTITUIR o relatório anterior... Deseja continuar?").
+
+Confirmando, o envio **sobrescreve por completo** a linha já existente na planilha (todos os campos, com o carimbo de data/hora do novo envio) e a Etapa 2 **regera o PDF/Docs** por cima do relatório anterior — a versão antiga não é recuperável. Cada substituição fica registrada na aba `_LOGS`, com a atividade, quem enviou o relatório original e quem o substituiu.
+
+Cancelando a confirmação, nada é enviado e nada muda.
+
+Essa exceção existe porque a Fundação CASA não anexa fotos (o Plano de Atividades é só texto/tabela), então não há mídia "perdida" numa substituição — só a linha da planilha e o relatório, que já são regenerados do zero a cada envio.
 
 ---
 
@@ -202,6 +212,7 @@ Nesse caso, a equipe de Sistemas roda **manualmente**, no editor do Apps Script,
 
 1. Ajustar, se quiser, o bloco `RECONCILIACAO_CONFIG` no topo:
    - `AREA` — `""` para todas, ou o nome de uma área;
+   - `UNIDADE` — `""` para todas, ou uma/várias unidades separadas por vírgula (ex.: `"Diadema, Heliópolis"`); casa por aproximação e sem acento, e é ignorado quando `LINHA > 0`;
    - `LINHA` — `0` para varrer a janela, ou o número exato de uma linha (exige `AREA`);
    - `DIAS_PARA_TRAS` — só olha envios dos últimos N dias (padrão: 3);
    - `DRY_RUN` — `true` apenas lista o que faria, sem compilar.
@@ -251,6 +262,8 @@ Toda solicitação de alteração no sistema — novo campo, nova atividade, mud
 
 ### A. Atualizar as listas suspensas (Unidades, Tipos, Atividades) — *Coordenação de Área / Gestores*
 Não precisa mexer em código. Abra a **Planilha de Listas Institucionais**; cada aba representa uma unidade/setor. Adicione ou edite os nomes nas colunas correspondentes — o formulário se atualiza sozinho no próximo carregamento.
+
+A **coluna A** de cada linha é o **Tipo de Atividade** (Trilha, Ateliê, Curso de Férias, Núcleo de Moda, Folia 25, Folia 26...) e a **coluna B** é o **nome da Atividade**. Para Folia 25 e Folia 26 (Vila Nova Cachoeirinha), o sistema exige que a coluna A esteja **exatamente** `Folia 25` ou `Folia 26` — sem isso (ex.: só "Folia", ou com espaço/acento diferente), a atividade não aparece quando esse tipo é selecionado no formulário.
 
 ### B. Alterar o layout do relatório (PDF) — *Setor de Sistemas*
 Abra o **Google Docs** modelo da área. Pode mudar logotipos, cores de cabeçalho, ordem de parágrafos. **Mantenha as marcações entre chaves duplas** (`{{UNIDADE}}`, `{{RESPONSAVEL}}`, `{{ATIVIDADE}}`, `{{ANEXOS}}`, e — na Fundação CASA — `{{DIAS_SEMANA}}` e `{{HORARIO}}`), pois é onde o sistema insere os dados.
@@ -318,7 +331,7 @@ O **compressor no navegador** (`js/image-compressor.js`) reduz cada imagem para 
 Imediatamente, no botão verde de download na tela. Definitivamente, na pasta `Relatório` da atividade no Google Drive (na Fundação CASA, na própria pasta da atividade).
 
 **4. Recebi o aviso "esta atividade já teve o relatório enviado". O que faço?**
-É a trava anti‑duplicidade: já existe um relatório para essa atividade no período. Se algum dado precisa ser corrigido, contate `sistemasdegestao@poiesis.org.br`. Não há reenvio pela tela.
+É a trava anti‑duplicidade: já existe um relatório para essa atividade no período. Se algum dado precisa ser corrigido, contate `sistemasdegestao@poiesis.org.br`. Não há reenvio pela tela — **exceto na Fundação CASA**, onde o próprio botão de Enviar pede confirmação e, se aceita, substitui o relatório anterior (linha da planilha + PDF/Docs) pelo novo (ver seção 4).
 
 **5. A linha foi gravada mas o PDF não saiu. E agora?**
 A Etapa 2 falhou. A equipe de Sistemas roda a função **`reconciliarRelatoriosPendentes`** (seção 8), que compila o relatório faltante a partir dos dados já gravados.

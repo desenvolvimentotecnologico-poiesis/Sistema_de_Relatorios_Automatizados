@@ -23,11 +23,37 @@ function isVilaNovaCachoeirinha(unidadeName) {
   return norm.includes("CACHOEIRINHA") || norm.includes("VNC");
 }
 
+/**
+ * Sincroniza uma <option> de valor fixo num <select>: cria (se ainda nao existir) quando
+ * shouldExist e true, remove (limpando a selecao se estava nela) quando e false. Usada para somar
+ * opcoes condicionais ao campo Tipo de Atividade (ex.: Folia 25/26 em Vila Nova Cachoeirinha)
+ * tanto no formulario publico (main.js) quanto na Area Restrita (auth.js), sem duplicar a logica.
+ */
+function syncSelectOption(selectEl, optionValue, shouldExist) {
+  let opt = Array.from(selectEl.options).find(o => o.value === optionValue);
+  if (shouldExist) {
+    if (!opt) {
+      opt = document.createElement("option");
+      opt.value = optionValue;
+      opt.textContent = optionValue;
+      selectEl.appendChild(opt);
+    }
+  } else if (opt) {
+    if (selectEl.value === optionValue) {
+      selectEl.value = "";
+    }
+    opt.remove();
+  }
+}
+
 function matchActivityType(itemType, selectedTipo) {
   if (!itemType || typeof itemType !== "string") return false;
 
-  const typeNorm = itemType.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const selectedNorm = selectedTipo.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // O \s+ -> " " colapsa espacos duplos/irregulares que sobrevivem na planilha (so passa por
+  // .trim(), nas pontas) - sem isso, "Folia  25" (espaco duplo) nunca bateria com a opcao fixa
+  // "Folia 25" na igualdade exata usada mais abaixo.
+  const typeNorm = itemType.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+  const selectedNorm = selectedTipo.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
 
   if (selectedNorm.includes("ferias")) {
     return typeNorm.includes("ferias");

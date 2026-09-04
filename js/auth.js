@@ -326,22 +326,7 @@ function onRestrictedUnidadeChange() {
 
   // Vila Nova Cachoeirinha: mantém as opções padrão do campo e soma Folia 25 / Folia 26, espelhando
   // o mesmo tratamento do formulário público (js/main.js) para esta tela não divergir dele.
-  ["Folia 25", "Folia 26"].forEach(folia => {
-    let foliaOpt = Array.from(tipoSelect.options).find(opt => opt.value === folia);
-    if (isVNC) {
-      if (!foliaOpt) {
-        foliaOpt = document.createElement("option");
-        foliaOpt.value = folia;
-        foliaOpt.textContent = folia;
-        tipoSelect.appendChild(foliaOpt);
-      }
-    } else if (foliaOpt) {
-      if (tipoSelect.value === folia) {
-        tipoSelect.value = "";
-      }
-      foliaOpt.remove();
-    }
-  });
+  ["Folia 25", "Folia 26"].forEach(folia => syncSelectOption(tipoSelect, folia, isVNC));
 
   updateRestrictedAtividadeDropdown();
 }

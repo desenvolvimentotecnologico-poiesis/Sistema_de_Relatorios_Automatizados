@@ -54,7 +54,10 @@ const CAMPOS_CHAVE_DUPLICIDADE = [
 
 /**
  * Consulta a planilha assim que a atividade fica identificada e, se o relatório já tiver sido
- * enviado, avisa quando e por quem e bloqueia o envio — o mesmo comportamento da Área Restrita.
+ * enviado, avisa quando e por quem. Em Pedagógico, Articulação e Bibliotecas bloqueia o envio — o
+ * mesmo comportamento da Área Restrita. Na Fundação CASA não bloqueia: o envio segue permitido,
+ * mas pede confirmação explícita no clique de Enviar antes de substituir o relatório anterior
+ * (ver runDuplicateCheck e setupFormSubmission).
  *
  * Sem isso, o educador só descobriria a recusa depois de preencher o formulário inteiro e anexar
  * as evidências. O aviso é criado por JavaScript, reaproveitando o estilo .status-box que a Área
@@ -450,22 +453,7 @@ function updateTipoPedagogicoOptions() {
   // Vila Nova Cachoeirinha: mantém as opções padrão do campo e soma Folia 25 / Folia 26. O value de
   // cada option precisa bater exatamente com a coluna A da planilha de atividades — matchActivityType
   // (shared-helpers.js) exige igualdade exata para esses dois tipos.
-  ["Folia 25", "Folia 26"].forEach(folia => {
-    let foliaOpt = Array.from(tipoPedagogicoSelect.options).find(opt => opt.value === folia);
-    if (isVNC) {
-      if (!foliaOpt) {
-        foliaOpt = document.createElement("option");
-        foliaOpt.value = folia;
-        foliaOpt.textContent = folia;
-        tipoPedagogicoSelect.appendChild(foliaOpt);
-      }
-    } else if (foliaOpt) {
-      if (tipoPedagogicoSelect.value === folia) {
-        tipoPedagogicoSelect.value = "";
-      }
-      foliaOpt.remove();
-    }
-  });
+  ["Folia 25", "Folia 26"].forEach(folia => syncSelectOption(tipoPedagogicoSelect, folia, isVNC));
 }
 
 function onDropdownDataError(errMessage) {
@@ -1021,21 +1009,6 @@ function setupFormSubmission() {
       return;
     }
 
-    // Fundação CASA: reenvio da mesma atividade é permitido, mas SUBSTITUI o relatório anterior
-    // (linha da planilha + PDF/Doc, que generatePdfReportAsync regera por cima do antigo) — por
-    // ser destrutivo e irreversível, a confirmação é obrigatória aqui, no momento do envio.
-    let confirmarSubstituicaoCasa = false;
-    if (reenvioCasaPendente) {
-      const confirmMsg = (reenvioCasaAvisoTexto || "Esta atividade já teve relatório enviado") +
-        ".\n\nEnviar agora vai SUBSTITUIR o relatório anterior: a linha da planilha e o relatório " +
-        "(Doc/PDF) já gerados serão sobrescritos e não poderão ser recuperados." +
-        "\n\nDeseja continuar e substituir o relatório anterior?";
-      if (!confirm(confirmMsg)) {
-        return;
-      }
-      confirmarSubstituicaoCasa = true;
-    }
-
     isSubmitting = true;
 
     const submitBtns = form.querySelectorAll('button[type="submit"]');
@@ -1155,6 +1128,24 @@ function setupFormSubmission() {
         hideOverlay();
         return;
       }
+    }
+
+    // Fundação CASA: reenvio da mesma atividade é permitido, mas SUBSTITUI o relatório anterior
+    // (linha da planilha + PDF/Doc, que generatePdfReportAsync regera por cima do antigo) — por
+    // ser destrutivo e irreversível, a confirmação é obrigatória aqui, no momento do envio. Fica
+    // depois de todas as validações acima de propósito, para nunca pedir essa confirmação "à toa"
+    // quando o envio nem chegaria a sair por falta de algum campo obrigatório.
+    let confirmarSubstituicaoCasa = false;
+    if (reenvioCasaPendente) {
+      const confirmMsg = (reenvioCasaAvisoTexto || "Esta atividade já teve relatório enviado") +
+        ".\n\nEnviar agora vai SUBSTITUIR o relatório anterior: a linha da planilha e o relatório " +
+        "(Doc/PDF) já gerados serão sobrescritos e não poderão ser recuperados." +
+        "\n\nDeseja continuar e substituir o relatório anterior?";
+      if (!confirm(confirmMsg)) {
+        hideOverlay();
+        return;
+      }
+      confirmarSubstituicaoCasa = true;
     }
 
     const formDataObj = extractFormData(form);
