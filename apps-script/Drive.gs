@@ -142,18 +142,20 @@ function getOrCreateFolderStructure(setor, dataRelatorio, unidade, atividade, ti
     let anoStr = anoReferencia ? String(anoReferencia).trim() : "";
     let mesNum = mesReferencia ? String(mesReferencia).trim() : "";
 
+    // dataRelatorio chega como STRING no envio normal do formulário, mas como objeto Date quando a
+    // reconciliação a remonta lendo a célula da planilha. Delegar para Utils.formatDateToBR (que já
+    // trata os dois casos, incluindo timezone) em vez de fazer split manual aqui evita duplicar essa
+    // lógica — e evita quebrar silenciosamente: um split direto num Date cai no formato do
+    // Date.toString() ("Thu Aug 27 2026..."), nenhuma das duas pontas bate com 4 dígitos, e o mês/ano
+    // "extraído" fica vazio. Sem isso, a linha abaixo usava a data de HOJE como recuo, jogando a
+    // atividade para o mês da execução da reconciliação em vez do mês em que ela realmente ocorreu.
     if (!anoStr || !mesNum) {
       if (dataRelatorio) {
-        const cleanStr = String(dataRelatorio).replace(/\s+/g, "");
-        const parts = cleanStr.split(/[-/]/);
-        if (parts.length >= 2) {
-          if (parts[0].length === 4) {
-            anoStr = anoStr || parts[0];
-            mesNum = mesNum || parts[1];
-          } else if (parts[parts.length - 1].length === 4) {
-            anoStr = anoStr || parts[parts.length - 1];
-            mesNum = mesNum || parts[0];
-          }
+        const dataFormatadaBR = Utils.formatDateToBR(dataRelatorio);
+        const partesData = typeof dataFormatadaBR === "string" ? dataFormatadaBR.split("/") : [];
+        if (partesData.length === 3) {
+          mesNum = mesNum || partesData[1];
+          anoStr = anoStr || partesData[2];
         }
       }
     }

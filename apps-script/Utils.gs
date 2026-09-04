@@ -5,10 +5,27 @@
 
 var Utils = {
   /**
-   * Formata datas no padrão brasileiro DD/MM/YYYY
+   * Formata datas no padrão brasileiro DD/MM/YYYY.
+   *
+   * Aceita tanto string ("2026-08-27", "2026-08-27T00:00:00.000Z", "27/08/2026") quanto um objeto
+   * Date — célula de data lida direto da planilha (getRange().getValues()) chega como Date, não
+   * como string. Sem este ramo, String(date) produz "Thu Aug 27 2026 00:00:00 GMT-0300 (...)":
+   * o split por "T" corta na primeira letra de "Thu" (não no separador ISO), sobra uma string
+   * vazia, o parse por "-"/"/" falha e a função devolvia o Date original sem converter — quem
+   * encadeia .replace() no resultado (ex.: montarNomeEEscopoRelatorio_ para Bibliotecas) quebra
+   * com "...replace is not a function".
    */
   formatDateToBR: function(dateStr) {
     if (!dateStr) return "";
+    if (dateStr instanceof Date && !isNaN(dateStr.getTime())) {
+      try {
+        return Utilities.formatDate(dateStr, "America/Sao_Paulo", "dd/MM/yyyy");
+      } catch (e) {
+        var dd = ("0" + dateStr.getDate()).slice(-2);
+        var mm = ("0" + (dateStr.getMonth() + 1)).slice(-2);
+        return dd + "/" + mm + "/" + dateStr.getFullYear();
+      }
+    }
     var str = String(dateStr).trim();
     if (str.includes("T")) {
       str = str.split("T")[0];

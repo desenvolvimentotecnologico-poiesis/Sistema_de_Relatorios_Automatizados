@@ -14,7 +14,7 @@
  * linha que já tem relatório na pasta é pulada.
  *
  * COMO USAR:
- *   1. Ajuste RECONCILIACAO_CONFIG abaixo (área, janela de dias, ou uma linha específica).
+ *   1. Ajuste RECONCILIACAO_CONFIG abaixo (área, unidade, janela de dias, ou uma linha específica).
  *   2. Rode a função reconciliarRelatoriosPendentes.
  *   3. Confira o resumo no Logger e o registro no _LOGS da planilha.
  */
@@ -22,6 +22,11 @@
 var RECONCILIACAO_CONFIG = {
   // "" = todas as áreas | "Pedagógico" | "Articulação e Difusão" | "Fundação Casa" | "Biblioteca"
   AREA: "",
+  // "" = todas as unidades | "Diadema" | "Diadema, Heliópolis" (várias separadas por vírgula ou
+  // ponto-e-vírgula). Casa por aproximação e sem acento — "diadema" pega "Fábrica de Cultura
+  // Diadema". Combina com AREA (AREA escolhe as abas, UNIDADE filtra as linhas). Ignorado quando
+  // LINHA > 0.
+  UNIDADE: "",
   // > 0: mira SÓ essa linha da aba (exige AREA preenchida). 0: varre a janela de dias abaixo.
   LINHA: 0,
   // Só olha linhas cujo Carimbo de Data/Hora esteja dentro desta janela (evita varrer o histórico
@@ -137,9 +142,17 @@ function reconciliarArea_(area, cfg, limiteData, resumo) {
 
   var layout = readHeaderLayout(sheet);
   var idxCarimbo = layout.index[normalizeHeaderKey("Carimbo de Data/Hora")];
+  var idxUnidade = layout.index[normalizeHeaderKey("Unidade")];
+  if (idxUnidade === undefined) idxUnidade = layout.index[normalizeHeaderKey("Centro de Atendimento (Unidade)")];
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  var unidadesFiltro = cfg.LINHA > 0 ? [] : reconUnidadesFiltro_(cfg.UNIDADE);
+  if (unidadesFiltro.length && idxUnidade === undefined) {
+    resumo.detalhes.push("[" + area + "] filtro UNIDADE ignorado: coluna de unidade não encontrada nesta aba");
+    unidadesFiltro = [];
+  }
 
   for (var i = 0; i < values.length; i++) {
     var rowNumber = i + 2;
@@ -151,6 +164,8 @@ function reconciliarArea_(area, cfg, limiteData, resumo) {
       var carimbo = reconParseCarimbo_(row[idxCarimbo]);
       if (carimbo && carimbo < limiteData) continue;
     }
+
+    if (unidadesFiltro.length && !reconUnidadeCasa_(row[idxUnidade], unidadesFiltro)) continue;
 
     resumo.escaneadas++;
 
@@ -280,6 +295,32 @@ function reconRelatorioJaExiste_(folder, formData) {
     if (casaTudo) return true;
   }
   return false;
+}
+
+/**
+ * Lista de unidades do filtro RECONCILIACAO_CONFIG.UNIDADE, já normalizadas (sem acento, em
+ * maiúsculas, espaços colapsados). "" devolve [] — sem filtro. Aceita várias separadas por
+ * vírgula ou ponto-e-vírgula: "Diadema, Heliópolis".
+ */
+function reconUnidadesFiltro_(valor) {
+  return String(valor || "")
+    .split(/[,;]/)
+    .map(function (u) { return Utils.normalizeText(u); })
+    .filter(function (u) { return u !== ""; });
+}
+
+/**
+ * true se a unidade gravada na linha casa algum item do filtro. Compara sem acento e por
+ * aproximação nos dois sentidos, para "diadema" casar "Fábrica de Cultura Diadema" e a forma
+ * completa também casar quando o filtro traz o nome inteiro.
+ */
+function reconUnidadeCasa_(valorLinha, filtro) {
+  if (!filtro || filtro.length === 0) return true;
+  var alvo = Utils.normalizeText(valorLinha);
+  if (!alvo) return false;
+  return filtro.some(function (u) {
+    return alvo.indexOf(u) !== -1 || u.indexOf(alvo) !== -1;
+  });
 }
 
 function reconParseCarimbo_(v) {
