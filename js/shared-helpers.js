@@ -17,6 +17,12 @@ function isJardimSaoLuis(unidadeName) {
   return norm.includes("JARDIM SAO LUIS") || norm.includes("JARDIM SAO LUIZ") || norm.includes("SAO LUIS") || norm.includes("SAO LUIZ") || norm.includes("JSL");
 }
 
+function isVilaNovaCachoeirinha(unidadeName) {
+  if (!unidadeName) return false;
+  const norm = unidadeName.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  return norm.includes("CACHOEIRINHA") || norm.includes("VNC");
+}
+
 function matchActivityType(itemType, selectedTipo) {
   if (!itemType || typeof itemType !== "string") return false;
 
@@ -37,6 +43,14 @@ function matchActivityType(itemType, selectedTipo) {
 
   if (selectedNorm.includes("atelie")) {
     return typeNorm.includes("atelie") && !typeNorm.includes("moda") && !typeNorm.includes("ferias");
+  }
+
+  // "Folia 25" / "Folia 26" (exclusivo de Vila Nova Cachoeirinha) exige igualdade exata com a
+  // coluna A da planilha de atividades. O fallback generico logo abaixo (substring nos dois
+  // sentidos) faria um eventual tipo "Folia" sem ano casar com a selecao "Folia 25" via
+  // selectedNorm.includes(typeNorm) - este ramo evita esse falso positivo.
+  if (selectedNorm.startsWith("folia")) {
+    return typeNorm === selectedNorm;
   }
 
   return typeNorm.includes(selectedNorm) || selectedNorm.includes(typeNorm);

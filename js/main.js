@@ -399,13 +399,7 @@ function updateTipoPedagogicoOptions() {
 
   const selectedUnidade = unidadeSelect ? unidadeSelect.value : "";
   const isJSL = isJardimSaoLuis(selectedUnidade);
-
-  const label = document.querySelector('label[for="tipoPedagogicoSelect"]');
-  if (label) {
-    label.innerHTML = isJSL
-      ? 'Trilha, Ateliê, Núcleo de Moda ou Curso de Férias? <span class="required">*</span>'
-      : 'Trilha, Ateliê ou Curso de Férias? <span class="required">*</span>';
-  }
+  const isVNC = isVilaNovaCachoeirinha(selectedUnidade);
 
   let nucleoOpt = Array.from(tipoPedagogicoSelect.options).find(opt => opt.value === "Núcleo de Moda");
 
@@ -424,6 +418,26 @@ function updateTipoPedagogicoOptions() {
       nucleoOpt.remove();
     }
   }
+
+  // Vila Nova Cachoeirinha: mantém as opções padrão do campo e soma Folia 25 / Folia 26. O value de
+  // cada option precisa bater exatamente com a coluna A da planilha de atividades — matchActivityType
+  // (shared-helpers.js) exige igualdade exata para esses dois tipos.
+  ["Folia 25", "Folia 26"].forEach(folia => {
+    let foliaOpt = Array.from(tipoPedagogicoSelect.options).find(opt => opt.value === folia);
+    if (isVNC) {
+      if (!foliaOpt) {
+        foliaOpt = document.createElement("option");
+        foliaOpt.value = folia;
+        foliaOpt.textContent = folia;
+        tipoPedagogicoSelect.appendChild(foliaOpt);
+      }
+    } else if (foliaOpt) {
+      if (tipoPedagogicoSelect.value === folia) {
+        tipoPedagogicoSelect.value = "";
+      }
+      foliaOpt.remove();
+    }
+  });
 }
 
 function onDropdownDataError(errMessage) {
