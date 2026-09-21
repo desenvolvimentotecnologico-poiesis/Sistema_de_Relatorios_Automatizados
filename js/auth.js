@@ -198,8 +198,10 @@ function loadRestrictedDropdownData(profile, forceRefresh = false) {
       showAuthLoading(false);
 
       if (!response || !response.success || !response.hierarchy) {
-        const errorMsg = (response && response.message) || "O servidor não retornou as listas de atividades pedagógicas.";
-        showRestrictedDropdownError(true, errorMsg);
+        // Não exibimos response.message aqui: em respostas malformadas (ex.: instabilidade do
+        // backend) ele pode conter texto interno de diagnóstico, não uma mensagem pra usuário final.
+        console.error("getDropdownData: resposta em formato inesperado", response);
+        showRestrictedDropdownError(true, "Ops! Tivemos uma instabilidade ao carregar as unidades. Tente novamente em alguns instantes.");
         return;
       }
 
@@ -208,8 +210,8 @@ function loadRestrictedDropdownData(profile, forceRefresh = false) {
       populateRestrictedUnidades(profile);
     }, (err) => {
       showAuthLoading(false);
-      const errorMsg = typeof err === "string" ? err : "Falha de conexão com o servidor ao consultar as listas.";
-      showRestrictedDropdownError(true, errorMsg);
+      console.error("getDropdownData: erro de conexão", err);
+      showRestrictedDropdownError(true, "Ops! Tivemos uma instabilidade de conexão ao carregar as unidades. Tente novamente em alguns instantes.");
     });
   } else {
     showAuthLoading(false);
@@ -427,11 +429,21 @@ function checkActivityDocsStatus() {
         }
         if (submitBtn) submitBtn.disabled = false;
       }
+    } else {
+      // Resposta chegou sem erro de rede, mas sem o formato esperado (ex.: instabilidade
+      // pontual do backend). Sem este branch, a caixa ficava presa em "Verificando..." pra sempre.
+      console.error("checkActivityStatus: resposta em formato inesperado", response);
+      if (statusBox) {
+        statusBox.className = "status-box error";
+        statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Ops! Tivemos uma instabilidade ao consultar a atividade. <a href="#" onclick="checkActivityDocsStatus(); return false;" style="font-weight: 600; text-decoration: underline;">Tentar novamente</a>.';
+      }
+      if (submitBtn) submitBtn.disabled = true;
     }
   }, (err) => {
+    console.error("checkActivityStatus: erro de conexão", err);
     if (statusBox) {
       statusBox.className = "status-box error";
-      statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Erro ao consultar atividade: ' + err;
+      statusBox.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Ops! Tivemos uma instabilidade de conexão ao consultar a atividade. <a href="#" onclick="checkActivityDocsStatus(); return false;" style="font-weight: 600; text-decoration: underline;">Tentar novamente</a>.';
     }
     if (submitBtn) submitBtn.disabled = true;
   });
@@ -454,6 +466,13 @@ function submitComplementaryDocs(event) {
   const unidade = document.getElementById("restritoUnidade").value;
   const tipoPedagogico = document.getElementById("restritoTipoPedagogico") ? document.getElementById("restritoTipoPedagogico").value : "";
   const atividade = document.getElementById("restritoAtividade").value;
+
+  if (!setor || !ano || !mes || !unidade || !atividade) {
+    // Evita enviar ao backend com "unidade" (ou outro campo) vazio quando o dropdown não
+    // carregou corretamente — isso gerava um erro de permissão confuso ("unidade 'N/D'").
+    alert("Ops! Tivemos uma instabilidade e nem todos os campos foram carregados corretamente. Por favor, recarregue a página e tente novamente.");
+    return;
+  }
 
   const fileInscricaoElem = document.getElementById("fileInscricao");
   const filePresencaElem = document.getElementById("filePresenca");
