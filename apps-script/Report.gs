@@ -365,9 +365,41 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
       } else {
         let imageCount = 0;
         let hasVideo = false;
-        const imageBlobs = [];
+        let imageBlobs = [];
 
-        if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+        // Fonte principal das fotos do relatório: a pasta "Registro Fotográfico" no Drive, onde a
+        // Etapa 1 (uploadFilesToFolder) já gravou os arquivos. Ler daqui — em vez do payload em
+        // Base64 que o navegador reenviaria na Etapa 2 — garante que o PDF mostra exatamente o que
+        // está na pasta, nunca um lote diferente por causa de uma tentativa anterior que só chegou
+        // a alcançar o Drive parcialmente. Os arquivos são nomeados com um índice de 2 dígitos
+        // (uploadFilesToFolder, ex.: "..._01.jpg"), então ordenar pelo nome preserva a ordem em que
+        // a pessoa anexou as evidências.
+        const imageFilesFromDrive = [];
+        if (registroFolder) {
+          try {
+            const driveFiles = registroFolder.getFiles();
+            while (driveFiles.hasNext()) {
+              const file = driveFiles.next();
+              const mimeType = file.getMimeType();
+              if (mimeType && mimeType.startsWith("video/")) {
+                hasVideo = true;
+              } else if (mimeType && mimeType.startsWith("image/")) {
+                imageFilesFromDrive.push(file);
+              }
+            }
+          } catch (driveErr) {
+            Logger.log("Erro ao ler fotos da pasta do Drive: " + driveErr.toString());
+          }
+        }
+
+        if (imageFilesFromDrive.length > 0) {
+          imageFilesFromDrive.sort(function(a, b) {
+            return a.getName().localeCompare(b.getName());
+          });
+          imageBlobs = imageFilesFromDrive.map(function(f) { return f.getBlob(); });
+        } else if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+          // Recuo: só usado quando a pasta não pôde ser lida ou ainda não tem fotos (ex.: chamada
+          // direta da Etapa 2 sem upload prévio, ou uma reconciliação muito antiga).
           data.files.forEach(f => {
             if (f.mimeType && f.mimeType.startsWith("video/")) {
               hasVideo = true;
@@ -383,29 +415,6 @@ function generateDocumentAndPdf(data, targetFolder, registroFolderId) {
               }
             }
           });
-        }
-
-        // Só recorre às fotos já gravadas no Drive quando o payload da Etapa 2 não trouxe nenhuma
-        // imagem em Base64. A condição era avaliada a cada iteração ("imageBlobs.length === 0"),
-        // então, após a primeira foto entrar na lista, ela passava a ser falsa e as demais fotos da
-        // pasta eram ignoradas — o relatório saía com uma única imagem em vez das 3 a 5 enviadas.
-        const usouImagensDoPayload = imageBlobs.length > 0;
-
-        if (registroFolder) {
-          try {
-            const driveFiles = registroFolder.getFiles();
-            while (driveFiles.hasNext()) {
-              const file = driveFiles.next();
-              const mimeType = file.getMimeType();
-              if (mimeType && mimeType.startsWith("video/")) {
-                hasVideo = true;
-              } else if (!usouImagensDoPayload && mimeType && mimeType.startsWith("image/")) {
-                imageBlobs.push(file.getBlob());
-              }
-            }
-          } catch (driveErr) {
-            Logger.log("Erro ao ler fotos da pasta do Drive: " + driveErr.toString());
-          }
         }
 
         if (imageBlobs.length > 0) {

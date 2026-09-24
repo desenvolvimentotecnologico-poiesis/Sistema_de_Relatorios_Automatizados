@@ -410,6 +410,13 @@ function onDropdownDataReceived(response) {
   // Preenche a Divisão Regional da Fundação Casa se estiver presente
   const divisaoSelect = document.getElementById("divisaoRegionalSelect");
   if (divisaoSelect && hierarchy["Fundação Casa"]) {
+    // Diferente de "Unidade", a Divisão Regional já nasce com opções estáticas no HTML — a pessoa
+    // pode escolher antes desta lista terminar de carregar do servidor. Sem preservar o valor
+    // aqui, reconstruir as opções abaixo apagava essa escolha em silêncio assim que os dados
+    // chegassem (mais provável de acontecer justo quando o servidor demora mais, como num
+    // fechamento de mês com muita gente enviando ao mesmo tempo).
+    const valorAnteriorDR = divisaoSelect.value;
+
     divisaoSelect.innerHTML = '<option value="" disabled selected>Selecione a Divisão Regional...</option>';
     divisaoSelect.disabled = false;
     Object.keys(hierarchy["Fundação Casa"]).forEach(dr => {
@@ -420,6 +427,13 @@ function onDropdownDataReceived(response) {
     });
 
     divisaoSelect.addEventListener("change", handleDivisaoCasaChange);
+
+    if (valorAnteriorDR && hierarchy["Fundação Casa"][valorAnteriorDR]) {
+      divisaoSelect.value = valorAnteriorDR;
+      // .value não dispara "change" sozinho — sem chamar aqui, o Centro de Atendimento continuaria
+      // travado em "Selecione a Divisão Regional primeiro..." mesmo com a DR restaurada.
+      handleDivisaoCasaChange({ target: divisaoSelect });
+    }
   }
 }
 
@@ -1377,6 +1391,14 @@ function onStage1Success(response) {
   showOverlay("Compilando documento oficial e exportando PDF no Google Drive...", 75, "Etapa 2 de 2: Gerando PDF", true);
 
   const stage1Data = response;
+
+  // A Etapa 2 monta as fotos direto da pasta do Drive (onde a Etapa 1 já as gravou), não mais do
+  // que o navegador reenviaria aqui — por isso "files" não precisa (nem deve) ir de novo neste
+  // payload. Isso encurta bastante esta chamada, reduzindo a chance de a conexão cair no meio dela,
+  // que é a causa mais comum do "carrega, finaliza (ou fica só carregando) e não baixa o PDF".
+  const formDataStage2 = Object.assign({}, currentSubmittedData);
+  delete formDataStage2.files;
+
   callBackendAPI(
     "generatePdfReportAsync",
     {
@@ -1385,7 +1407,7 @@ function onStage1Success(response) {
       relatorioFolderId: stage1Data.relatorioFolderId,
       registroFolderId: stage1Data.registroFolderId,
       area: stage1Data.area,
-      formData: currentSubmittedData
+      formData: formDataStage2
     },
     onStage2Success,
     onStage2Error

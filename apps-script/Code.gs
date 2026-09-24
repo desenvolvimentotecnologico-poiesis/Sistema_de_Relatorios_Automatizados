@@ -378,23 +378,13 @@ function submitForm(formData) {
       formData.anoReferencia,
       formData.diasAtividade
     );
-    
-    // 2. Upload rápido de arquivos anexados em Base64
-    const targetUploadFolder = folders.registroFolder || folders.relatorioFolder || folders.activityFolder;
-    if (formData.files && formData.files.length > 0 && targetUploadFolder) {
-      uploadFilesToFolder(formData.files, targetUploadFolder, {
-        unidade: formData.unidade,
-        responsavel: formData.responsavel,
-        atividade: formData.atividade,
-        setor: formData.setor,
-        mesReferencia: formData.mesReferencia,
-        anoReferencia: formData.anoReferencia,
-        dataAtividade: formData.dataRelatorio,
-        diasAtividade: formData.diasAtividade
-      });
-    }
-    
-    // 3. Salva os dados textuais no Google Sheets da área
+
+    // 2. Salva os dados textuais no Google Sheets da área — ANTES de tocar em qualquer foto.
+    // saveResponseRow trava e revalida a duplicidade sob LockService (a recusa definitiva). Fazer
+    // isso primeiro garante que um envio que vai ser recusado nunca chegue a apagar/substituir as
+    // fotos do envio que já está gravado: antes, quando o upload rodava antes desta checagem, duas
+    // tentativas quase simultâneas da mesma atividade podiam se cruzar e a segunda (mesmo sendo
+    // recusada logo em seguida) já tinha mexido no lote de fotos da primeira.
     const saveResult = saveResponseRow(formData);
 
     // Recusa detectada na revalidação sob lock (outro envio da mesma atividade concluiu enquanto
@@ -405,6 +395,31 @@ function submitForm(formData) {
         submittedAt: saveResult.info.dataHora,
         submittedBy: saveResult.info.responsavel
       });
+    }
+
+    // 3. Upload das mídias anexadas em Base64. Só chega aqui quem já garantiu, sob lock, que tem
+    // direito à linha — nenhuma foto de outro envio é tocada antes dessa garantia.
+    const targetUploadFolder = folders.registroFolder || folders.relatorioFolder || folders.activityFolder;
+    if (formData.files && formData.files.length > 0 && targetUploadFolder) {
+      try {
+        uploadFilesToFolder(formData.files, targetUploadFolder, {
+          unidade: formData.unidade,
+          responsavel: formData.responsavel,
+          atividade: formData.atividade,
+          setor: formData.setor,
+          mesReferencia: formData.mesReferencia,
+          anoReferencia: formData.anoReferencia,
+          dataAtividade: formData.dataRelatorio,
+          diasAtividade: formData.diasAtividade
+        });
+      } catch (uploadErr) {
+        // A linha já foi gravada na planilha nesta altura — não é desfeita. Registra em _LOGS para
+        // reconciliação manual das fotos; a resposta segue como sucesso porque os dados textuais
+        // estão seguros e o relatório ainda pode ser compilado (a Etapa 2 tolera pasta sem fotos).
+        Logger.log("Falha ao subir mídias após gravação da linha: " + uploadErr.toString());
+        Utils.logError("Code.submitForm (upload pos-gravacao)",
+          "Aba: " + saveResult.sheetName + " | Linha: " + saveResult.rowNumber + " | Erro: " + uploadErr.message);
+      }
     }
 
     const relatorioFolderObj = folders.relatorioFolder || folders.activityFolder;
