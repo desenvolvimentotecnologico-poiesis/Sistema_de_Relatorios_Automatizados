@@ -386,13 +386,20 @@ function onDropdownDataReceived(response) {
     unidadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Unidade...</option>';
     unidadeSelect.disabled = false;
 
+    // A Planilha de Listas Institucionais é global (uma aba = uma Unidade, compartilhada por
+    // todos os formulários). Nas Bibliotecas a Unidade "Iguape" foi substituída pela "Iguape
+    // Correios" — as outras áreas continuam usando "Iguape" normalmente, então a exclusão fica
+    // restrita ao formulário de Bibliotecas em vez de remover a aba da planilha.
+    const setorInput = document.querySelector('input[name="setor"]');
+    const isBibliotecas = setorInput && setorInput.value === "Bibliotecas";
+
     Object.keys(hierarchy).forEach(key => {
-      if (key !== "Fundação Casa") {
-        const opt = document.createElement("option");
-        opt.value = key;
-        opt.textContent = key;
-        unidadeSelect.appendChild(opt);
-      }
+      if (key === "Fundação Casa") return;
+      if (isBibliotecas && key === "Iguape") return;
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = key;
+      unidadeSelect.appendChild(opt);
     });
 
     unidadeSelect.addEventListener("change", () => {
