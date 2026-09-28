@@ -438,11 +438,11 @@ function describeExistingSubmission(sheet, layout, rowNumber) {
  * Monta a mensagem exibida ao educador quando o envio é recusado por já existir.
  */
 function buildDuplicateMessage(info) {
-  let msg = "Esta atividade já teve o relatório enviado";
-  if (info && info.dataHora) msg += " em " + info.dataHora;
-  if (info && info.responsavel) msg += " por " + info.responsavel;
-  msg += ".\n\nNão é permitido enviar o relatório da mesma atividade duas vezes no mesmo período.";
-  msg += "\n\nSe algum dado precisa ser corrigido, entre em contato com a equipe através do e-mail: sistemasdegestao@poiesis.org.br";
+  let msg = "Pode ficar tranquilo: esse relatório já foi recebido com sucesso";
+  if (info && info.dataHora) msg += ", em " + info.dataHora;
+  if (info && info.responsavel) msg += ", enviado por " + info.responsavel;
+  msg += ".\n\nPor isso o sistema não permite enviar a mesma atividade de novo no mesmo período — mas o registro já está garantido, mesmo que você não esteja vendo o arquivo aqui.";
+  msg += "\n\nSe precisar corrigir algum dado ou quiser receber uma cópia do relatório enviado, é só mandar um e-mail para sistemasdegestao@poiesis.org.br identificando a atividade, que a equipe te envia o arquivo.";
   return msg;
 }
 

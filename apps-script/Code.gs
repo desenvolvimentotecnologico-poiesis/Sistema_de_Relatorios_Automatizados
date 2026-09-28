@@ -101,6 +101,8 @@ function doPost(e) {
       result = checkReportStatus(payload);
     } else if (action === "uploadComplementaryDocs") {
       result = uploadComplementaryDocs(payload);
+    } else if (action === "logClientError") {
+      result = logClientError(payload);
     } else {
       result = Utils.createResponse(false, "Ação não reconhecida: '" + action + "'");
     }
@@ -520,6 +522,24 @@ function generatePdfReportAsync(sheetName, rowNumber, relatorioFolderId, registr
     Utils.logError("Code.generatePdfReportAsync", logDetails);
     return Utils.createResponse(false, "Falha na compilação em segundo plano " + logDetails);
   }
+}
+
+/**
+ * Registra em _LOGS uma falha que o front detectou por conta própria e que nunca chegou a rodar
+ * aqui no backend (ex.: a Etapa 2 caiu por queda de conexão/timeout antes de receber resposta).
+ * Nesses casos o educador já viu a mensagem de sucesso — os dados da Etapa 1 estão gravados —,
+ * mas sem esse registro a equipe não teria como saber que o PDF ficou pendente para reconciliação.
+ * Best-effort: nunca deve travar o front, por isso não valida nem lança erro, só tenta logar.
+ */
+function logClientError(payload) {
+  const p = payload || {};
+  const logDetails = "[Área: " + (p.area || "N/D") + " | Unidade: " + (p.unidade || "N/D") +
+    " | Atividade: " + (p.atividade || "N/D") + " | Aba: " + (p.sheetName || "N/D") +
+    " | Linha: " + (p.rowNumber || "N/D") + "] Erro no navegador: " + (p.errMessage || "N/D");
+
+  Logger.log("Falha de conexão na Etapa 2 reportada pelo front: " + logDetails);
+  Utils.logError("Client.Etapa2 (falha de conexão reportada pelo navegador)", logDetails);
+  return Utils.createResponse(true, "Erro registrado.");
 }
 
 /**

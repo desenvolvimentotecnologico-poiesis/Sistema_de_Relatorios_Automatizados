@@ -255,7 +255,7 @@ function runDuplicateCheck(form, campos, aviso) {
       duplicateCheckMessage = response.detail || "Esta atividade já possui relatório enviado.";
 
       aviso.className = "status-box warning";
-      aviso.textContent = texto + ". Não é permitido enviar o relatório da mesma atividade duas vezes no mesmo período.";
+      aviso.textContent = texto + ". Não é permitido enviar o relatório da mesma atividade duas vezes no mesmo período. Para corrigir algum dado, entre em contato com sua supervisão.";
       aviso.style.display = "block";
       setSubmitBlocked(form, true);
 
@@ -1391,7 +1391,11 @@ function onStage1Success(response) {
 
     hideOverlay();
     enableFormSubmitBtn();
-    alert("Erro na Etapa 1: " + (response ? response.message : "Resposta nula"));
+    // Sem o prefixo técnico "Erro na Etapa 1": a mensagem do servidor já é educativa por si só nos
+    // casos mais comuns (campo obrigatório faltando, limite de fotos, etc.); só o fallback genérico
+    // (falha inesperada no backend) precisa da orientação extra de contato.
+    const motivo = (response && response.message) || "Não foi possível processar os dados enviados.";
+    alert(motivo + "\n\nSe o problema continuar, entre em contato pelo e-mail sistemasdegestao@poiesis.org.br.");
     return;
   }
 
@@ -1417,14 +1421,18 @@ function onStage1Success(response) {
       formData: formDataStage2
     },
     onStage2Success,
-    onStage2Error
+    (errMessage) => onStage2Error(errMessage, stage1Data, formDataStage2)
   );
 }
 
 function onStage1Error(errMessage) {
   hideOverlay();
   enableFormSubmitBtn();
-  alert("Erro de conexão na Etapa 1: " + errMessage);
+  // Diferente da Etapa 2, aqui nada foi salvo ainda — o educador precisa saber que precisa tentar
+  // de novo. O detalhe técnico (ex.: "Erro HTTP 404") só vai pro console; não ajuda o educador e
+  // só reforça a sensação de que algo quebrou.
+  console.error("Falha de conexão ao enviar o relatório:", errMessage);
+  alert("Não foi possível enviar seu relatório por uma falha de conexão. Verifique sua internet e tente novamente.\n\nSe o problema continuar, entre em contato pelo e-mail sistemasdegestao@poiesis.org.br.");
 }
 
 function onStage2Success(response) {
@@ -1433,13 +1441,36 @@ function onStage2Success(response) {
   if (response && response.success) {
     showSuccessCard(response.pdfUrl, response.docUrl);
   } else {
-    alert("O formulário foi salvo no Sheets/Drive, mas houve uma divergência ao compilar o PDF. Por favor, entre em contato com a equipe através do e-mail: sistemasdegestao@poiesis.org.br\n\nDetalhes: " + (response ? response.message : "Erro desconhecido"));
+    // O envio (Etapa 1) já foi concluído com sucesso antes deste ponto — só a geração do PDF
+    // para download automático falhou. Mostrar isso como um alerta técnico assusta o educador e o
+    // leva a tentar reenviar, esbarrando no bloqueio de duplicidade. Por isso reaproveitamos o
+    // próprio card de sucesso, só trocando a mensagem.
+    console.error("Falha ao compilar o PDF na Etapa 2:", response ? response.message : "Resposta nula");
+    showSuccessCardPdfIndisponivel();
   }
 }
 
-function onStage2Error(errMessage) {
+function onStage2Error(errMessage, stage1Data, formDataStage2) {
   hideOverlay();
-  alert("Aviso: Os dados foram salvos no Sheets, mas a compilação do PDF falhou na Etapa 2. Por favor, entre em contato através do e-mail: sistemasdegestao@poiesis.org.br\n\nDetalhes: " + errMessage);
+  enableFormSubmitBtn();
+  console.error("Falha de conexão ao compilar o PDF na Etapa 2:", errMessage);
+
+  // Diferente da falha tratada em onStage2Success, esta nunca chegou a rodar no backend (caiu
+  // antes de uma resposta válida), então generatePdfReportAsync não teve chance de gravar em
+  // _LOGS. Reportamos aqui para a equipe não depender só do e-mail do educador para saber que
+  // esse relatório ficou pendente de reconciliação. Melhor esforço: sem retomar tentativas nem
+  // travar a UI, que já vai seguir para o card de sucesso de qualquer forma.
+  const data = formDataStage2 || {};
+  callBackendAPI("logClientError", {
+    area: (stage1Data && stage1Data.area) || data.area,
+    unidade: data.unidade || data.centroAtendimento,
+    atividade: data.atividade,
+    sheetName: stage1Data && stage1Data.sheetName,
+    rowNumber: stage1Data && stage1Data.rowNumber,
+    errMessage: errMessage
+  }, null, null);
+
+  showSuccessCardPdfIndisponivel();
 }
 
 function showSuccessCard(pdfUrl, docUrl) {
@@ -1450,11 +1481,38 @@ function showSuccessCard(pdfUrl, docUrl) {
   if (successCard) {
     successCard.classList.remove("hidden");
     const pdfBtn = document.getElementById("pdfDownloadBtn");
-    if (pdfBtn && pdfUrl) {
-      pdfBtn.href = pdfUrl;
-      pdfBtn.target = "_blank";
+    if (pdfBtn) {
+      if (pdfUrl) {
+        pdfBtn.href = pdfUrl;
+        pdfBtn.target = "_blank";
+        pdfBtn.style.display = "";
+      } else {
+        // Sem PDF pronto para baixar agora (ver showSuccessCardPdfIndisponivel) — some com o
+        // botão em vez de deixar um link quebrado ("#").
+        pdfBtn.style.display = "none";
+      }
     }
   }
+}
+
+/**
+ * Reaproveita o card de sucesso para o caso em que os dados e as fotos já foram salvos (Etapa 1),
+ * mas a compilação do PDF (Etapa 2) não terminou. Para o educador o envio JÁ é um sucesso — o que
+ * importa (fotos + linha na planilha) está garantido — por isso o ícone e o título continuam os
+ * mesmos do sucesso "normal". Só o corpo do card muda, pra deixar claro que a cópia em PDF não
+ * ficou pronta agora e como pedir uma se fizer questão, em vez do texto padrão que promete o botão
+ * de download logo abaixo (que aqui não existe).
+ */
+function showSuccessCardPdfIndisponivel() {
+  const msgEl = document.getElementById("successCardMessage");
+  if (msgEl) {
+    msgEl.innerHTML = "Seu relatório foi enviado com sucesso e os dados já estão registrados em nosso sistema.<br><br>" +
+      "Por um erro inesperado, não foi possível gerar o PDF agora — mas isso não afeta o seu envio, que já está garantido. " +
+      "Se você fizer questão de ter a sua cópia, é só entrar em contato pelo e-mail <strong>sistemasdegestao@poiesis.org.br</strong> " +
+      "identificando a atividade, que a equipe te envia o arquivo.";
+  }
+
+  showSuccessCard(null, null);
 }
 
 function getSelectedUnidadeName() {
