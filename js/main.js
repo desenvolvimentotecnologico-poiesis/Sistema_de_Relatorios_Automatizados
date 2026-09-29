@@ -387,15 +387,19 @@ function onDropdownDataReceived(response) {
     unidadeSelect.disabled = false;
 
     // A Planilha de Listas Institucionais é global (uma aba = uma Unidade, compartilhada por
-    // todos os formulários). Nas Bibliotecas a Unidade "Iguape" foi substituída pela "Iguape
-    // Correios" — as outras áreas continuam usando "Iguape" normalmente, então a exclusão fica
-    // restrita ao formulário de Bibliotecas em vez de remover a aba da planilha.
+    // todos os formulários), então unidades que não fazem sentido num setor específico (ex.:
+    // Bibliotecas usa só "Iguape Correios", Articulação usa só "Iguape") são escondidas aqui por
+    // setor em vez de removidas da planilha, o que afetaria os demais formulários.
+    const UNIDADES_OCULTAS_POR_SETOR = {
+      "Bibliotecas": ["Iguape"],
+      "Articulação e Difusão": ["Iguape Correios"]
+    };
     const setorInput = document.querySelector('input[name="setor"]');
-    const isBibliotecas = setorInput && setorInput.value === "Bibliotecas";
+    const unidadesOcultas = (setorInput && UNIDADES_OCULTAS_POR_SETOR[setorInput.value]) || [];
 
     Object.keys(hierarchy).forEach(key => {
       if (key === "Fundação Casa") return;
-      if (isBibliotecas && key === "Iguape") return;
+      if (unidadesOcultas.includes(key)) return;
       const opt = document.createElement("option");
       opt.value = key;
       opt.textContent = key;
