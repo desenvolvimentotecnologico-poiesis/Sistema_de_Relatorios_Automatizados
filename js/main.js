@@ -298,6 +298,26 @@ function setSubmitBlocked(form, blocked) {
 }
 
 /**
+ * Mostra o aviso de duplicidade na caixa estilizada já usada pela consulta prévia (#reportStatusBox,
+ * ver setupDuplicateCheck), em vez de um alert() nativo do navegador. O texto já foi reescrito pra
+ * tranquilizar o educador, mas um alert() cru — com a barra de título do navegador e um botão "OK"
+ * — parece um erro do sistema independente do que o texto diga. Cai num alert() só se a caixa não
+ * existir (o formulário não tem os campos-chave de identificação, algo que não deveria acontecer
+ * numa resposta real de envio, mas não custa não deixar o educador sem nenhum aviso).
+ */
+function showDuplicateStatusBox(message) {
+  const aviso = document.getElementById("reportStatusBox");
+  if (!aviso) {
+    alert(message);
+    return;
+  }
+  aviso.className = "status-box warning";
+  aviso.textContent = message;
+  aviso.style.display = "block";
+  aviso.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+/**
  * Pede confirmação do navegador se a página for fechada ou recarregada durante o envio.
  *
  * O overlay já pede para não fechar a página, mas nada impedia o fechamento acidental. Fechar
@@ -1029,7 +1049,7 @@ function setupFormSubmission() {
     // está desabilitado pela consulta prévia, mas um submit disparado pelo teclado ou por um
     // navegador que ignore o estado do botão passaria por cima disso.
     if (reportAlreadySubmitted) {
-      alert(duplicateCheckMessage || "Esta atividade já possui relatório enviado. Não é permitido enviar duas vezes no mesmo período.");
+      showDuplicateStatusBox(duplicateCheckMessage || "Esta atividade já possui relatório enviado. Não é permitido enviar duas vezes no mesmo período.");
       setSubmitBlocked(form, true);
       return;
     }
@@ -1389,7 +1409,8 @@ function onStage1Success(response) {
       hideOverlay();
       // Um relatório já enviado não é falha do sistema: prefixar com "Erro na Etapa 1"
       // confundiria o educador. A mensagem do servidor já diz quando e por quem foi enviado.
-      alert(response.message);
+      // Mostrado na caixa estilizada (não num alert() nativo) para não parecer um erro do sistema.
+      showDuplicateStatusBox(response.message);
       return;
     }
 
