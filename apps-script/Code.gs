@@ -10,7 +10,7 @@
  * "a regra nova não funciona" é o Apps Script não ter sido reimplantado após colar os arquivos.
  * Incrementar a cada conjunto de mudanças publicado.
  */
-const BACKEND_VERSION = "2026-09-02.11 (Fundacao CASA: dias da semana + horario na identidade; reconciliacao manual de relatorios pendentes)";
+const BACKEND_VERSION = "2026-11-23.1 (unidade Sede: sigla SEDE nos nomes de arquivo)";
 
 /**
  * MANUTENÇÃO PROGRAMADA

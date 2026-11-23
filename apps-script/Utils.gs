@@ -262,7 +262,10 @@ var Utils = {
     if (norm.includes("OSASCO")) return "OSC";
     if (norm.includes("CACHOEIRINHA")) return "VNC";
     if (norm.includes("TAIPAS")) return "TAIPAS";
-    
+    // Palavra inteira (e não includes) para não capturar por engano outra unidade cujo nome
+    // contenha "SEDE" como trecho de palavra.
+    if (/\bSEDE\b/.test(norm)) return "SEDE";
+
     return this.sanitizeFileName(unidadeName).toUpperCase().replace(/\s+/g, "_");
   },
 

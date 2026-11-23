@@ -265,6 +265,8 @@ Não precisa mexer em código. Abra a **Planilha de Listas Institucionais**; cad
 
 A **coluna A** de cada linha é o **Tipo de Atividade** (Trilha, Ateliê, Curso de Férias, Núcleo de Moda, Folia 25, Folia 26...) e a **coluna B** é o **nome da Atividade**. Para Folia 25 e Folia 26 (Vila Nova Cachoeirinha), o sistema exige que a coluna A esteja **exatamente** `Folia 25` ou `Folia 26` — sem isso (ex.: só "Folia", ou com espaço/acento diferente), a atividade não aparece quando esse tipo é selecionado no formulário.
 
+**Nova unidade:** criar uma aba com o nome da unidade já basta para ela aparecer nos formulários Pedagógico, Articulação & Difusão e Bibliotecas, e as pastas no Drive (`[Ano]/[Unidade]/[Mês]`) são criadas sozinhas no primeiro envio. Só a **sigla** usada no nome dos arquivos depende de código (`Utils.getUnidadeSigla`); sem ela, o nome da unidade entra por extenso. Siglas cadastradas: CPR, DDM, HLP, IGC, IGP, JCN, BRL, JSL, OSC, VNC, TAIPAS e SEDE (unidade **Sede**, que não se aplica à Fundação CASA).
+
 ### B. Alterar o layout do relatório (PDF) — *Setor de Sistemas*
 Abra o **Google Docs** modelo da área. Pode mudar logotipos, cores de cabeçalho, ordem de parágrafos. **Mantenha as marcações entre chaves duplas** (`{{UNIDADE}}`, `{{RESPONSAVEL}}`, `{{ATIVIDADE}}`, `{{ANEXOS}}`, e — na Fundação CASA — `{{DIAS_SEMANA}}` e `{{HORARIO}}`), pois é onde o sistema insere os dados.
 
