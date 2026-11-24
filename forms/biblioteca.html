@@ -576,7 +576,11 @@
         // valores ocultos antes de aplicar o novo modo, evitando reenviar valores residuais.
         function applyMode(mode) {
           clearAllValues();
+          showMode(mode);
+        }
 
+        // Mostra/oculta os grupos e ajusta a obrigatoriedade conforme a resposta, sem apagar nada.
+        function showMode(mode) {
           const isSim = mode === "Sim";
           const isNao = mode === "Não";
 
@@ -589,17 +593,70 @@
           inputExecucao.required = isNao;
         }
 
+        function getSelectedMode() {
+          const marcado = Array.from(radios).find(function (r) { return r.checked; });
+          return marcado ? marcado.value : "";
+        }
+
+        // Realinha a tela e os campos ocultos com o que está de fato no formulário. O navegador
+        // pode restaurar o formulário sozinho (botão voltar, ou o Android recarregando uma aba
+        // descartada enquanto o educador está na câmera/galeria) sem disparar "change"/"input".
+        // Antes, nesse caso a resposta Sim/Não voltava marcada, mas o campo de nome ficava
+        // escondido e o "responsavel" oculto ia vazio — o servidor recusava com "Campos
+        // obrigatórios faltando" mesmo com a tela parecendo toda preenchida.
+        function syncFromCurrentState() {
+          const mode = getSelectedMode();
+          showMode(mode);
+          if (mode === "Sim") {
+            syncHiddenFromUnico();
+          } else if (mode === "Não") {
+            syncHiddenFromDuplo();
+          } else {
+            hiddenResponsavel.value = "";
+            hiddenResponsavelPreenchimento.value = "";
+          }
+        }
+
         radios.forEach(function (radio) {
           radio.addEventListener("change", function () {
             applyMode(radio.value);
           });
         });
 
-        inputUnico.addEventListener("input", syncHiddenFromUnico);
-        inputPreenchimento.addEventListener("input", syncHiddenFromDuplo);
-        inputExecucao.addEventListener("input", syncHiddenFromDuplo);
+        ["input", "change"].forEach(function (evento) {
+          inputUnico.addEventListener(evento, syncHiddenFromUnico);
+          inputPreenchimento.addEventListener(evento, syncHiddenFromDuplo);
+          inputExecucao.addEventListener(evento, syncHiddenFromDuplo);
+        });
 
-        applyMode("");
+        // A restauração do navegador pode acontecer depois do DOMContentLoaded; o "pageshow"
+        // roda depois dela (inclusive quando a página volta do cache de navegação).
+        window.addEventListener("pageshow", syncFromCurrentState);
+
+        // Última garantia antes do envio: na fase de captura do documento, roda antes do
+        // listener de envio do main.js. Se ainda assim faltar o nome, interrompe com um aviso
+        // claro em vez de deixar o servidor recusar com uma mensagem genérica.
+        document.addEventListener("submit", function (e) {
+          if (e.target !== document.getElementById("reportForm")) return;
+          syncFromCurrentState();
+
+          const mode = getSelectedMode();
+          if (mode && hiddenResponsavel.value.trim() && hiddenResponsavelPreenchimento.value.trim()) return;
+
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          let campo = inputUnico;
+          if (!mode) {
+            campo = radios[0];
+          } else if (mode === "Não") {
+            campo = inputPreenchimento.value.trim() ? inputExecucao : inputPreenchimento;
+          }
+          alert("Atenção: preencha o nome do responsável antes de enviar.");
+          campo.scrollIntoView({ behavior: "smooth", block: "center" });
+          campo.focus();
+        }, true);
+
+        syncFromCurrentState();
       });
     })();
   </script>
